@@ -1,0 +1,30 @@
+{
+  "endpoint": "GET http://localhost:3000/api/productos/restaurante/1",
+  "descripcion": "Obtener todos los productos de un restaurante específico",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "query_params": {
+    "activo": "true"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "count": 2,
+    "data": [
+      {
+        "id": 1,
+        "restaurante_id": 1,
+        "tipo_producto_id": 1,
+        "nombre": "Hamburguesa Clásica",
+        "descripcion": "Hamburguesa con carne de res, lechuga, tomate, cebolla y queso",
+        "precio": 15000,
+        "activo": true,
+        "tipo": {
+          "id": 1,
+          "nombre": "Comida Rápida"
+        }
+      }
+    ]
+  },
+  "notas": "Query params opcionales: activo=true/false"
+}

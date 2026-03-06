@@ -1,0 +1,28 @@
+{
+  "endpoint": "PUT http://localhost:3000/api/productos/1",
+  "descripcion": "Actualizar un producto existente",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "nombre": "Hamburguesa Especial",
+    "descripcion": "Hamburguesa premium con carne angus, tocino, queso cheddar y vegetales frescos",
+    "precio": 18000,
+    "imagen_url": "https://example.com/productos/hamburguesa-especial.jpg"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Producto actualizado exitosamente",
+    "data": {
+      "id": 1,
+      "restaurante_id": 1,
+      "tipo_producto_id": 1,
+      "nombre": "Hamburguesa Especial",
+      "descripcion": "Hamburguesa premium con carne angus, tocino, queso cheddar y vegetales frescos",
+      "imagen_url": "https://example.com/productos/hamburguesa-especial.jpg",
+      "precio": 18000,
+      "activo": true,
+      "fecha_actualizacion": "2026-03-06T15:30:00.000Z"
+    }
+  }
+}

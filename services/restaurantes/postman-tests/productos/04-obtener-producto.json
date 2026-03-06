@@ -1,0 +1,32 @@
+{
+  "endpoint": "GET http://localhost:3000/api/productos/1",
+  "descripcion": "Obtener un producto específico por ID",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "restaurante_id": 1,
+      "tipo_producto_id": 1,
+      "nombre": "Hamburguesa Clásica",
+      "descripcion": "Hamburguesa con carne de res, lechuga, tomate, cebolla y queso",
+      "imagen_url": "https://example.com/productos/hamburguesa.jpg",
+      "precio": 15000,
+      "activo": true,
+      "fecha_creacion": "2026-03-06T15:00:00.000Z",
+      "restaurante": {
+        "id": 1,
+        "nombre": "Restaurante El Buen Sabor",
+        "disponible": true,
+        "activo": true
+      },
+      "tipo": {
+        "id": 1,
+        "nombre": "Comida Rápida",
+        "descripcion": "Productos de preparación rápida"
+      }
+    }
+  }
+}

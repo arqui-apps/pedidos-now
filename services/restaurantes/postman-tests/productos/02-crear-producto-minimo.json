@@ -1,0 +1,28 @@
+{
+  "endpoint": "POST http://localhost:3000/api/productos",
+  "descripcion": "Crear producto con campos mínimos requeridos",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "restaurante_id": 1,
+    "tipo_producto_id": 2,
+    "nombre": "Pizza Margarita",
+    "precio": 25000
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Producto creado exitosamente",
+    "data": {
+      "id": 2,
+      "restaurante_id": 1,
+      "tipo_producto_id": 2,
+      "nombre": "Pizza Margarita",
+      "descripcion": null,
+      "imagen_url": null,
+      "precio": 25000,
+      "activo": true,
+      "fecha_creacion": "2026-03-06T15:00:00.000Z"
+    }
+  }
+}

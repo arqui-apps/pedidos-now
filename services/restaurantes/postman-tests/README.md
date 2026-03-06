@@ -21,6 +21,19 @@ Esta carpeta contiene los ejemplos de JSON para probar los endpoints del servici
 - `DELETE http://localhost:3000/api/restaurantes/:id` - Inactivar un restaurante
 - `PATCH http://localhost:3000/api/restaurantes/:id/disponibilidad` - Cambiar disponibilidad
 
+### Productos
+- `GET http://localhost:3000/api/productos` - Obtener todos los productos
+- `GET http://localhost:3000/api/productos/:id` - Obtener un producto específico
+- `GET http://localhost:3000/api/productos/restaurante/:restaurante_id` - Obtener productos por restaurante
+- `POST http://localhost:3000/api/productos` - Crear un producto
+- `PUT http://localhost:3000/api/productos/:id` - Actualizar un producto
+- `DELETE http://localhost:3000/api/productos/:id` - Inactivar un producto
+- `PATCH http://localhost:3000/api/productos/:id/activo` - Activar/desactivar producto
+
 ## 📁 Archivos de prueba
 
 Cada archivo JSON contiene ejemplos de peticiones para probar diferentes escenarios.
+
+### Estructura
+- `/restaurantes/` - Pruebas para el módulo de restaurantes
+- `/productos/` - Pruebas para el módulo de productos
