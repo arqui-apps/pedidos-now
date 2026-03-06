@@ -1,0 +1,29 @@
+{
+  "endpoint": "PATCH http://localhost:3000/api/restaurantes/:id/disponibilidad",
+  "descripcion": "Cambiar la disponibilidad de un restaurante (abrir/cerrar temporalmente)",
+  "ejemplo": "PATCH http://localhost:3000/api/restaurantes/1/disponibilidad",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body_opcion_1": {
+    "disponible": true
+  },
+  "body_opcion_2": {
+    "disponible": false
+  },
+  "body_opcion_3": {},
+  "nota_body_vacio": "Si no envías el campo 'disponible', hará toggle (si estaba true pasa a false y viceversa)",
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Restaurante disponible",
+    "data": {
+      "disponible": true
+    }
+  },
+  "error_restaurante_inactivo": {
+    "respuesta": {
+      "success": false,
+      "message": "No se puede cambiar disponibilidad de un restaurante inactivo"
+    }
+  }
+}

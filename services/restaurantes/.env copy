@@ -1,0 +1,19 @@
+# Configuración del Servidor
+NODE_ENV=development
+PORT=3000
+
+# Base de Datos
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+
+# JWT Secret
+JWT_SECRET=tu_jwt_secret_aqui
+
+# Servicios Externos
+AUTH_SERVICE_URL=http://localhost:3001
+BROKER_SERVICE_URL=http://localhost:3002
+DESCUENTOS_SERVICE_URL=http://localhost:3003
+COBROS_SERVICE_URL=http://localhost:3004

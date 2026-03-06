@@ -1,0 +1,29 @@
+{
+  "endpoint": "GET http://localhost:3000/api/restaurantes/:id",
+  "descripcion": "Obtener un restaurante específico por ID",
+  "ejemplo": "GET http://localhost:3000/api/restaurantes/1",
+  "headers": {},
+  "respuesta_esperada": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "nombre": "Restaurante El Buen Sabor",
+      "descripcion": "Restaurante de comida casera y tradicional",
+      "direccion": "Calle Principal #123, Ciudad",
+      "telefono": "+57 300 1234567",
+      "correo": "contacto@buensabor.com",
+      "logo_url": "https://example.com/logos/buensabor.png",
+      "disponible": true,
+      "activo": true,
+      "fecha_registro": "2026-03-06T15:00:00.000Z",
+      "horarios": []
+    }
+  },
+  "error_404": {
+    "ejemplo": "GET http://localhost:3000/api/restaurantes/999",
+    "respuesta": {
+      "success": false,
+      "message": "Restaurante no encontrado"
+    }
+  }
+}

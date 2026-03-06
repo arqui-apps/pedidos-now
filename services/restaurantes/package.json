@@ -8,21 +8,27 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["restaurantes", "microservicio", "node", "express", "sequelize"],
+  "keywords": [
+    "restaurantes",
+    "microservicio",
+    "node",
+    "express",
+    "sequelize"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "sequelize": "^6.35.0",
-    "mysql2": "^3.6.5",
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "mysql2": "^3.6.5",
+    "sequelize": "^6.35.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
+    "nodemon": "^3.1.14",
     "sequelize-cli": "^6.6.2"
   }
 }

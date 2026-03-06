@@ -1,4 +1,4 @@
-const { Restaurante, HorarioRestaurante } = require('../models');
+const { Restaurante, HorarioRestaurante } = require('../../models');
 
 // Obtener todos los restaurantes con filtros opcionales
 exports.getAll = async (req, res, next) => {
