@@ -1,0 +1,12 @@
+{
+  "endpoint": "DELETE http://localhost:3000/api/productos/1",
+  "descripcion": "Eliminar (inactivar) un producto",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Producto inactivado exitosamente"
+  },
+  "notas": "Este endpoint no elimina físicamente el producto, solo lo marca como inactivo"
+}

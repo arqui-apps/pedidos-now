@@ -1,0 +1,30 @@
+{
+  "endpoint": "PUT http://localhost:3000/api/restaurantes/:id",
+  "descripcion": "Actualizar un restaurante existente",
+  "ejemplo": "PUT http://localhost:3000/api/restaurantes/1",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "nombre": "Restaurante El Buen Sabor - Actualizado",
+    "descripcion": "Restaurante de comida casera, tradicional y vegana",
+    "telefono": "+57 300 9876543",
+    "disponible": true
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Restaurante actualizado exitosamente",
+    "data": {
+      "id": 1,
+      "nombre": "Restaurante El Buen Sabor - Actualizado",
+      "descripcion": "Restaurante de comida casera, tradicional y vegana",
+      "telefono": "+57 300 9876543",
+      "disponible": true,
+      "fecha_actualizacion": "2026-03-06T15:05:00.000Z"
+    }
+  },
+  "notas": [
+    "Puedes actualizar solo los campos que necesites",
+    "Los campos no enviados mantendrán su valor actual"
+  ]
+}

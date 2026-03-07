@@ -1,0 +1,32 @@
+{
+  "endpoint": "GET http://localhost:3000/api/productos",
+  "descripcion": "Obtener todos los productos",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "query_params": {
+    "activo": "true"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "count": 2,
+    "data": [
+      {
+        "id": 1,
+        "nombre": "Hamburguesa Clásica",
+        "descripcion": "Hamburguesa con carne de res, lechuga, tomate, cebolla y queso",
+        "precio": 15000,
+        "activo": true,
+        "restaurante": {
+          "id": 1,
+          "nombre": "Restaurante El Buen Sabor"
+        },
+        "tipo": {
+          "id": 1,
+          "nombre": "Comida Rápida"
+        }
+      }
+    ]
+  },
+  "notas": "Query params opcionales: activo=true/false, restaurante_id=1, tipo_producto_id=1"
+}

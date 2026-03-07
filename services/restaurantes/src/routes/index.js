@@ -9,6 +9,7 @@ const router = express.Router();
 
 // Importar rutas de módulos
 const restauranteRoutes = require('./restaurantes/restaurante.routes');
+const productoRoutes = require('./productos/producto.routes');
 
 // ============================================================
 // REGISTRAR RUTAS
@@ -16,6 +17,9 @@ const restauranteRoutes = require('./restaurantes/restaurante.routes');
 
 // Restaurantes
 router.use('/restaurantes', restauranteRoutes);
+
+// Productos
+router.use('/productos', productoRoutes);
 
 // ============================================================
 // EXPORTAR ROUTER PRINCIPAL
