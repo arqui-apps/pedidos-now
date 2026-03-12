@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model attachments {
+  id         String    @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  message_id String    @db.Char(36)
+  file_name  String?   @db.VarChar(255)
+  url        String    @db.Text
+  mime_type  String?   @db.VarChar(120)
+  size_bytes BigInt?   @db.UnsignedBigInt
+  deleted_at DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  messages   messages  @relation(fields: [message_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachments_message")
+
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([message_id], map: "idx_message")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model chat_availability {
+  id                 String    @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  day_of_week        Int       @db.UnsignedTinyInt
+  start_time         DateTime  @db.Time(0)
+  end_time           DateTime  @db.Time(0)
+  enabled            Boolean   @default(true)
+  timezone           String    @default("America/Guatemala") @db.VarChar(64)
+  deleted_at         DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @default(now())
+  active_day_of_week Int?      @unique(map: "uk_active_day_of_week") @db.UnsignedTinyInt
+
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([enabled], map: "idx_enabled")
+}
+
+model conversations {
+  id                     String                       @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  requester_type         conversations_requester_type
+  requester_ext_id       String                       @db.VarChar(64)
+  assigned_agent_ext_id  String?                      @db.VarChar(64)
+  case_type              conversations_case_type      @default(OTHER)
+  case_reference         String?                      @db.VarChar(64)
+  status                 conversations_status         @default(IN_QUEUE)
+  subject                String?                      @db.VarChar(255)
+  opened_at              DateTime                     @default(now())
+  last_activity_at       DateTime                     @default(now())
+  last_user_message_at   DateTime?
+  last_agent_message_at  DateTime?
+  closed_at              DateTime?
+  close_reason           conversations_close_reason?
+  inactivity_minutes     Int                          @default(5) @db.UnsignedSmallInt
+  inactivity_deadline_at DateTime?
+  is_live                Boolean                      @default(true)
+  out_of_hours           Boolean                      @default(false)
+  deleted_at             DateTime?
+  created_at             DateTime                     @default(now())
+  updated_at             DateTime                     @default(now())
+  events                 events[]
+  messages               messages[]
+  metrics                metrics?
+  participants           participants[]
+  status_history         status_history[]
+
+  @@index([assigned_agent_ext_id], map: "idx_agent")
+  @@index([case_type, case_reference], map: "idx_case")
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([last_activity_at], map: "idx_last_activity")
+  @@index([requester_ext_id, requester_type], map: "idx_requester")
+  @@index([status], map: "idx_status")
+}
+
+model events {
+  id              String        @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  conversation_id String        @db.Char(36)
+  event_type      String        @db.VarChar(60)
+  payload         Json?
+  deleted_at      DateTime?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now())
+  conversations   conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_events_conversation")
+
+  @@index([conversation_id, created_at], map: "idx_conversation_event_time")
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([event_type], map: "idx_event_type")
+}
+
+model messages {
+  id                String                @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  conversation_id   String                @db.Char(36)
+  sender_role       messages_sender_role
+  sender_ext_id     String?               @db.VarChar(64)
+  message_type      messages_message_type @default(TEXT)
+  content           String                @db.Text
+  client_message_id String?               @db.VarChar(64)
+  sent_at           DateTime              @default(now())
+  deleted_at        DateTime?
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @default(now())
+  attachments       attachments[]
+  conversations     conversations         @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_messages_conversation")
+
+  @@unique([conversation_id, client_message_id], map: "uk_conversation_client_msg")
+  @@index([conversation_id, sent_at], map: "idx_conversation_time")
+  @@index([deleted_at], map: "idx_deleted")
+}
+
+model metrics {
+  conversation_id         String        @id @db.Char(36)
+  total_messages          Int           @default(0) @db.UnsignedInt
+  total_user_messages     Int           @default(0) @db.UnsignedInt
+  total_agent_messages    Int           @default(0) @db.UnsignedInt
+  first_agent_response_ms BigInt?       @db.UnsignedBigInt
+  total_agent_response_ms BigInt        @default(0) @db.UnsignedBigInt
+  agent_response_count    Int           @default(0) @db.UnsignedInt
+  resolved_at             DateTime?
+  time_to_close_ms        BigInt?       @db.UnsignedBigInt
+  deleted_at              DateTime?
+  created_at              DateTime      @default(now())
+  updated_at              DateTime      @default(now())
+  conversations           conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_metrics_conversation")
+
+  @@index([deleted_at], map: "idx_deleted")
+}
+
+model participants {
+  conversation_id    String            @db.Char(36)
+  participant_ext_id String            @db.VarChar(64)
+  role               participants_role
+  display_name       String?           @db.VarChar(120)
+  joined_at          DateTime          @default(now())
+  left_at            DateTime?
+  deleted_at         DateTime?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @default(now())
+  conversations      conversations     @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_participants_conversation")
+
+  @@id([conversation_id, participant_ext_id])
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([role], map: "idx_role")
+}
+
+model status_history {
+  id                String                         @id @default(dbgenerated("(uuid())")) @db.Char(36)
+  conversation_id   String                         @db.Char(36)
+  previous_status   String?                        @db.VarChar(40)
+  new_status        String                         @db.VarChar(40)
+  changed_by_role   status_history_changed_by_role @default(SYSTEM)
+  changed_by_ext_id String?                        @db.VarChar(64)
+  reason            String?                        @db.VarChar(255)
+  changed_at        DateTime                       @default(now())
+  deleted_at        DateTime?
+  created_at        DateTime                       @default(now())
+  updated_at        DateTime                       @default(now())
+  conversations     conversations                  @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_status_history_conversation")
+
+  @@index([conversation_id, changed_at], map: "idx_conversation_change")
+  @@index([deleted_at], map: "idx_deleted")
+  @@index([new_status], map: "idx_new_status")
+}
+
+enum conversations_requester_type {
+  CUSTOMER
+  COURIER
+  BUSINESS
+}
+
+enum messages_sender_role {
+  USER
+  AGENT
+  SYSTEM
+}
+
+enum participants_role {
+  USER
+  AGENT
+}
+
+enum conversations_case_type {
+  ORDER
+  DELIVERY
+  BUSINESS_CASE
+  OTHER
+}
+
+enum messages_message_type {
+  TEXT
+  AUTO_OPEN
+  AUTO_CLOSE
+  AUTO_OUT_OF_HOURS
+  SYSTEM_NOTE
+}
+
+enum status_history_changed_by_role {
+  USER
+  AGENT
+  SYSTEM
+}
+
+enum conversations_status {
+  OPEN
+  IN_QUEUE
+  RESOLVED_NO_SOLUTION
+  RESOLVED_COUPON
+  RESOLVED_REFUND
+  CLOSED_TIMEOUT
+  CLOSED_MANUAL
+  CLOSED_OUT_OF_HOURS
+}
+
+enum conversations_close_reason {
+  TIMEOUT
+  MANUAL
+  OUT_OF_HOURS
+  SYSTEM
+}
