@@ -3,40 +3,40 @@ const router = express.Router();
 const courierStatusController = require('../controllers/courier_status.controller');
 
 /**
- * @route   GET /api/courier-status/:courierId
+ * @route   GET /:courierId
  * @desc    Obtener el estado actual de un repartidor
  * @access  Public
  */
-router.get('/courier-status/:courierId', courierStatusController.getCurrentStatus);
+router.get('/:courierId', courierStatusController.getCurrentStatus);
 
 /**
- * @route   POST /api/courier-status/:courierId/change
+ * @route   POST /:courierId/change
  * @desc    Cambiar el estado de un repartidor
  * @body    { newStatusName: string, reason?: string }
  * @access  Public
  */
-router.post('/courier-status/:courierId/change', courierStatusController.changeStatus);
+router.post('/:courierId/change', courierStatusController.changeStatus);
 
 /**
- * @route   GET /api/courier-status/:courierId/valid-transitions
+ * @route   GET /:courierId/valid-transitions
  * @desc    Obtener las transiciones válidas desde el estado actual
  * @access  Public
  */
-router.get('/courier-status/:courierId/valid-transitions', courierStatusController.getValidTransitions);
+router.get('/:courierId/valid-transitions', courierStatusController.getValidTransitions);
 
 /**
- * @route   GET /api/courier-status-types
+ * @route   GET /types
  * @desc    Obtener todos los tipos de estado disponibles
  * @access  Public
  */
-router.get('/courier-status-types', courierStatusController.getAllStatusTypes);
+router.get('/types', courierStatusController.getAllStatusTypes);
 
 /**
- * @route   POST /api/courier-status/initialize
+ * @route   POST /initialize
  * @desc    Inicializar el estado de un nuevo repartidor (uso interno)
  * @body    { courierId: number, initialStatus?: string }
  * @access  Private (normalmente usado por admin)
  */
-router.post('/courier-status/initialize', courierStatusController.initializeStatus);
+router.post('/initialize', courierStatusController.initializeStatus);
 
 module.exports = router;
