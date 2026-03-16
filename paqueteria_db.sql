@@ -91,3 +91,39 @@ CREATE TABLE package (
         FOREIGN KEY (id_shipment)
         REFERENCES shipment(id_shipment)
 );
+
+-- =========================
+-- TABLE: courier_status_type (Tipos de estado del repartidor)
+-- =========================
+CREATE TABLE courier_status_type (
+    id_status INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insertar los estados por defecto
+INSERT INTO courier_status_type (name, description) VALUES
+('Disponible', 'Repartidor en línea y puede tomar pedidos'),
+('Ocupado', 'Repartidor tiene un pedido en curso'),
+('Desconectado', 'Repartidor no está en la aplicación'),
+('Inactivo', 'Repartidor ya no trabaja en la aplicación (borrado lógico)');
+
+-- =========================
+-- TABLE: courier_status (Estado actual del repartidor)
+-- =========================
+CREATE TABLE courier_status (
+    id_courier_status INT AUTO_INCREMENT PRIMARY KEY,
+    id_courier INT NOT NULL UNIQUE,
+    id_status INT NOT NULL,
+    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_courier_status_courier
+        FOREIGN KEY (id_courier)
+        REFERENCES courier(id_courier) ON DELETE CASCADE,
+
+    CONSTRAINT fk_courier_status_type
+        FOREIGN KEY (id_status)
+        REFERENCES courier_status_type(id_status)
+);
