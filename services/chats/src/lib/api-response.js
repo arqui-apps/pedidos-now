@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 
+function serializeForJson(data) {
+  return JSON.parse(
+    JSON.stringify(data, (_key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    )
+  );
+}
+
 export function successResponse({ data = null, message = null, status = 200 } = {}) {
   const body = {
     success: true,
-    data,
+    data: serializeForJson(data),
   };
 
   if (message) {
@@ -28,7 +36,7 @@ export function errorResponse({
   };
 
   if (details) {
-    body.error.details = details;
+    body.error.details = serializeForJson(details);
   }
 
   return NextResponse.json(body, { status });
