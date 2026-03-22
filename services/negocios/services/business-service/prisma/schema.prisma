@@ -1,0 +1,719 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model business {
+  business_id                  Int                            @id @default(autoincrement()) @db.UnsignedInt
+  trade_name                   String                         @db.VarChar(150)
+  legal_name                   String?                        @db.VarChar(200)
+  business_type                business_business_type
+  business_status              business_business_status       @default(active)
+  description                  String?                        @db.Text
+  address                      String?                        @db.Text
+  phone                        String?                        @db.VarChar(20)
+  email                        String?                        @unique(map: "uq_business_email") @db.VarChar(150)
+  tax_id                       String?                        @unique(map: "uq_business_tax_id") @db.VarChar(30)
+  retired_at                   DateTime?                      @db.DateTime(0)
+  retirement_reason            String?                        @db.Text
+  deleted_at                   DateTime?                      @db.DateTime(0)
+  deletion_reason              String?                        @db.Text
+  created_at                   DateTime                       @default(now()) @db.DateTime(0)
+  updated_at                   DateTime                       @default(now()) @db.DateTime(0)
+  business_order               business_order[]
+  business_promotion_reference business_promotion_reference[]
+  business_promotion_request   business_promotion_request[]
+  business_schedule            business_schedule[]
+  cancellation_penalty_rule    cancellation_penalty_rule[]
+  daily_business_metric        daily_business_metric[]
+  inventory_reservation        inventory_reservation[]
+  product                      product[]
+  product_type                 product_type[]
+  temporary_business_closure   temporary_business_closure[]
+
+  @@index([deleted_at], map: "idx_business_deleted_at")
+  @@index([business_status], map: "idx_business_status")
+  @@index([business_type], map: "idx_business_type")
+}
+
+model business_order {
+  business_order_id              Int                                      @id @default(autoincrement()) @db.UnsignedInt
+  external_order_code            String                                   @unique(map: "uq_business_order_external_code") @db.VarChar(64)
+  business_id                    Int                                      @db.UnsignedInt
+  external_customer_id           Int                                      @db.UnsignedInt
+  inventory_reservation_id       Int?                                     @db.UnsignedInt
+  external_payment_code          String?                                  @db.VarChar(64)
+  order_status                   business_order_order_status              @default(pending_validation)
+  financial_status_snapshot      business_order_financial_status_snapshot @default(pending)
+  base_subtotal_snapshot         Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  total_discount_amount_snapshot Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  service_fee_amount_snapshot    Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  tip_amount_snapshot            Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  total_paid_amount_snapshot     Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  currency                       String                                   @default("gtq") @db.Char(3)
+  payment_approved_at            DateTime?                                @db.DateTime(0)
+  cancelled_by                   business_order_cancelled_by?
+  cancellation_reason            String?                                  @db.Text
+  penalty_applied                Int                                      @default(0) @db.UnsignedTinyInt
+  penalty_type_snapshot          business_order_penalty_type_snapshot?
+  penalty_value_snapshot         Decimal?                                 @db.Decimal(10, 2)
+  penalty_amount_snapshot        Decimal?                                 @db.Decimal(10, 2)
+  created_at                     DateTime                                 @default(now()) @db.DateTime(0)
+  updated_at                     DateTime                                 @default(now()) @db.DateTime(0)
+  business                       business                                 @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_business")
+  inventory_reservation          inventory_reservation?                   @relation(fields: [inventory_reservation_id], references: [inventory_reservation_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_reservation")
+  business_order_delivery        business_order_delivery?
+  business_order_detail          business_order_detail[]
+  business_order_status_history  business_order_status_history[]
+
+  @@index([inventory_reservation_id], map: "fk_business_order_reservation")
+  @@index([business_id], map: "idx_business_order_business")
+  @@index([created_at], map: "idx_business_order_created_at")
+  @@index([external_customer_id], map: "idx_business_order_ext_customer")
+  @@index([financial_status_snapshot], map: "idx_business_order_fin_status")
+  @@index([order_status], map: "idx_business_order_status")
+}
+
+model business_order_delivery {
+  business_order_delivery_id             Int                                      @id @default(autoincrement()) @db.UnsignedInt
+  business_order_id                      Int                                      @unique(map: "uq_business_order_delivery_order") @db.UnsignedInt
+  delivery_type                          business_order_delivery_delivery_type    @default(home_delivery)
+  delivery_status                        business_order_delivery_delivery_status  @default(pending_assignment)
+  external_courier_id                    Int?                                     @db.UnsignedInt
+  recipient_name_snapshot                String?                                  @db.VarChar(150)
+  recipient_phone_snapshot               String?                                  @db.VarChar(20)
+  delivery_address_snapshot              String?                                  @db.Text
+  delivery_reference_snapshot            String?                                  @db.Text
+  delivery_notes_snapshot                String?                                  @db.Text
+  estimated_distance_km                  Decimal?                                 @db.Decimal(8, 2)
+  estimated_travel_minutes               Int?                                     @db.UnsignedInt
+  base_delivery_fee_snapshot             Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  final_delivery_fee_snapshot            Decimal                                  @default(0.00) @db.Decimal(10, 2)
+  has_fee_adjustment                     Int                                      @default(0) @db.UnsignedTinyInt
+  assigned_at                            DateTime?                                @db.DateTime(0)
+  picked_up_at                           DateTime?                                @db.DateTime(0)
+  delivered_at                           DateTime?                                @db.DateTime(0)
+  cancelled_at                           DateTime?                                @db.DateTime(0)
+  created_at                             DateTime                                 @default(now()) @db.DateTime(0)
+  updated_at                             DateTime                                 @default(now()) @db.DateTime(0)
+  business_order                         business_order                           @relation(fields: [business_order_id], references: [business_order_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_delivery_order")
+  business_order_delivery_fee_adjustment business_order_delivery_fee_adjustment[]
+  business_order_delivery_status_history business_order_delivery_status_history[]
+
+  @@index([created_at], map: "idx_business_order_delivery_created_at")
+  @@index([external_courier_id], map: "idx_business_order_delivery_ext_courier")
+  @@index([delivery_status], map: "idx_business_order_delivery_status")
+  @@index([delivery_type], map: "idx_business_order_delivery_type")
+}
+
+model business_order_delivery_fee_adjustment {
+  business_order_delivery_fee_adjustment_id Int                                                      @id @default(autoincrement()) @db.UnsignedInt
+  business_order_delivery_id                Int                                                      @db.UnsignedInt
+  external_courier_id                       Int?                                                     @db.UnsignedInt
+  requested_extra_fee                       Decimal                                                  @db.Decimal(10, 2)
+  approved_extra_fee                        Decimal?                                                 @db.Decimal(10, 2)
+  adjustment_status                         business_order_delivery_fee_adjustment_adjustment_status @default(requested)
+  reason_type                               business_order_delivery_fee_adjustment_reason_type
+  reason_detail                             String?                                                  @db.Text
+  requested_at                              DateTime                                                 @default(now()) @db.DateTime(0)
+  resolved_at                               DateTime?                                                @db.DateTime(0)
+  created_at                                DateTime                                                 @default(now()) @db.DateTime(0)
+  updated_at                                DateTime                                                 @default(now()) @db.DateTime(0)
+  business_order_delivery                   business_order_delivery                                  @relation(fields: [business_order_delivery_id], references: [business_order_delivery_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_delivery_fee_adj_delivery")
+
+  @@index([business_order_delivery_id], map: "idx_business_order_delivery_fee_adj_delivery")
+  @@index([external_courier_id], map: "idx_business_order_delivery_fee_adj_ext_courier")
+  @@index([reason_type], map: "idx_business_order_delivery_fee_adj_reason")
+  @@index([requested_at], map: "idx_business_order_delivery_fee_adj_requested")
+  @@index([adjustment_status], map: "idx_business_order_delivery_fee_adj_status")
+}
+
+model business_order_delivery_status_history {
+  business_order_delivery_status_history_id Int                                                     @id @default(autoincrement()) @db.UnsignedInt
+  business_order_delivery_id                Int                                                     @db.UnsignedInt
+  previous_status                           business_order_delivery_status_history_previous_status?
+  new_status                                business_order_delivery_status_history_new_status
+  status_origin                             business_order_delivery_status_history_status_origin
+  observation                               String?                                                 @db.Text
+  created_at                                DateTime                                                @default(now()) @db.DateTime(0)
+  business_order_delivery                   business_order_delivery                                 @relation(fields: [business_order_delivery_id], references: [business_order_delivery_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_delivery_status_hist_delivery")
+
+  @@index([created_at], map: "idx_business_order_delivery_status_hist_created")
+  @@index([business_order_delivery_id], map: "idx_business_order_delivery_status_hist_delivery")
+  @@index([new_status], map: "idx_business_order_delivery_status_hist_new")
+  @@index([status_origin], map: "idx_business_order_delivery_status_hist_origin")
+}
+
+model business_order_detail {
+  business_order_detail_id        Int            @id @default(autoincrement()) @db.UnsignedInt
+  business_order_id               Int            @db.UnsignedInt
+  product_id                      Int            @db.UnsignedInt
+  product_type_id                 Int            @db.UnsignedInt
+  business_promotion_reference_id Int?           @db.UnsignedInt
+  product_name_snapshot           String         @db.VarChar(180)
+  product_description_snapshot    String?        @db.Text
+  product_type_name_snapshot      String         @db.VarChar(120)
+  base_unit_price_snapshot        Decimal        @db.Decimal(10, 2)
+  quantity                        Int            @db.UnsignedInt
+  base_subtotal_snapshot          Decimal        @db.Decimal(10, 2)
+  has_promotion_snapshot          Int            @default(0) @db.UnsignedTinyInt
+  created_at                      DateTime       @default(now()) @db.DateTime(0)
+  updated_at                      DateTime       @default(now()) @db.DateTime(0)
+  business_order                  business_order @relation(fields: [business_order_id], references: [business_order_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_detail_order")
+  product_type                    product_type   @relation(fields: [product_type_id], references: [product_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_detail_prod_type")
+  product                         product        @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_detail_product")
+
+  @@index([business_order_id], map: "idx_business_order_detail_order")
+  @@index([product_type_id], map: "idx_business_order_detail_prod_type")
+  @@index([product_id], map: "idx_business_order_detail_product")
+}
+
+model business_order_status_history {
+  business_order_status_history_id Int                                            @id @default(autoincrement()) @db.UnsignedInt
+  business_order_id                Int                                            @db.UnsignedInt
+  previous_status                  business_order_status_history_previous_status?
+  new_status                       business_order_status_history_new_status
+  status_origin                    business_order_status_history_status_origin
+  observation                      String?                                        @db.Text
+  created_at                       DateTime                                       @default(now()) @db.DateTime(0)
+  business_order                   business_order                                 @relation(fields: [business_order_id], references: [business_order_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_order_status_hist_order")
+
+  @@index([created_at], map: "idx_business_order_status_hist_created")
+  @@index([new_status], map: "idx_business_order_status_hist_new")
+  @@index([business_order_id], map: "idx_business_order_status_hist_order")
+  @@index([status_origin], map: "idx_business_order_status_hist_origin")
+}
+
+model business_promotion_reference {
+  business_promotion_reference_id Int                                                    @id @default(autoincrement()) @db.UnsignedInt
+  business_id                     Int                                                    @db.UnsignedInt
+  external_promotion_id           Int                                                    @db.UnsignedInt
+  external_promotion_request_id   Int?                                                   @db.UnsignedInt
+  scope_type                      business_promotion_reference_scope_type
+  product_id                      Int?                                                   @db.UnsignedInt
+  product_type_id                 Int?                                                   @db.UnsignedInt
+  promotion_name_snapshot         String                                                 @db.VarChar(150)
+  promotion_description_snapshot  String?                                                @db.Text
+  discount_type_snapshot          business_promotion_reference_discount_type_snapshot
+  discount_value_snapshot         Decimal                                                @db.Decimal(10, 2)
+  start_at_snapshot               DateTime                                               @db.DateTime(0)
+  end_at_snapshot                 DateTime                                               @db.DateTime(0)
+  start_time_snapshot             DateTime?                                              @db.Time(0)
+  end_time_snapshot               DateTime?                                              @db.Time(0)
+  promotion_status_snapshot       business_promotion_reference_promotion_status_snapshot @default(active)
+  is_currently_valid              Int                                                    @default(1) @db.UnsignedTinyInt
+  show_in_catalog                 Int                                                    @default(1) @db.UnsignedTinyInt
+  created_at                      DateTime                                               @default(now()) @db.DateTime(0)
+  updated_at                      DateTime                                               @default(now()) @db.DateTime(0)
+  business                        business                                               @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_promo_ref_business")
+  product_type                    product_type?                                          @relation(fields: [product_type_id], references: [product_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_promo_ref_prod_type")
+  product                         product?                                               @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_promo_ref_product")
+  promotion_sync_history          promotion_sync_history[]
+
+  @@index([business_id], map: "idx_business_promo_ref_business")
+  @@index([external_promotion_id], map: "idx_business_promo_ref_ext_promo")
+  @@index([product_type_id], map: "idx_business_promo_ref_prod_type")
+  @@index([product_id], map: "idx_business_promo_ref_product")
+  @@index([scope_type], map: "idx_business_promo_ref_scope_type")
+  @@index([promotion_status_snapshot], map: "idx_business_promo_ref_status")
+  @@index([is_currently_valid], map: "idx_business_promo_ref_valid")
+}
+
+model business_promotion_request {
+  business_promotion_request_id Int                                                @id @default(autoincrement()) @db.UnsignedInt
+  business_id                   Int                                                @db.UnsignedInt
+  external_promotion_request_id Int?                                               @db.UnsignedInt
+  external_promotion_id         Int?                                               @db.UnsignedInt
+  requested_name                String                                             @db.VarChar(150)
+  requested_description         String?                                            @db.Text
+  requested_discount_type       business_promotion_request_requested_discount_type
+  requested_discount_value      Decimal                                            @db.Decimal(10, 2)
+  requested_start_at            DateTime                                           @db.DateTime(0)
+  requested_end_at              DateTime                                           @db.DateTime(0)
+  requested_start_time          DateTime?                                          @db.Time(0)
+  requested_end_time            DateTime?                                          @db.Time(0)
+  current_order_count_snapshot  Int                                                @default(0) @db.UnsignedInt
+  local_request_status          business_promotion_request_local_request_status    @default(pending_send)
+  rejection_reason              String?                                            @db.Text
+  external_response_at          DateTime?                                          @db.DateTime(0)
+  created_at                    DateTime                                           @default(now()) @db.DateTime(0)
+  updated_at                    DateTime                                           @default(now()) @db.DateTime(0)
+  business                      business                                           @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_promotion_request_business")
+  promotion_request_scope       promotion_request_scope[]
+
+  @@index([business_id], map: "idx_business_promotion_request_business")
+  @@index([external_promotion_id], map: "idx_business_promotion_request_ext_promo")
+  @@index([external_promotion_request_id], map: "idx_business_promotion_request_ext_req")
+  @@index([local_request_status], map: "idx_business_promotion_request_status")
+}
+
+model business_schedule {
+  business_schedule_id Int                           @id @default(autoincrement()) @db.UnsignedInt
+  business_id          Int                           @db.UnsignedInt
+  day_of_week          business_schedule_day_of_week
+  opening_time         DateTime?                     @db.Time(0)
+  closing_time         DateTime?                     @db.Time(0)
+  is_open              Int                           @default(1) @db.UnsignedTinyInt
+  created_at           DateTime                      @default(now()) @db.DateTime(0)
+  updated_at           DateTime                      @default(now()) @db.DateTime(0)
+  business             business                      @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_schedule_business")
+
+  @@unique([business_id, day_of_week], map: "uq_business_schedule_day")
+  @@index([day_of_week], map: "idx_business_schedule_day")
+}
+
+model cancellation_penalty_rule {
+  cancellation_penalty_rule_id Int                                               @id @default(autoincrement()) @db.UnsignedInt
+  business_id                  Int                                               @db.UnsignedInt
+  applicable_order_status      cancellation_penalty_rule_applicable_order_status
+  penalty_type                 cancellation_penalty_rule_penalty_type
+  penalty_value                Decimal                                           @db.Decimal(10, 2)
+  is_active                    Int                                               @default(1) @db.UnsignedTinyInt
+  description                  String?                                           @db.Text
+  created_at                   DateTime                                          @default(now()) @db.DateTime(0)
+  updated_at                   DateTime                                          @default(now()) @db.DateTime(0)
+  business                     business                                          @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cancel_penalty_rule_business")
+
+  @@unique([business_id, applicable_order_status], map: "uq_cancel_penalty_rule")
+  @@index([is_active], map: "idx_cancel_penalty_rule_active")
+}
+
+model daily_business_metric {
+  daily_business_metric_id       Int      @id @default(autoincrement()) @db.UnsignedInt
+  business_id                    Int      @db.UnsignedInt
+  metric_date                    DateTime @db.Date
+  total_orders                   Int      @default(0) @db.UnsignedInt
+  total_confirmed_orders         Int      @default(0) @db.UnsignedInt
+  total_cancelled_orders         Int      @default(0) @db.UnsignedInt
+  total_products_sold            Int      @default(0) @db.UnsignedInt
+  total_base_sales_amount        Decimal  @default(0.00) @db.Decimal(12, 2)
+  total_discount_amount_snapshot Decimal  @default(0.00) @db.Decimal(12, 2)
+  total_paid_amount_snapshot     Decimal  @default(0.00) @db.Decimal(12, 2)
+  created_at                     DateTime @default(now()) @db.DateTime(0)
+  updated_at                     DateTime @default(now()) @db.DateTime(0)
+  business                       business @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_daily_business_metric_business")
+
+  @@unique([business_id, metric_date], map: "uq_daily_business_metric")
+  @@index([metric_date], map: "idx_daily_business_metric_date")
+}
+
+model inventory_movement {
+  inventory_movement_id Int                              @id @default(autoincrement()) @db.UnsignedInt
+  product_id            Int                              @db.UnsignedInt
+  movement_type         inventory_movement_movement_type
+  quantity              Int
+  previous_quantity     Int
+  new_quantity          Int
+  reason                String?                          @db.Text
+  source_reference      String?                          @db.VarChar(80)
+  created_at            DateTime                         @default(now()) @db.DateTime(0)
+  product               product                          @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_movement_product")
+
+  @@index([created_at], map: "idx_inventory_movement_created_at")
+  @@index([product_id], map: "idx_inventory_movement_product")
+  @@index([source_reference], map: "idx_inventory_movement_source_ref")
+  @@index([movement_type], map: "idx_inventory_movement_type")
+}
+
+model inventory_reservation {
+  inventory_reservation_id     Int                                      @id @default(autoincrement()) @db.UnsignedInt
+  reservation_code             String                                   @unique(map: "uq_inventory_reservation_code") @db.VarChar(64)
+  business_id                  Int                                      @db.UnsignedInt
+  external_customer_id         Int                                      @db.UnsignedInt
+  reservation_status           inventory_reservation_reservation_status @default(active)
+  expires_at                   DateTime                                 @db.DateTime(0)
+  confirmed_at                 DateTime?                                @db.DateTime(0)
+  released_at                  DateTime?                                @db.DateTime(0)
+  release_reason               String?                                  @db.Text
+  created_at                   DateTime                                 @default(now()) @db.DateTime(0)
+  updated_at                   DateTime                                 @default(now()) @db.DateTime(0)
+  business_order               business_order[]
+  business                     business                                 @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_reservation_business")
+  inventory_reservation_detail inventory_reservation_detail[]
+
+  @@index([business_id], map: "idx_inventory_reservation_business")
+  @@index([expires_at], map: "idx_inventory_reservation_expires_at")
+  @@index([external_customer_id], map: "idx_inventory_reservation_ext_customer")
+  @@index([reservation_status], map: "idx_inventory_reservation_status")
+}
+
+model inventory_reservation_detail {
+  inventory_reservation_detail_id Int                   @id @default(autoincrement()) @db.UnsignedInt
+  inventory_reservation_id        Int                   @db.UnsignedInt
+  product_id                      Int                   @db.UnsignedInt
+  requested_quantity              Int                   @db.UnsignedInt
+  base_unit_price_snapshot        Decimal               @db.Decimal(10, 2)
+  base_subtotal_snapshot          Decimal               @db.Decimal(10, 2)
+  created_at                      DateTime              @default(now()) @db.DateTime(0)
+  product                         product               @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_res_detail_product")
+  inventory_reservation           inventory_reservation @relation(fields: [inventory_reservation_id], references: [inventory_reservation_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_res_detail_reservation")
+
+  @@unique([inventory_reservation_id, product_id], map: "uq_inventory_res_detail")
+  @@index([product_id], map: "idx_inventory_res_detail_product")
+}
+
+model product {
+  product_id                   Int                            @id @default(autoincrement()) @db.UnsignedInt
+  business_id                  Int                            @db.UnsignedInt
+  product_type_id              Int                            @db.UnsignedInt
+  name                         String                         @db.VarChar(180)
+  description                  String?                        @db.Text
+  internal_code                String?                        @db.VarChar(60)
+  base_price                   Decimal                        @db.Decimal(10, 2)
+  image_url                    String?                        @db.Text
+  product_status               product_product_status         @default(active)
+  deleted_at                   DateTime?                      @db.DateTime(0)
+  deletion_reason              String?                        @db.Text
+  visible_in_catalog           Int                            @default(1) @db.UnsignedTinyInt
+  created_at                   DateTime                       @default(now()) @db.DateTime(0)
+  updated_at                   DateTime                       @default(now()) @db.DateTime(0)
+  business_order_detail        business_order_detail[]
+  business_promotion_reference business_promotion_reference[]
+  inventory_movement           inventory_movement[]
+  inventory_reservation_detail inventory_reservation_detail[]
+  business                     business                       @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_business")
+  product_type                 product_type                   @relation(fields: [product_type_id], references: [product_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_product_type")
+  product_stock                product_stock?
+  promotion_request_scope      promotion_request_scope[]
+
+  @@unique([business_id, internal_code], map: "uq_product_business_internal_code")
+  @@index([business_id], map: "idx_product_business")
+  @@index([deleted_at], map: "idx_product_deleted_at")
+  @@index([product_type_id], map: "idx_product_product_type")
+  @@index([product_status], map: "idx_product_status")
+  @@index([visible_in_catalog], map: "idx_product_visible_in_catalog")
+}
+
+model product_stock {
+  product_stock_id       Int      @id @default(autoincrement()) @db.UnsignedInt
+  product_id             Int      @unique(map: "uq_product_stock_product") @db.UnsignedInt
+  available_quantity     Int      @default(0) @db.UnsignedInt
+  reserved_quantity      Int      @default(0) @db.UnsignedInt
+  minimum_alert_quantity Int      @default(0) @db.UnsignedInt
+  last_updated_at        DateTime @default(now()) @db.DateTime(0)
+  created_at             DateTime @default(now()) @db.DateTime(0)
+  updated_at             DateTime @default(now()) @db.DateTime(0)
+  product                product  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_stock_product")
+
+  @@index([available_quantity], map: "idx_product_stock_available_qty")
+  @@index([reserved_quantity], map: "idx_product_stock_reserved_qty")
+}
+
+model product_type {
+  product_type_id              Int                              @id @default(autoincrement()) @db.UnsignedInt
+  business_id                  Int                              @db.UnsignedInt
+  name                         String                           @db.VarChar(120)
+  description                  String?                          @db.Text
+  product_type_status          product_type_product_type_status @default(active)
+  deleted_at                   DateTime?                        @db.DateTime(0)
+  deletion_reason              String?                          @db.Text
+  created_at                   DateTime                         @default(now()) @db.DateTime(0)
+  updated_at                   DateTime                         @default(now()) @db.DateTime(0)
+  business_order_detail        business_order_detail[]
+  business_promotion_reference business_promotion_reference[]
+  product                      product[]
+  business                     business                         @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_type_business")
+  promotion_request_scope      promotion_request_scope[]
+
+  @@unique([business_id, name], map: "uq_product_type_business_name")
+  @@index([deleted_at], map: "idx_product_type_deleted_at")
+  @@index([product_type_status], map: "idx_product_type_status")
+}
+
+model promotion_request_scope {
+  promotion_request_scope_id    Int                                @id @default(autoincrement()) @db.UnsignedInt
+  business_promotion_request_id Int                                @db.UnsignedInt
+  scope_type                    promotion_request_scope_scope_type
+  product_id                    Int?                               @db.UnsignedInt
+  product_type_id               Int?                               @db.UnsignedInt
+  created_at                    DateTime                           @default(now()) @db.DateTime(0)
+  product_type                  product_type?                      @relation(fields: [product_type_id], references: [product_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_promotion_request_scope_prod_type")
+  product                       product?                           @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_promotion_request_scope_product")
+  business_promotion_request    business_promotion_request         @relation(fields: [business_promotion_request_id], references: [business_promotion_request_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_promotion_request_scope_request")
+
+  @@index([business_promotion_request_id], map: "fk_promotion_request_scope_request")
+  @@index([product_type_id], map: "idx_promotion_request_scope_prod_type")
+  @@index([product_id], map: "idx_promotion_request_scope_product")
+  @@index([scope_type], map: "idx_promotion_request_scope_type")
+}
+
+model promotion_sync_history {
+  promotion_sync_history_id       Int                               @id @default(autoincrement()) @db.UnsignedInt
+  business_promotion_reference_id Int?                              @db.UnsignedInt
+  external_promotion_id           Int?                              @db.UnsignedInt
+  event_type                      promotion_sync_history_event_type
+  previous_status                 String?                           @db.VarChar(50)
+  new_status                      String?                           @db.VarChar(50)
+  was_successful                  Int                               @default(1) @db.UnsignedTinyInt
+  event_detail                    String?                           @db.Text
+  request_data                    String?                           @db.Text
+  response_data                   String?                           @db.Text
+  created_at                      DateTime                          @default(now()) @db.DateTime(0)
+  business_promotion_reference    business_promotion_reference?     @relation(fields: [business_promotion_reference_id], references: [business_promotion_reference_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_promotion_sync_history_promo_ref")
+
+  @@index([business_promotion_reference_id], map: "fk_promotion_sync_history_promo_ref")
+  @@index([created_at], map: "idx_promotion_sync_history_created")
+  @@index([event_type], map: "idx_promotion_sync_history_event_type")
+  @@index([external_promotion_id], map: "idx_promotion_sync_history_ext_promo")
+  @@index([was_successful], map: "idx_promotion_sync_history_success")
+}
+
+model temporary_business_closure {
+  temporary_business_closure_id Int      @id @default(autoincrement()) @db.UnsignedInt
+  business_id                   Int      @db.UnsignedInt
+  start_at                      DateTime @db.DateTime(0)
+  end_at                        DateTime @db.DateTime(0)
+  reason                        String?  @db.Text
+  is_active                     Int      @default(1) @db.UnsignedTinyInt
+  created_at                    DateTime @default(now()) @db.DateTime(0)
+  updated_at                    DateTime @default(now()) @db.DateTime(0)
+  business                      business @relation(fields: [business_id], references: [business_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_temp_business_closure_business")
+
+  @@index([is_active], map: "idx_temp_business_closure_active")
+  @@index([business_id], map: "idx_temp_business_closure_business")
+  @@index([start_at, end_at], map: "idx_temp_business_closure_dates")
+}
+
+enum business_order_delivery_delivery_type {
+  home_delivery
+  pickup
+}
+
+enum business_order_delivery_status_history_previous_status {
+  pending_assignment
+  courier_assigned
+  ready_for_pickup
+  picked_up
+  in_transit
+  delivered
+  delivery_failed
+  cancelled
+}
+
+enum business_order_status_history_previous_status {
+  pending_validation
+  reserved
+  confirmed
+  preparing
+  ready_for_pickup
+  dispatched
+  delivered
+  cancelled_by_customer
+  cancelled_by_business
+  cancelled_by_system
+}
+
+enum business_schedule_day_of_week {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+enum cancellation_penalty_rule_applicable_order_status {
+  confirmed
+  preparing
+  ready_for_pickup
+  dispatched
+}
+
+enum inventory_movement_movement_type {
+  inbound
+  outbound
+  reservation
+  reservation_release
+  adjustment
+  order_confirmation
+  order_cancellation
+}
+
+enum promotion_request_scope_scope_type {
+  business
+  product
+  product_type
+}
+
+enum business_business_type {
+  pharmacy
+  supermarket
+}
+
+enum business_order_delivery_delivery_status {
+  pending_assignment
+  courier_assigned
+  ready_for_pickup
+  picked_up
+  in_transit
+  delivered
+  delivery_failed
+  cancelled
+}
+
+enum business_order_delivery_status_history_new_status {
+  pending_assignment
+  courier_assigned
+  ready_for_pickup
+  picked_up
+  in_transit
+  delivered
+  delivery_failed
+  cancelled
+}
+
+enum business_order_status_history_new_status {
+  pending_validation
+  reserved
+  confirmed
+  preparing
+  ready_for_pickup
+  dispatched
+  delivered
+  cancelled_by_customer
+  cancelled_by_business
+  cancelled_by_system
+}
+
+enum cancellation_penalty_rule_penalty_type {
+  fixed_amount
+  percentage
+}
+
+enum promotion_sync_history_event_type {
+  local_creation
+  request_sent
+  external_response
+  validity_check
+  manual_sync
+  status_update
+  operational_change_report
+}
+
+enum business_business_status {
+  active
+  temporarily_closed
+  suspended
+  retired
+  inactive
+}
+
+enum business_order_delivery_status_history_status_origin {
+  business
+  couriers
+  payments
+  system
+  customer_service
+}
+
+enum business_order_status_history_status_origin {
+  business
+  payments
+  system
+  couriers
+  customer_service
+}
+
+enum business_promotion_reference_scope_type {
+  business
+  product
+  product_type
+}
+
+enum inventory_reservation_reservation_status {
+  active
+  confirmed
+  released
+  expired
+  cancelled
+}
+
+enum product_type_product_type_status {
+  active
+  inactive
+}
+
+enum business_order_delivery_fee_adjustment_adjustment_status {
+  requested
+  approved
+  rejected
+  applied
+  cancelled
+}
+
+enum business_order_order_status {
+  pending_validation
+  reserved
+  confirmed
+  preparing
+  ready_for_pickup
+  dispatched
+  delivered
+  cancelled_by_customer
+  cancelled_by_business
+  cancelled_by_system
+}
+
+enum business_order_delivery_fee_adjustment_reason_type {
+  distance
+  rain
+  heavy_traffic
+  difficult_delivery
+  other
+}
+
+enum business_promotion_request_requested_discount_type {
+  percentage
+  fixed_amount
+}
+
+enum business_order_financial_status_snapshot {
+  pending
+  approved
+  denied
+  cancelled
+  partially_refunded
+  refunded
+}
+
+enum product_product_status {
+  active
+  inactive
+  out_of_stock
+  retired
+}
+
+enum business_promotion_reference_discount_type_snapshot {
+  percentage
+  fixed_amount
+}
+
+enum business_promotion_request_local_request_status {
+  pending_send
+  sent
+  approved
+  rejected
+  cancelled
+}
+
+enum business_order_cancelled_by {
+  customer
+  business
+  system
+}
+
+enum business_promotion_reference_promotion_status_snapshot {
+  active
+  paused
+  expired
+  cancelled
+}
+
+enum business_order_penalty_type_snapshot {
+  fixed_amount
+  percentage
+}

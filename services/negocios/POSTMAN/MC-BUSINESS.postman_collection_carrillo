@@ -1,0 +1,824 @@
+{
+  "info": {
+    "_postman_id": "1e5eb6aa-4496-4e51-9bf2-c2d97a6be3be",
+    "name": "MC-BUSINESS",
+    "description": "Colección Postman para probar el módulo business del microservicio business-service. Incluye health, listado, detalle, creación, actualización, retiro, restauración y disponibilidad.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "42568517"
+  },
+  "item": [
+    {
+      "name": "BUSINNES",
+      "item": [
+        {
+          "name": "01. Salud del servicio",
+          "item": [
+            {
+              "name": "Health check",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                },
+                "description": "Valida que el microservicio esté arriba y respondiendo correctamente. Debe devolver estado operativo del servicio."
+              },
+              "response": []
+            }
+          ],
+          "description": "Pruebas básicas para confirmar que el microservicio responde antes de probar el módulo business."
+        },
+        {
+          "name": "02. Consultas de negocios",
+          "item": [
+            {
+              "name": "Listar negocios",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses"
+                  ]
+                },
+                "description": "Lista negocios activos por defecto. Úsalo como punto de arranque para revisar datos base del módulo business."
+              },
+              "response": []
+            },
+            {
+              "name": "Listar negocios con filtros",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses?search=farmacia&businessStatus=active&businessType=pharmacy&includeDeleted=false",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "farmacia"
+                    },
+                    {
+                      "key": "businessStatus",
+                      "value": "active"
+                    },
+                    {
+                      "key": "businessType",
+                      "value": "pharmacy"
+                    },
+                    {
+                      "key": "includeDeleted",
+                      "value": "false"
+                    }
+                  ]
+                },
+                "description": "Lista negocios usando filtros de búsqueda, estado y tipo. También permite incluir registros retirados/eliminados lógicos si tu implementación lo expone por query string."
+              },
+              "response": []
+            },
+            {
+              "name": "Obtener negocio por id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}"
+                  ]
+                },
+                "description": "Obtiene el detalle de un negocio específico. Antes de ejecutarlo, asegúrate de tener `businessId` lleno manualmente o generado desde la petición de creación."
+              },
+              "response": []
+            }
+          ],
+          "description": "Operaciones de lectura para consultar negocios existentes."
+        },
+        {
+          "name": "03. Creación y actualización",
+          "item": [
+            {
+              "name": "Crear negocio",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Respuesta exitosa', function () {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "});",
+                      "",
+                      "try {",
+                      "  const data = pm.response.json();",
+                      "  const businessId = data.businessId ?? data.business_id ?? null;",
+                      "  if (businessId !== null && businessId !== undefined) {",
+                      "    pm.environment.set('createdBusinessId', String(businessId));",
+                      "    pm.environment.set('businessId', String(businessId));",
+                      "  }",
+                      "} catch (error) {",
+                      "  console.log('No se pudo extraer businessId de la respuesta:', error);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tradeName\": \"Farmacia Central Demo\",\n  \"legalName\": \"Farmacia Central Sociedad Anónima\",\n  \"businessType\": \"pharmacy\",\n  \"businessStatus\": \"active\",\n  \"description\": \"Negocio de prueba para validar el módulo business.\",\n  \"address\": \"Zona 1, Ciudad de Guatemala\",\n  \"phone\": \"+50255550101\",\n  \"email\": \"farmacia.central.demo@example.com\",\n  \"taxId\": \"1234567-8\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses"
+                  ]
+                },
+                "description": "Crea un negocio nuevo. Esta petición guarda automáticamente el id retornado en las variables de entorno `createdBusinessId` y `businessId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Actualizar negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tradeName\": \"Farmacia Central Demo Actualizada\",\n  \"description\": \"Descripción actualizada desde Postman.\",\n  \"address\": \"Zona 10, Ciudad de Guatemala\",\n  \"phone\": \"+50255550199\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}"
+                  ]
+                },
+                "description": "Actualiza datos editables del negocio. Puedes enviar solo los campos que quieras modificar."
+              },
+              "response": []
+            }
+          ],
+          "description": "Pruebas de escritura para crear y modificar negocios."
+        },
+        {
+          "name": "04. Ciclo de vida del negocio",
+          "item": [
+            {
+              "name": "Retirar negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"retirementReason\": \"Retiro de prueba solicitado para validar el flujo operativo.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/retire",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "retire"
+                  ]
+                },
+                "description": "Marca el negocio como retirado y registra la razón de retiro. Úsalo cuando quieras validar la transición al estado `retired`."
+              },
+              "response": []
+            },
+            {
+              "name": "Restaurar negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"businessStatus\": \"active\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/restore",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "restore"
+                  ]
+                },
+                "description": "Restaura un negocio retirado o eliminado lógicamente. Debes indicar un estado válido distinto de `retired`."
+              },
+              "response": []
+            }
+          ],
+          "description": "Pruebas para retiro y restauración del negocio dentro del flujo operativo."
+        },
+        {
+          "name": "05. Disponibilidad y cierres temporales",
+          "item": [
+            {
+              "name": "Cerrar temporalmente negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"businessStatus\": \"temporarily_closed\",\n  \"closureStartAt\": \"2026-03-21T08:00:00.000Z\",\n  \"closureEndAt\": \"2026-03-21T20:00:00.000Z\",\n  \"closureReason\": \"Mantenimiento interno programado.\",\n  \"clearActiveTemporaryClosures\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "availability"
+                  ]
+                },
+                "description": "Cambia el negocio a `temporarily_closed` y registra un cierre temporal activo con rango de fechas."
+              },
+              "response": []
+            },
+            {
+              "name": "Reactivar disponibilidad normal",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"businessStatus\": \"active\",\n  \"clearActiveTemporaryClosures\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "availability"
+                  ]
+                },
+                "description": "Regresa el negocio a operación normal y desactiva cierres temporales activos si así lo indicas."
+              },
+              "response": []
+            },
+            {
+              "name": "Suspender negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"businessStatus\": \"suspended\",\n  \"clearActiveTemporaryClosures\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "availability"
+                  ]
+                },
+                "description": "Cambia el estado operativo a `suspended` sin usar el endpoint de retiro."
+              },
+              "response": []
+            },
+            {
+              "name": "Inactivar negocio",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"businessStatus\": \"inactive\",\n  \"clearActiveTemporaryClosures\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/availability",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "availability"
+                  ]
+                },
+                "description": "Cambia el estado operativo a `inactive`. Útil para validar estados distintos a retiro y cierre temporal."
+              },
+              "response": []
+            }
+          ],
+          "description": "Pruebas para cambiar disponibilidad operativa del negocio y gestionar cierre temporal."
+        },
+        {
+          "name": "06. Verificaciones posteriores",
+          "item": [
+            {
+              "name": "Verificar negocio actual",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}"
+                  ]
+                },
+                "description": "Consulta rápida para revisar el estado final del negocio después de cualquier cambio."
+              },
+              "response": []
+            },
+            {
+              "name": "Listar incluyendo eliminados",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses?includeDeleted=true",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses"
+                  ],
+                  "query": [
+                    {
+                      "key": "includeDeleted",
+                      "value": "true"
+                    }
+                  ]
+                },
+                "description": "Lista negocios incluyendo registros eliminados lógicamente, si existen y si tu DTO/query del módulo lo soporta."
+              },
+              "response": []
+            }
+          ],
+          "description": "Consultas de verificación después de crear, actualizar o cambiar disponibilidad."
+        }
+      ]
+    },
+    {
+      "name": "SCHEDULE",
+      "item": [
+        {
+          "name": "01. Salud del servicio",
+          "item": [
+            {
+              "name": "GET Health",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "health"
+                  ]
+                },
+                "description": "Valida que el servicio responda correctamente."
+              },
+              "response": []
+            }
+          ],
+          "description": "Verifica que el microservicio esté levantado antes de probar schedules."
+        },
+        {
+          "name": "02. Consulta de horarios",
+          "item": [
+            {
+              "name": "GET Listar horarios por negocio",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules"
+                  ]
+                },
+                "description": "Lista todos los horarios base del negocio ordenados por día."
+              },
+              "response": []
+            },
+            {
+              "name": "GET Obtener horario por id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules/{{scheduleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules",
+                    "{{scheduleId}}"
+                  ]
+                },
+                "description": "Obtiene un horario específico del negocio por su identificador."
+              },
+              "response": []
+            }
+          ],
+          "description": "Endpoints de lectura del módulo schedules."
+        },
+        {
+          "name": "03. Creación y actualización de horarios",
+          "item": [
+            {
+              "name": "POST Crear horario abierto",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"day_of_week\": \"monday\",\n  \"is_open\": true,\n  \"opening_time\": \"08:00:00\",\n  \"closing_time\": \"18:00:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules"
+                  ]
+                },
+                "description": "Crea un horario abierto para un día específico. Solo puede existir un horario por negocio y día."
+              },
+              "response": []
+            },
+            {
+              "name": "POST Crear horario cerrado",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"day_of_week\": \"sunday\",\n  \"is_open\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules"
+                  ]
+                },
+                "description": "Marca un día como cerrado en el horario base. En este caso no se envían horas."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH Actualizar horario existente",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_open\": true,\n  \"opening_time\": \"09:00:00\",\n  \"closing_time\": \"19:00:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules/{{scheduleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules",
+                    "{{scheduleId}}"
+                  ]
+                },
+                "description": "Actualiza horario, día o estado abierto/cerrado de un registro existente."
+              },
+              "response": []
+            }
+          ],
+          "description": "Operaciones principales para administrar el horario base semanal."
+        },
+        {
+          "name": "04. Validaciones y verificaciones finales",
+          "item": [
+            {
+              "name": "POST Duplicado por día (espera 409)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"day_of_week\": \"monday\",\n  \"is_open\": true,\n  \"opening_time\": \"10:00:00\",\n  \"closing_time\": \"20:00:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules"
+                  ]
+                },
+                "description": "Debe fallar si ya existe un horario para el mismo negocio y día."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH Rango horario inválido (espera 400)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_open\": true,\n  \"opening_time\": \"18:00:00\",\n  \"closing_time\": \"08:00:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules/{{scheduleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules",
+                    "{{scheduleId}}"
+                  ]
+                },
+                "description": "Debe fallar si closing_time es menor o igual que opening_time."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH Cerrar día y limpiar horas",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_open\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/businesses/{{businessId}}/schedules/{{scheduleId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "businesses",
+                    "{{businessId}}",
+                    "schedules",
+                    "{{scheduleId}}"
+                  ]
+                },
+                "description": "Convierte el día a cerrado; el servicio debe dejar opening_time y closing_time en null."
+              },
+              "response": []
+            }
+          ],
+          "description": "Casos para validar reglas del módulo schedules."
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "businessId",
+      "value": ""
+    },
+    {
+      "key": "createdBusinessId",
+      "value": ""
+    },
+    {
+      "key": "existingBusinessId",
+      "value": ""
+    }
+  ]
+}

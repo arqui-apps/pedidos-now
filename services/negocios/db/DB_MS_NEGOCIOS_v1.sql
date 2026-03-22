@@ -591,3 +591,5 @@ create table business_order_delivery_fee_adjustment (
     key idx_business_order_delivery_fee_adj_reason (reason_type),
     key idx_business_order_delivery_fee_adj_requested (requested_at)
 ) engine=innodb;
+
+select * from business;
