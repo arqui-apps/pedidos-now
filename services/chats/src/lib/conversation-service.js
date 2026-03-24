@@ -387,3 +387,295 @@ export async function getConversationById(conversationId) {
 
   return conversation;
 }
+function isFinalStatus(status) {
+  return [
+    'RESOLVED_NO_SOLUTION',
+    'RESOLVED_COUPON',
+    'RESOLVED_REFUND',
+    'CLOSED_TIMEOUT',
+    'CLOSED_MANUAL',
+    'CLOSED_OUT_OF_HOURS',
+  ].includes(status);
+}
+
+function isClosedStatus(status) {
+  return ['CLOSED_TIMEOUT', 'CLOSED_MANUAL', 'CLOSED_OUT_OF_HOURS'].includes(status);
+}
+
+function isResolvedStatus(status) {
+  return ['RESOLVED_NO_SOLUTION', 'RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(status);
+}
+
+function getAllowedNextStatuses(currentStatus) {
+  if (currentStatus === 'IN_QUEUE') {
+    return ['OPEN'];
+  }
+
+  if (currentStatus === 'OPEN') {
+    return [
+      'RESOLVED_NO_SOLUTION',
+      'RESOLVED_COUPON',
+      'RESOLVED_REFUND',
+      'CLOSED_TIMEOUT',
+      'CLOSED_MANUAL',
+    ];
+  }
+
+  return [];
+}
+
+export async function assignAgentToConversation(conversationId, payload = {}) {
+  const id = normalizeOptionalString(conversationId);
+  const agent_ext_id = normalizeOptionalString(payload.agent_ext_id);
+  const agent_display_name = normalizeOptionalString(payload.agent_display_name);
+
+  if (!id) {
+    throw createAppError('VALIDATION_ERROR', 'conversationId es obligatorio.', 400);
+  }
+
+  if (!agent_ext_id) {
+    throw createAppError('VALIDATION_ERROR', 'agent_ext_id es obligatorio.', 400);
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const conversation = await tx.conversations.findFirst({
+      where: { id, deleted_at: null },
+      include: {
+        participants: {
+          where: { deleted_at: null },
+        },
+      },
+    });
+
+    if (!conversation) {
+      throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
+    }
+
+    if (conversation.status !== 'IN_QUEUE') {
+      throw createAppError(
+        'INVALID_STATUS_TRANSITION',
+        'Solo se puede asignar agente a conversaciones en estado IN_QUEUE.',
+        409
+      );
+    }
+
+    const activeAgent = conversation.participants.find((p) => p.role === 'AGENT');
+
+    if (activeAgent && activeAgent.participant_ext_id !== agent_ext_id) {
+      throw createAppError(
+        'AGENT_ALREADY_ASSIGNED',
+        'La conversación ya tiene un agente asignado.',
+        409
+      );
+    }
+
+    await tx.participants.upsert({
+      where: {
+        conversation_id_participant_ext_id: {
+          conversation_id: id,
+          participant_ext_id: agent_ext_id,
+        },
+      },
+      update: {
+        role: 'AGENT',
+        display_name: agent_display_name,
+        left_at: null,
+        deleted_at: null,
+      },
+      create: {
+        conversation_id: id,
+        participant_ext_id: agent_ext_id,
+        role: 'AGENT',
+        display_name: agent_display_name,
+      },
+    });
+
+    await tx.conversations.update({
+      where: { id },
+      data: {
+        assigned_agent_ext_id: agent_ext_id,
+        status: 'OPEN',
+        is_live: true,
+      },
+    });
+
+    await tx.status_history.create({
+      data: {
+        conversation_id: id,
+        previous_status: conversation.status,
+        new_status: 'OPEN',
+        changed_by_role: 'AGENT',
+        changed_by_ext_id: agent_ext_id,
+        reason: 'Agente asignado a la conversación.',
+      },
+    });
+
+    await tx.events.create({
+      data: {
+        conversation_id: id,
+        event_type: 'AGENT_ASSIGNED',
+        payload: {
+          agent_ext_id,
+          agent_display_name,
+        },
+      },
+    });
+
+    return tx.conversations.findFirst({
+      where: { id, deleted_at: null },
+      include: {
+        participants: {
+          where: { deleted_at: null },
+          orderBy: { joined_at: 'asc' },
+        },
+        metrics: true,
+        status_history: {
+          where: { deleted_at: null },
+          orderBy: { changed_at: 'asc' },
+        },
+      },
+    });
+  });
+
+  return result;
+}
+
+export async function changeConversationStatus(conversationId, payload = {}) {
+  const id = normalizeOptionalString(conversationId);
+  const new_status = normalizeOptionalString(payload.new_status);
+  const changed_by_ext_id = normalizeOptionalString(payload.changed_by_ext_id);
+  const reason = normalizeOptionalString(payload.reason);
+
+  if (!id) {
+    throw createAppError('VALIDATION_ERROR', 'conversationId es obligatorio.', 400);
+  }
+
+  if (!new_status || !CONVERSATION_STATUSES.includes(new_status)) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      `new_status debe ser uno de: ${CONVERSATION_STATUSES.join(', ')}.`,
+      400
+    );
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const conversation = await tx.conversations.findFirst({
+      where: { id, deleted_at: null },
+      include: { metrics: true },
+    });
+
+    if (!conversation) {
+      throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
+    }
+
+    const allowedNext = getAllowedNextStatuses(conversation.status);
+
+    if (!allowedNext.includes(new_status)) {
+      throw createAppError(
+        'INVALID_STATUS_TRANSITION',
+        `No se permite cambiar de ${conversation.status} a ${new_status}.`,
+        409
+      );
+    }
+
+    const now = new Date();
+
+    const updateData = {
+      status: new_status,
+      updated_at: now,
+    };
+
+    if (isFinalStatus(new_status)) {
+      updateData.is_live = false;
+      updateData.closed_at = now;
+      updateData.inactivity_deadline_at = null;
+    }
+
+    if (new_status === 'CLOSED_TIMEOUT') {
+      updateData.close_reason = 'TIMEOUT';
+    } else if (new_status === 'CLOSED_MANUAL') {
+      updateData.close_reason = 'MANUAL';
+    } else if (isResolvedStatus(new_status)) {
+      updateData.close_reason = 'SYSTEM';
+    }
+
+    await tx.conversations.update({
+      where: { id },
+      data: updateData,
+    });
+
+    await tx.status_history.create({
+      data: {
+        conversation_id: id,
+        previous_status: conversation.status,
+        new_status,
+        changed_by_role: 'AGENT',
+        changed_by_ext_id,
+        reason,
+      },
+    });
+
+    if (isFinalStatus(new_status)) {
+      const timeToCloseMs = Math.max(0, now.getTime() - new Date(conversation.opened_at).getTime());
+
+      await tx.metrics.upsert({
+        where: { conversation_id: id },
+        update: {
+          resolved_at: now,
+          time_to_close_ms: timeToCloseMs,
+          deleted_at: null,
+        },
+        create: {
+          conversation_id: id,
+          resolved_at: now,
+          time_to_close_ms: timeToCloseMs,
+        },
+      });
+    }
+
+    if (new_status === 'CLOSED_TIMEOUT' || new_status === 'CLOSED_MANUAL') {
+      await tx.messages.create({
+        data: {
+          conversation_id: id,
+          sender_role: 'SYSTEM',
+          sender_ext_id: null,
+          message_type: 'AUTO_CLOSE',
+          content:
+            new_status === 'CLOSED_TIMEOUT'
+              ? 'El chat fue cerrado automáticamente por inactividad.'
+              : 'El chat fue cerrado manualmente por un agente.',
+        },
+      });
+    }
+
+    await tx.events.create({
+      data: {
+        conversation_id: id,
+        event_type: 'STATUS_CHANGED',
+        payload: {
+          previous_status: conversation.status,
+          new_status,
+          changed_by_ext_id,
+          reason,
+        },
+      },
+    });
+
+    return tx.conversations.findFirst({
+      where: { id, deleted_at: null },
+      include: {
+        participants: {
+          where: { deleted_at: null },
+          orderBy: { joined_at: 'asc' },
+        },
+        metrics: true,
+        status_history: {
+          where: { deleted_at: null },
+          orderBy: { changed_at: 'asc' },
+        },
+      },
+    });
+  });
+
+  return result;
+}
