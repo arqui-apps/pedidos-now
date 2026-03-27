@@ -1,22 +1,23 @@
-# Módulo Paquetería - Arquitectura de Sistemas II
+# Modulo Paqueteria - Arquitectura de Sistemas II
 
-
-
-## Tecnologías
+## Tecnologias
 - **Node.js** (API)
 - **Express** (Framework)
 - **MySQL** (Base de datos)
 - **Sequelize** (ORM)
 - **Nodemon** (Desarrollo)
 
-## Instalación
+## Instalacion
 
-1. Clonar repositorio:
+1. Clonar el repositorio:
 
 ```bash
 git clone https://github.com/JulioTzicap/modulo-paqueteria.git
 cd modulo-paqueteria
+```
 
+2. Instalar dependencias:
 
-2. Ejecutar comando
+```bash
 npm install
+```

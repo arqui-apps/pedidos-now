@@ -21,3 +21,6 @@ coverage/
 # Build
 dist/
 build/
+
+# Local SQL scratch files
+tablasCourier.sql
