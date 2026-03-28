@@ -18,7 +18,6 @@ const FAQ_SELECT = `
     question,
     answer,
     faq_status,
-    is_active,
     created_date,
     update_date
   FROM faq_design
@@ -29,18 +28,11 @@ const parsePositiveInt = (value, fallback = 1) => {
   return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
 };
 
-const normalizeTinyInt = (value) => {
-  if (value === 1 || value === '1' || value === true) return 1;
-  if (value === 0 || value === '0' || value === false) return 0;
-  return null;
-};
-
 export const getFaqs = async (req, res) => {
   try {
     const {
       category_type,
       faq_status,
-      is_active,
       search = '',
       page = '1',
       limit = '10',
@@ -77,27 +69,9 @@ export const getFaqs = async (req, res) => {
     if (!includeInactive) {
       whereClauses.push('faq_status = ?');
       params.push('active');
-      whereClauses.push('is_active = ?');
-      params.push(1);
-    } else {
-      if (faq_status) {
-        whereClauses.push('faq_status = ?');
-        params.push(faq_status);
-      }
-
-      if (typeof is_active !== 'undefined') {
-        const normalized = normalizeTinyInt(is_active);
-
-        if (normalized === null) {
-          return res.status(400).json({
-            message: 'is_active inválido',
-            allowedValues: [0, 1],
-          });
-        }
-
-        whereClauses.push('is_active = ?');
-        params.push(normalized);
-      }
+    } else if (faq_status) {
+      whereClauses.push('faq_status = ?');
+      params.push(faq_status);
     }
 
     if (search.trim()) {
@@ -159,8 +133,8 @@ export const getFaqById = async (req, res) => {
     const params = [idFaq];
 
     if (!includeInactive) {
-      sql += ' AND faq_status = ? AND is_active = ?';
-      params.push('active', 1);
+      sql += ' AND faq_status = ?';
+      params.push('active');
     }
 
     sql += ' LIMIT 1';
@@ -257,7 +231,7 @@ export const updateFaq = async (req, res) => {
       });
     }
 
-    const { category_type, question, answer, faq_status, is_active } = req.body;
+    const { category_type, question, answer, faq_status } = req.body;
 
     const fields = [];
     const values = [];
@@ -312,20 +286,6 @@ export const updateFaq = async (req, res) => {
       values.push(faq_status);
     }
 
-    if (typeof is_active !== 'undefined') {
-      const normalized = normalizeTinyInt(is_active);
-
-      if (normalized === null) {
-        return res.status(400).json({
-          message: 'is_active inválido',
-          allowedValues: [0, 1],
-        });
-      }
-
-      fields.push('is_active = ?');
-      values.push(normalized);
-    }
-
     if (!fields.length) {
       return res.status(400).json({
         message: 'No hay campos para actualizar',
@@ -353,7 +313,7 @@ export const updateFaq = async (req, res) => {
     await pool.query(
       `
         UPDATE faq_design
-        SET ${fields.join(', ')}
+        SET ${fields.join(', ')},
         WHERE id_faq = ?
       `,
       values,
@@ -377,15 +337,22 @@ export const updateFaq = async (req, res) => {
 
 export const deleteFaq = async (req, res) => {
   try {
-    const { id } = req.params;
+    const idFaq = parsePositiveInt(req.params.id, 0);
+
+    if (!idFaq) {
+      return res.status(400).json({
+        message: 'id inválido',
+      });
+    }
 
     const [result] = await pool.query(
       `
         UPDATE faq_design
-        SET is_active = 0,
-            faq_status = 'inactive'
+        SET faq_status = 'inactive'
+        WHERE id_faq = ?
+          AND faq_status <> 'inactive'
       `,
-      [id],
+      [idFaq],
     );
 
     if (result.affectedRows === 0) {
