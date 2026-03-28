@@ -313,7 +313,7 @@ export const updateFaq = async (req, res) => {
     await pool.query(
       `
         UPDATE faq_design
-        SET ${fields.join(', ')},
+        SET ${fields.join(', ')}
         WHERE id_faq = ?
       `,
       values,
