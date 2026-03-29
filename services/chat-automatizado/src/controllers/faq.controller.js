@@ -23,9 +23,72 @@ const FAQ_SELECT = `
   FROM faq_design
 `;
 
-const parsePositiveInt = (value, fallback = 1) => {
+const parsePositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isNaN(parsed) || parsed <= 0 ? fallback : parsed;
+};
+
+const parseBoolean = (value) => {
+  return value === true || value === 'true';
+};
+
+const buildFaqFilters = ({
+  category_type,
+  faq_status,
+  search = '',
+  include_inactive = 'false',
+}) => {
+  const whereClauses = [];
+  const params = [];
+
+  if (category_type) {
+    if (!CATEGORY_TYPES.includes(category_type)) {
+      return {
+        error: {
+          status: 400,
+          body: {
+            message: 'category_type inválido',
+            allowedValues: CATEGORY_TYPES,
+          },
+        },
+      };
+    }
+
+    whereClauses.push('category_type = ?');
+    params.push(category_type);
+  }
+
+  if (faq_status) {
+    if (!FAQ_STATUSES.includes(faq_status)) {
+      return {
+        error: {
+          status: 400,
+          body: {
+            message: 'faq_status inválido',
+            allowedValues: FAQ_STATUSES,
+          },
+        },
+      };
+    }
+
+    whereClauses.push('faq_status = ?');
+    params.push(faq_status);
+  } else if (!parseBoolean(include_inactive)) {
+    whereClauses.push('faq_status = ?');
+    params.push('active');
+  }
+
+  if (search.trim()) {
+    whereClauses.push('(question LIKE ? OR answer LIKE ?)');
+    params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+  }
+
+  return {
+    whereSql: whereClauses.length
+      ? `WHERE ${whereClauses.join(' AND ')}`
+      : '',
+    params,
+  };
 };
 
 export const getFaqs = async (req, res) => {
@@ -34,67 +97,44 @@ export const getFaqs = async (req, res) => {
       category_type,
       faq_status,
       search = '',
+      include_inactive = 'false',
       page = '1',
       limit = '10',
-      include_inactive = 'false',
     } = req.query;
 
-    if (category_type && !CATEGORY_TYPES.includes(category_type)) {
-      return res.status(400).json({
-        message: 'category_type inválido',
-        allowedValues: CATEGORY_TYPES,
-      });
-    }
-
-    if (faq_status && !FAQ_STATUSES.includes(faq_status)) {
-      return res.status(400).json({
-        message: 'faq_status inválido',
-        allowedValues: FAQ_STATUSES,
-      });
-    }
-
     const pageNumber = parsePositiveInt(page, 1);
-    const limitNumber = Math.min(parsePositiveInt(limit, 10), 100);
+    const limitNumber = Math.min(parsePositiveInt(limit, 10), 50);
     const offset = (pageNumber - 1) * limitNumber;
-    const includeInactive = include_inactive === 'true';
 
-    const whereClauses = [];
-    const params = [];
+    const filterResult = buildFaqFilters({
+      category_type,
+      faq_status,
+      search,
+      include_inactive,
+    });
 
-    if (category_type) {
-      whereClauses.push('category_type = ?');
-      params.push(category_type);
+    if (filterResult.error) {
+      return res
+        .status(filterResult.error.status)
+        .json(filterResult.error.body);
     }
 
-    if (!includeInactive) {
-      whereClauses.push('faq_status = ?');
-      params.push('active');
-    } else if (faq_status) {
-      whereClauses.push('faq_status = ?');
-      params.push(faq_status);
-    }
-
-    if (search.trim()) {
-      whereClauses.push('(question LIKE ? OR answer LIKE ?)');
-      params.push(`%${search.trim()}%`, `%${search.trim()}%`);
-    }
-
-    const whereSql = whereClauses.length
-      ? `WHERE ${whereClauses.join(' AND ')}`
-      : '';
+    const { whereSql, params } = filterResult;
 
     const [countRows] = await pool.query(
-      `SELECT COUNT(*) AS total FROM faq_design ${whereSql}`,
+      `SELECT COUNT(*) AS totalItems FROM faq_design ${whereSql}`,
       params,
     );
 
-    const total = countRows[0].total;
+    const totalItems = countRows[0].totalItems;
+    const totalPages =
+      totalItems === 0 ? 0 : Math.ceil(totalItems / limitNumber);
 
     const [rows] = await pool.query(
       `
         ${FAQ_SELECT}
         ${whereSql}
-        ORDER BY id_faq DESC
+        ORDER BY update_date DESC, id_faq DESC
         LIMIT ? OFFSET ?
       `,
       [...params, limitNumber, offset],
@@ -104,10 +144,12 @@ export const getFaqs = async (req, res) => {
       message: 'FAQs obtenidas correctamente',
       data: rows,
       pagination: {
-        total,
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(total / limitNumber),
+        totalItems,
+        currentPage: pageNumber,
+        perPage: limitNumber,
+        totalPages,
+        hasNextPage: pageNumber < totalPages,
+        hasPrevPage: pageNumber > 1,
       },
     });
   } catch (error) {
