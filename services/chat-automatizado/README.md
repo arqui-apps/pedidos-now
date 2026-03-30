@@ -3,6 +3,7 @@
 Microservicio backend desarrollado con Node.js, Express y MySQL para la gestión de soporte.  
 Actualmente, este servicio ya cuenta con la funcionalidad de FAQ operativa mediante API REST.
 
+```
 project-root/
 ├─ src/
 │  ├─ config/
@@ -16,7 +17,7 @@ project-root/
 │  ├─ app.js
 │  └─ index.js
 ├─ migrations/
-│  └─ xxxxxxxxxxxxxx-create-faq-design.js
+│  └─ 20260328071709-alter-faq-update-date.cjs
 ├─ seeders/
 ├─ postman/
 │  └─ support-faq.postman_collection.json
@@ -24,6 +25,8 @@ project-root/
 ├─ .sequelizerc
 ├─ package.json
 └─ README.md
+```
+
 
 ## Estado actual
 
@@ -57,7 +60,7 @@ configura tu archivo .env basandote en el .env.example
 Luego aplica migraciones y seeders si es necesario con 
 ```bash 
 npx sequelize-cli db:migrate --config config/config.cjs
-npx sequelize-cli db:seed:all --config src/config/config.cjs
+npx sequelize-cli db:seed:all --config src/config/config.cjs 
 ```
 
 ## Pruebas con Postman
