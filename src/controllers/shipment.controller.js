@@ -1,34 +1,102 @@
-const { Shipment, Courier, User, Package } = require('../models');
+const { Courier, CourierStatus, CourierStatusType } = require('../models');
 
-const shipmentController = {
+async function findStatusType(body, defaultName = 'Disponible') {
+  const idStatus = body.idStatus ?? body.id_status;
+  const statusName = body.statusName ?? body.status_name;
+
+  if (idStatus) {
+    return await CourierStatusType.findByPk(idStatus);
+  }
+
+  if (statusName) {
+    return await CourierStatusType.findOne({
+      where: { name: statusName }
+    });
+  }
+
+  return await CourierStatusType.findOne({
+    where: { name: defaultName }
+  });
+}
+
+async function setCourierCurrentStatus(idCourier, statusType) {
+  if (!statusType) return;
+
+  const currentStatus = await CourierStatus.findOne({
+    where: { idCourier }
+  });
+
+  if (currentStatus) {
+    await currentStatus.update({
+      idStatus: statusType.idStatus,
+      changedAt: new Date()
+    });
+  } else {
+    await CourierStatus.create({
+      idCourier,
+      idStatus: statusType.idStatus,
+      changedAt: new Date()
+    });
+  }
+}
+
+const courierController = {
   async getAll(req, res) {
     try {
-      const shipments = await Shipment.findAll({
+      const couriers = await Courier.findAll({
         where: { status: true },
         include: [
           {
-            model: Courier,
-            as: 'courier',
-            attributes: ['idCourier', 'name', 'status']
-          },
-          {
-            model: User,
-            as: 'sender',
-            attributes: ['idUser', 'name', 'status']
-          },
-          {
-            model: User,
-            as: 'receiver',
-            attributes: ['idUser', 'name', 'status']
+            model: CourierStatus,
+            as: 'currentStatus',
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
           }
         ],
-        order: [['idShipment', 'DESC']]
+        order: [['idCourier', 'DESC']]
       });
 
-      res.json(shipments);
+      res.json(couriers);
     } catch (error) {
       res.status(500).json({
-        message: 'Error al obtener envíos',
+        message: 'Error al obtener repartidores',
+        error: error.message
+      });
+    }
+  },
+
+  async getAvailable(req, res) {
+    try {
+      const couriers = await Courier.findAll({
+        where: { status: true },
+        include: [
+          {
+            model: CourierStatus,
+            as: 'currentStatus',
+            required: true,
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                required: true,
+                where: { name: 'Disponible' },
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
+          }
+        ],
+        order: [['idCourier', 'DESC']]
+      });
+
+      res.json(couriers);
+    } catch (error) {
+      res.status(500).json({
+        message: 'Error al obtener repartidores disponibles',
         error: error.message
       });
     }
@@ -38,38 +106,30 @@ const shipmentController = {
     try {
       const { id } = req.params;
 
-      const shipment = await Shipment.findByPk(id, {
+      const courier = await Courier.findByPk(id, {
         include: [
           {
-            model: Courier,
-            as: 'courier',
-            attributes: ['idCourier', 'name', 'status']
-          },
-          {
-            model: User,
-            as: 'sender',
-            attributes: ['idUser', 'name', 'status']
-          },
-          {
-            model: User,
-            as: 'receiver',
-            attributes: ['idUser', 'name', 'status']
-          },
-          {
-            model: Package,
-            as: 'packages'
+            model: CourierStatus,
+            as: 'currentStatus',
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
           }
         ]
       });
 
-      if (!shipment || shipment.status === false) {
-        return res.status(404).json({ message: 'Envío no encontrado' });
+      if (!courier || courier.status === false) {
+        return res.status(404).json({ message: 'Repartidor no encontrado' });
       }
 
-      res.json(shipment);
+      res.json(courier);
     } catch (error) {
       res.status(500).json({
-        message: 'Error al obtener envío',
+        message: 'Error al obtener repartidor',
         error: error.message
       });
     }
@@ -77,61 +137,45 @@ const shipmentController = {
 
   async create(req, res) {
     try {
-      const deliveryInstructions =
-        req.body.deliveryInstructions ?? req.body.delivery_instructions;
+      const { name, status = true } = req.body;
 
-      const shipmentStatus =
-        req.body.shipmentStatus ?? req.body.shipment_status ?? 'pending';
-
-      const chargeType =
-        req.body.chargeType ?? req.body.charge_type;
-
-      const estimatedDeliveryTime =
-        req.body.estimatedDeliveryTime ?? req.body.estimated_delivery_time;
-
-      const senderId =
-        req.body.senderId ?? req.body.sender_id;
-
-      const receiverId =
-        req.body.receiverId ?? req.body.receiver_id;
-
-      const courierId =
-        req.body.courierId ?? req.body.courier_id ?? null;
-
-      const invoiceSeries =
-        req.body.invoiceSeries ?? req.body.invoice_series;
-
-      const total = req.body.total;
-      const status = req.body.status ?? true;
-
-      if (!senderId || !receiverId) {
-        return res.status(400).json({
-          message: 'senderId y receiverId son obligatorios'
-        });
+      if (!name) {
+        return res.status(400).json({ message: 'El nombre es obligatorio' });
       }
 
-      const newShipment = await Shipment.create({
-        deliveryInstructions,
-        total,
-        shipmentStatus,
-        chargeType,
-        estimatedDeliveryTime,
-        senderId,
-        receiverId,
-        courierId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        invoiceSeries,
+      const newCourier = await Courier.create({
+        name,
         status
       });
 
+      const defaultStatusName = status ? 'Disponible' : 'Inactivo';
+      const statusType = await findStatusType(req.body, defaultStatusName);
+
+      await setCourierCurrentStatus(newCourier.idCourier, statusType);
+
+      const courier = await Courier.findByPk(newCourier.idCourier, {
+        include: [
+          {
+            model: CourierStatus,
+            as: 'currentStatus',
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
+          }
+        ]
+      });
+
       res.status(201).json({
-        message: 'Envío creado correctamente',
-        data: newShipment
+        message: 'Repartidor creado correctamente',
+        data: courier
       });
     } catch (error) {
       res.status(500).json({
-        message: 'Error al crear envío',
+        message: 'Error al crear repartidor',
         error: error.message
       });
     }
@@ -140,58 +184,101 @@ const shipmentController = {
   async update(req, res) {
     try {
       const { id } = req.params;
+      const courier = await Courier.findByPk(id);
 
-      const shipment = await Shipment.findByPk(id);
-
-      if (!shipment) {
-        return res.status(404).json({ message: 'Envío no encontrado' });
+      if (!courier) {
+        return res.status(404).json({ message: 'Repartidor no encontrado' });
       }
 
-      const deliveryInstructions =
-        req.body.deliveryInstructions ?? req.body.delivery_instructions ?? shipment.deliveryInstructions;
+      const newStatus = req.body.status ?? courier.status;
 
-      const shipmentStatus =
-        req.body.shipmentStatus ?? req.body.shipment_status ?? shipment.shipmentStatus;
+      await courier.update({
+        name: req.body.name ?? courier.name,
+        status: newStatus
+      });
 
-      const chargeType =
-        req.body.chargeType ?? req.body.charge_type ?? shipment.chargeType;
+      if (
+        req.body.idStatus !== undefined ||
+        req.body.id_status !== undefined ||
+        req.body.statusName !== undefined ||
+        req.body.status_name !== undefined
+      ) {
+        const statusType = await findStatusType(req.body);
+        await setCourierCurrentStatus(courier.idCourier, statusType);
+      } else if (newStatus === false) {
+        const inactiveStatus = await CourierStatusType.findOne({
+          where: { name: 'Inactivo' }
+        });
+        await setCourierCurrentStatus(courier.idCourier, inactiveStatus);
+      }
 
-      const estimatedDeliveryTime =
-        req.body.estimatedDeliveryTime ?? req.body.estimated_delivery_time ?? shipment.estimatedDeliveryTime;
-
-      const senderId =
-        req.body.senderId ?? req.body.sender_id ?? shipment.senderId;
-
-      const receiverId =
-        req.body.receiverId ?? req.body.receiver_id ?? shipment.receiverId;
-
-      const courierId =
-        req.body.courierId ?? req.body.courier_id ?? shipment.courierId;
-
-      const invoiceSeries =
-        req.body.invoiceSeries ?? req.body.invoice_series ?? shipment.invoiceSeries;
-
-      await shipment.update({
-        deliveryInstructions,
-        total: req.body.total ?? shipment.total,
-        shipmentStatus,
-        chargeType,
-        estimatedDeliveryTime,
-        senderId,
-        receiverId,
-        courierId,
-        updatedAt: new Date(),
-        invoiceSeries,
-        status: req.body.status ?? shipment.status
+      const updatedCourier = await Courier.findByPk(id, {
+        include: [
+          {
+            model: CourierStatus,
+            as: 'currentStatus',
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
+          }
+        ]
       });
 
       res.json({
-        message: 'Envío actualizado correctamente',
-        data: shipment
+        message: 'Repartidor actualizado correctamente',
+        data: updatedCourier
       });
     } catch (error) {
       res.status(500).json({
-        message: 'Error al actualizar envío',
+        message: 'Error al actualizar repartidor',
+        error: error.message
+      });
+    }
+  },
+
+  async updateCurrentStatus(req, res) {
+    try {
+      const { id } = req.params;
+
+      const courier = await Courier.findByPk(id);
+      if (!courier) {
+        return res.status(404).json({ message: 'Repartidor no encontrado' });
+      }
+
+      const statusType = await findStatusType(req.body);
+      if (!statusType) {
+        return res.status(404).json({ message: 'Tipo de estado no encontrado' });
+      }
+
+      await setCourierCurrentStatus(courier.idCourier, statusType);
+
+      const updatedCourier = await Courier.findByPk(id, {
+        include: [
+          {
+            model: CourierStatus,
+            as: 'currentStatus',
+            include: [
+              {
+                model: CourierStatusType,
+                as: 'statusType',
+                attributes: ['idStatus', 'name', 'description']
+              }
+            ]
+          }
+        ]
+      });
+
+      res.json({
+        message: 'Estado del repartidor actualizado correctamente',
+        data: updatedCourier
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: 'Error al actualizar estado del repartidor',
         error: error.message
       });
     }
@@ -201,25 +288,28 @@ const shipmentController = {
     try {
       const { id } = req.params;
 
-      const shipment = await Shipment.findByPk(id);
+      const courier = await Courier.findByPk(id);
 
-      if (!shipment) {
-        return res.status(404).json({ message: 'Envío no encontrado' });
+      if (!courier) {
+        return res.status(404).json({ message: 'Repartidor no encontrado' });
       }
 
-      await shipment.update({
-        status: false,
-        updatedAt: new Date()
+      await courier.update({ status: false });
+
+      const inactiveStatus = await CourierStatusType.findOne({
+        where: { name: 'Inactivo' }
       });
 
-      res.json({ message: 'Envío eliminado lógicamente' });
+      await setCourierCurrentStatus(courier.idCourier, inactiveStatus);
+
+      res.json({ message: 'Repartidor eliminado lógicamente' });
     } catch (error) {
       res.status(500).json({
-        message: 'Error al eliminar envío',
+        message: 'Error al eliminar repartidor',
         error: error.message
       });
     }
   }
 };
 
-module.exports = shipmentController;
+module.exports = courierController;

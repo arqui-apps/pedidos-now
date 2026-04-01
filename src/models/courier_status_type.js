@@ -12,7 +12,7 @@ module.exports = function(sequelize, DataTypes) {
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true
+      unique: "name"
     },
     description: {
       type: DataTypes.STRING(255),
@@ -21,7 +21,6 @@ module.exports = function(sequelize, DataTypes) {
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
       field: 'created_at'
     }
   }, {
