@@ -43,8 +43,6 @@ console.log(process.env.DB_USER);
 
 console.log("Prueba de escritura 1");
 
-<<<<<<< HEAD
 console.log("Prueba de escritura 2");
-=======
+
 console.log("Prueba de AndreiHarkovLev");
->>>>>>> 5fe67ba6594b868558bb95658650512e8dbe07dc
