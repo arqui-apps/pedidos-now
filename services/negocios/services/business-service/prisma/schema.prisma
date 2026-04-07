@@ -542,6 +542,12 @@ enum promotion_request_scope_scope_type {
 enum business_business_type {
   pharmacy
   supermarket
+  convenience_store
+  hardware_store
+  electronics_store
+  home_appliance_store
+  beauty_store
+  stationery_store
 }
 
 enum business_order_delivery_delivery_status {

@@ -28,6 +28,7 @@ export class PrismaService
       password: decodeURIComponent(parsedUrl.password),
       database: parsedUrl.pathname.replace(/^\//, ''),
       connectionLimit: 5,
+      allowPublicKeyRetrieval: true,
     });
 
     super({ adapter });

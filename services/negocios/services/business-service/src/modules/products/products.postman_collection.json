@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "business-service - products",
+    "_postman_id": "ed6fe651-5a31-46e1-b93a-2d1f3aa69311",
+    "description": "Colección Postman para el módulo products del microservicio business-service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "businessId", "value": "1" },
+    { "key": "productId", "value": "1" },
+    { "key": "productTypeId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "01. Salud del servicio",
+      "description": "Verificación rápida del servicio antes de probar el módulo products.",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "description": "Valida que el microservicio esté levantado.",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Consulta de productos",
+      "description": "Consultas de lista y detalle del módulo products.",
+      "item": [
+        {
+          "name": "GET Listar productos por negocio",
+          "request": {
+            "method": "GET",
+            "description": "Lista productos del negocio. Soporta filtros por estado, tipo, visible en catálogo e includeDeleted.",
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products"
+          }
+        },
+        {
+          "name": "GET Listar productos filtrando catálogo visible",
+          "request": {
+            "method": "GET",
+            "description": "Ejemplo de filtro por visibleInCatalog=true.",
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}/products?visibleInCatalog=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["businesses", "{{businessId}}", "products"],
+              "query": [
+                { "key": "visibleInCatalog", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Obtener producto por id",
+          "request": {
+            "method": "GET",
+            "description": "Obtiene un producto puntual del negocio.",
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "GET Obtener producto eliminado incluyendo borrados",
+          "request": {
+            "method": "GET",
+            "description": "Útil para verificar el soft delete con includeDeleted=true.",
+            "url": {
+              "raw": "{{baseUrl}}/businesses/{{businessId}}/products/{{productId}}?includeDeleted=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["businesses", "{{businessId}}", "products", "{{productId}}"],
+              "query": [
+                { "key": "includeDeleted", "value": "true" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Creación y actualización",
+      "description": "Creación de producto y cambios operativos básicos.",
+      "item": [
+        {
+          "name": "POST Crear producto",
+          "request": {
+            "method": "POST",
+            "description": "Crea un producto ligado al negocio y al product_type indicado.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hamburguesa clásica\",\n  \"description\": \"Pan artesanal, carne y vegetales.\",\n  \"internalCode\": \"BURG-001\",\n  \"basePrice\": 35.5,\n  \"imageUrl\": \"https://cdn.ejemplo.com/products/burg-001.png\",\n  \"productStatus\": \"active\",\n  \"visibleInCatalog\": true,\n  \"productTypeId\": {{productTypeId}}\n}"
+            },
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products"
+          }
+        },
+        {
+          "name": "PATCH Actualizar producto",
+          "request": {
+            "method": "PATCH",
+            "description": "Actualiza campos operativos del producto sin tocar inventario complejo.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hamburguesa clásica doble\",\n  \"basePrice\": 42.0,\n  \"productStatus\": \"out_of_stock\",\n  \"visibleInCatalog\": true\n}"
+            },
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Eliminación lógica y restore",
+      "description": "Pruebas de soft delete y restore del producto.",
+      "item": [
+        {
+          "name": "DELETE Eliminación lógica de producto",
+          "request": {
+            "method": "DELETE",
+            "description": "Marca deleted_at y registra deletion_reason.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deletionReason\": \"Producto retirado temporalmente del menú.\"\n}"
+            },
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "PATCH Restore de producto",
+          "request": {
+            "method": "PATCH",
+            "description": "Restaura el producto limpiando metadata de soft delete y reasignando estado operativo.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productStatus\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products/{{productId}}/restore"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Catálogo",
+      "description": "Consultas de catálogo base externo e interno.",
+      "item": [
+        {
+          "name": "GET Catálogo del negocio",
+          "request": {
+            "method": "GET",
+            "description": "Devuelve el catálogo visible agrupado por product type.",
+            "url": "{{baseUrl}}/businesses/{{businessId}}/catalog"
+          }
+        },
+        {
+          "name": "GET Catálogo base interno",
+          "request": {
+            "method": "GET",
+            "description": "Versión interna del catálogo base usando la misma lógica operacional.",
+            "url": "{{baseUrl}}/internal/businesses/{{businessId}}/base-catalog"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Verificaciones posteriores",
+      "description": "Verificaciones recomendadas luego de crear, actualizar, eliminar o restaurar.",
+      "item": [
+        {
+          "name": "GET Verificar lista tras cambios",
+          "request": {
+            "method": "GET",
+            "description": "Revisar cómo quedó el listado general del negocio.",
+            "url": "{{baseUrl}}/businesses/{{businessId}}/products"
+          }
+        },
+        {
+          "name": "GET Verificar catálogo tras cambios",
+          "request": {
+            "method": "GET",
+            "description": "Confirma si el producto entra o no al catálogo según visible_in_catalog, estado y soft delete.",
+            "url": "{{baseUrl}}/businesses/{{businessId}}/catalog"
+          }
+        }
+      ]
+    }
+  ]
+}
