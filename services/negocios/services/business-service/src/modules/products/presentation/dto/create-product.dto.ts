@@ -63,4 +63,9 @@ export class CreateProductDto {
   @IsInt()
   @Min(1)
   productTypeId!: number;
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  imagePublicId?: string;
 }

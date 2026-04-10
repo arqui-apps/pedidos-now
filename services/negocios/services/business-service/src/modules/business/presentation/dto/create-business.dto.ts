@@ -66,4 +66,16 @@ export class CreateBusinessDto {
   @IsString()
   @MaxLength(30)
   taxId?: string;
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  logoUrl?: string;
+
+  @ApiPropertyOptional({ maxLength: 255 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  logoPublicId?: string;
 }

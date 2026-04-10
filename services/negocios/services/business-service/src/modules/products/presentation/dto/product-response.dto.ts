@@ -91,4 +91,6 @@ export class ProductResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
+  @ApiPropertyOptional({ nullable: true })
+  imagePublicId!: string | null;
 }

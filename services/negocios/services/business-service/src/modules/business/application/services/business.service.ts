@@ -52,6 +52,8 @@ export class BusinessService {
         phone: dto.phone,
         email: dto.email,
         tax_id: dto.taxId,
+        logo_url: dto.logoUrl,
+        logo_public_id: dto.logoPublicId,
       });
 
       return mapBusinessToResponseDto(record);
@@ -81,6 +83,10 @@ export class BusinessService {
         ...(dto.email !== undefined ? { email: dto.email } : {}),
         ...(dto.taxId !== undefined ? { tax_id: dto.taxId } : {}),
         updated_at: new Date(),
+        ...(dto.logoUrl !== undefined ? { logo_url: dto.logoUrl } : {}),
+        ...(dto.logoPublicId !== undefined
+          ? { logo_public_id: dto.logoPublicId }
+          : {}),
       });
 
       return mapBusinessToResponseDto(record);

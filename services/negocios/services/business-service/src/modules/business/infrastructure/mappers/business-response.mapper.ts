@@ -40,5 +40,7 @@ export function mapBusinessToResponseDto(
     availability,
     createdAt: record.created_at,
     updatedAt: record.updated_at,
+    logoUrl: record.logo_url,
+    logoPublicId: record.logo_public_id,
   };
 }

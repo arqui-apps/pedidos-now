@@ -70,6 +70,7 @@ export class ProductsService {
         internal_code: dto.internalCode,
         base_price: dto.basePrice,
         image_url: dto.imageUrl,
+        image_public_id: dto.imagePublicId,
         product_status: dto.productStatus ?? product_product_status.active,
         visible_in_catalog: dto.visibleInCatalog === false ? 0 : 1,
       });
@@ -122,6 +123,9 @@ export class ProductsService {
           ? { visible_in_catalog: dto.visibleInCatalog ? 1 : 0 }
           : {}),
         updated_at: new Date(),
+        ...(dto.imagePublicId !== undefined
+          ? { image_public_id: dto.imagePublicId }
+          : {}),
       });
 
       return mapProductToResponseDto(record);

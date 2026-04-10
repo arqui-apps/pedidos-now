@@ -49,6 +49,7 @@ export function mapProductToResponseDto(
     internalCode: record.internal_code,
     basePrice: Number(record.base_price),
     imageUrl: record.image_url,
+    imagePublicId: record.image_public_id,
     productStatus: record.product_status,
     visibleInCatalog: record.visible_in_catalog === 1,
     deletedAt: record.deleted_at,

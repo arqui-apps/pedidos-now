@@ -17,6 +17,8 @@ model business {
   phone                        String?                        @db.VarChar(20)
   email                        String?                        @unique(map: "uq_business_email") @db.VarChar(150)
   tax_id                       String?                        @unique(map: "uq_business_tax_id") @db.VarChar(30)
+  logo_url                     String?                        @db.VarChar(500)
+  logo_public_id               String?                        @db.VarChar(255)
   retired_at                   DateTime?                      @db.DateTime(0)
   retirement_reason            String?                        @db.Text
   deleted_at                   DateTime?                      @db.DateTime(0)
@@ -364,6 +366,7 @@ model product {
   internal_code                String?                        @db.VarChar(60)
   base_price                   Decimal                        @db.Decimal(10, 2)
   image_url                    String?                        @db.Text
+  image_public_id              String?                        @db.VarChar(255)
   product_status               product_product_status         @default(active)
   deleted_at                   DateTime?                      @db.DateTime(0)
   deletion_reason              String?                        @db.Text

@@ -95,4 +95,9 @@ export class BusinessResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
+  @ApiPropertyOptional({ nullable: true })
+  logoUrl!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  logoPublicId!: string | null;
 }
