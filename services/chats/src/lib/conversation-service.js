@@ -29,6 +29,7 @@ function normalizeOptionalString(value) {
 function parsePositiveInt(value, defaultValue) {
   if (value === undefined || value === null || value === '') return defaultValue;
   const parsed = Number(value);
+
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw createAppError(
       'VALIDATION_ERROR',
@@ -36,11 +37,42 @@ function parsePositiveInt(value, defaultValue) {
       400
     );
   }
+
   return parsed;
 }
 
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+function getGuatemalaNow() {
+  return new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala' })
+  );
+}
+
+function timeValueToMinutes(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  return (date.getUTCHours() * 60) + date.getUTCMinutes();
+}
+
+function normalizeTimeString(value) {
+  const time = normalizeOptionalString(value);
+
+  if (!time || !/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'La hora debe tener formato HH:mm o HH:mm:ss.',
+      400
+    );
+  }
+
+  return time.length === 5 ? `${time}:00` : time;
+}
+
+function timeStringToDate(value) {
+  const normalized = normalizeTimeString(value);
+  return new Date(`1970-01-01T${normalized}.000Z`);
 }
 
 function validateCreateConversationPayload(payload = {}) {
@@ -87,21 +119,10 @@ function validateCreateConversationPayload(payload = {}) {
   };
 }
 
-function getGuatemalaNow() {
-  return new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala' })
-  );
-}
-
-function timeValueToMinutes(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  return (date.getUTCHours() * 60) + date.getUTCMinutes();
-}
-
 async function resolveAvailability() {
   const gtNow = getGuatemalaNow();
   const dayOfWeek = gtNow.getDay();
-  const currentMinutes = (gtNow.getHours() * 60) + gtNow.getMinutes();
+  const currentMinutes = gtNow.getHours() * 60 + gtNow.getMinutes();
 
   const availability = await prisma.chat_availability.findFirst({
     where: {
@@ -206,6 +227,39 @@ function buildConversationWhere(filters = {}) {
   }
 
   return where;
+}
+
+function isFinalStatus(status) {
+  return [
+    'RESOLVED_NO_SOLUTION',
+    'RESOLVED_COUPON',
+    'RESOLVED_REFUND',
+    'CLOSED_TIMEOUT',
+    'CLOSED_MANUAL',
+    'CLOSED_OUT_OF_HOURS',
+  ].includes(status);
+}
+
+function isResolvedStatus(status) {
+  return ['RESOLVED_NO_SOLUTION', 'RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(status);
+}
+
+function getAllowedNextStatuses(currentStatus) {
+  if (currentStatus === 'IN_QUEUE') {
+    return ['OPEN'];
+  }
+
+  if (currentStatus === 'OPEN') {
+    return [
+      'RESOLVED_NO_SOLUTION',
+      'RESOLVED_COUPON',
+      'RESOLVED_REFUND',
+      'CLOSED_TIMEOUT',
+      'CLOSED_MANUAL',
+    ];
+  }
+
+  return [];
 }
 
 export async function createConversation(payload) {
@@ -390,43 +444,6 @@ export async function getConversationById(conversationId) {
   }
 
   return conversation;
-}
-
-function isFinalStatus(status) {
-  return [
-    'RESOLVED_NO_SOLUTION',
-    'RESOLVED_COUPON',
-    'RESOLVED_REFUND',
-    'CLOSED_TIMEOUT',
-    'CLOSED_MANUAL',
-    'CLOSED_OUT_OF_HOURS',
-  ].includes(status);
-}
-
-function isClosedStatus(status) {
-  return ['CLOSED_TIMEOUT', 'CLOSED_MANUAL', 'CLOSED_OUT_OF_HOURS'].includes(status);
-}
-
-function isResolvedStatus(status) {
-  return ['RESOLVED_NO_SOLUTION', 'RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(status);
-}
-
-function getAllowedNextStatuses(currentStatus) {
-  if (currentStatus === 'IN_QUEUE') {
-    return ['OPEN'];
-  }
-
-  if (currentStatus === 'OPEN') {
-    return [
-      'RESOLVED_NO_SOLUTION',
-      'RESOLVED_COUPON',
-      'RESOLVED_REFUND',
-      'CLOSED_TIMEOUT',
-      'CLOSED_MANUAL',
-    ];
-  }
-
-  return [];
 }
 
 export async function assignAgentToConversation(conversationId, payload = {}) {
@@ -860,4 +877,224 @@ export async function closeExpiredConversations({ limit = 50 } = {}) {
     items: results,
     timestamp: now,
   };
+}
+
+function validateAvailabilityPayload(payload = {}, { partial = false } = {}) {
+  const parsed = {};
+
+  if (!partial || payload.day_of_week !== undefined) {
+    const dayOfWeek = Number(payload.day_of_week);
+
+    if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+      throw createAppError(
+        'VALIDATION_ERROR',
+        'day_of_week debe ser un entero entre 0 y 6.',
+        400
+      );
+    }
+
+    parsed.day_of_week = dayOfWeek;
+  }
+
+  if (!partial || payload.start_time !== undefined) {
+    parsed.start_time = timeStringToDate(payload.start_time);
+  }
+
+  if (!partial || payload.end_time !== undefined) {
+    parsed.end_time = timeStringToDate(payload.end_time);
+  }
+
+  if (parsed.start_time && parsed.end_time) {
+    if (parsed.start_time.getTime() >= parsed.end_time.getTime()) {
+      throw createAppError(
+        'VALIDATION_ERROR',
+        'start_time debe ser menor que end_time.',
+        400
+      );
+    }
+  }
+
+  if (!partial || payload.enabled !== undefined) {
+    if (typeof payload.enabled !== 'boolean') {
+      throw createAppError(
+        'VALIDATION_ERROR',
+        'enabled debe ser boolean.',
+        400
+      );
+    }
+
+    parsed.enabled = payload.enabled;
+  }
+
+  if (!partial || payload.timezone !== undefined) {
+    const timezone = normalizeOptionalString(payload.timezone) || 'America/Guatemala';
+    parsed.timezone = timezone;
+  }
+
+  return parsed;
+}
+
+export async function createAvailability(payload = {}) {
+  const data = validateAvailabilityPayload(payload);
+
+  const exists = await prisma.chat_availability.findFirst({
+    where: {
+      day_of_week: data.day_of_week,
+      deleted_at: null,
+    },
+  });
+
+  if (exists) {
+    throw createAppError(
+      'AVAILABILITY_ALREADY_EXISTS',
+      `Ya existe un horario activo para el día ${data.day_of_week}.`,
+      409
+    );
+  }
+
+  return prisma.chat_availability.create({
+    data,
+  });
+}
+
+export async function listAvailability() {
+  const items = await prisma.chat_availability.findMany({
+    where: {
+      deleted_at: null,
+    },
+    orderBy: {
+      day_of_week: 'asc',
+    },
+  });
+
+  return items;
+}
+
+export async function getAvailabilityById(availabilityId) {
+  const id = normalizeOptionalString(availabilityId);
+
+  if (!id) {
+    throw createAppError('VALIDATION_ERROR', 'availabilityId es obligatorio.', 400);
+  }
+
+  const item = await prisma.chat_availability.findFirst({
+    where: {
+      id,
+      deleted_at: null,
+    },
+  });
+
+  if (!item) {
+    throw createAppError(
+      'AVAILABILITY_NOT_FOUND',
+      'Horario no encontrado.',
+      404
+    );
+  }
+
+  return item;
+}
+
+export async function updateAvailability(availabilityId, payload = {}) {
+  const id = normalizeOptionalString(availabilityId);
+
+  if (!id) {
+    throw createAppError('VALIDATION_ERROR', 'availabilityId es obligatorio.', 400);
+  }
+
+  const data = validateAvailabilityPayload(payload, { partial: true });
+
+  if (Object.keys(data).length === 0) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'Debes enviar al menos un campo para actualizar.',
+      400
+    );
+  }
+
+  const current = await prisma.chat_availability.findFirst({
+    where: {
+      id,
+      deleted_at: null,
+    },
+  });
+
+  if (!current) {
+    throw createAppError(
+      'AVAILABILITY_NOT_FOUND',
+      'Horario no encontrado.',
+      404
+    );
+  }
+
+  const nextDayOfWeek = data.day_of_week ?? current.day_of_week;
+
+  const duplicate = await prisma.chat_availability.findFirst({
+    where: {
+      day_of_week: nextDayOfWeek,
+      deleted_at: null,
+      NOT: {
+        id,
+      },
+    },
+  });
+
+  if (duplicate) {
+    throw createAppError(
+      'AVAILABILITY_ALREADY_EXISTS',
+      `Ya existe otro horario activo para el día ${nextDayOfWeek}.`,
+      409
+    );
+  }
+
+  const nextStartTime = data.start_time ?? current.start_time;
+  const nextEndTime = data.end_time ?? current.end_time;
+
+  if (nextStartTime.getTime() >= nextEndTime.getTime()) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'start_time debe ser menor que end_time.',
+      400
+    );
+  }
+
+  return prisma.chat_availability.update({
+    where: { id },
+    data: {
+      ...data,
+      updated_at: new Date(),
+    },
+  });
+}
+
+export async function deleteAvailability(availabilityId) {
+  const id = normalizeOptionalString(availabilityId);
+
+  if (!id) {
+    throw createAppError('VALIDATION_ERROR', 'availabilityId es obligatorio.', 400);
+  }
+
+  const current = await prisma.chat_availability.findFirst({
+    where: {
+      id,
+      deleted_at: null,
+    },
+  });
+
+  if (!current) {
+    throw createAppError(
+      'AVAILABILITY_NOT_FOUND',
+      'Horario no encontrado.',
+      404
+    );
+  }
+
+  return prisma.chat_availability.update({
+    where: { id },
+    data: {
+      enabled: false,
+      deleted_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
 }
