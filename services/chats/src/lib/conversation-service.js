@@ -39,6 +39,10 @@ function parsePositiveInt(value, defaultValue) {
   return parsed;
 }
 
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
 function validateCreateConversationPayload(payload = {}) {
   const requester_type = normalizeOptionalString(payload.requester_type);
   const requester_ext_id = normalizeOptionalString(payload.requester_ext_id);
@@ -96,7 +100,7 @@ function timeValueToMinutes(value) {
 
 async function resolveAvailability() {
   const gtNow = getGuatemalaNow();
-  const dayOfWeek = gtNow.getDay(); // 0 domingo, 6 sábado
+  const dayOfWeek = gtNow.getDay();
   const currentMinutes = (gtNow.getHours() * 60) + gtNow.getMinutes();
 
   const availability = await prisma.chat_availability.findFirst({
@@ -387,6 +391,7 @@ export async function getConversationById(conversationId) {
 
   return conversation;
 }
+
 function isFinalStatus(status) {
   return [
     'RESOLVED_NO_SOLUTION',
@@ -469,6 +474,9 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
       );
     }
 
+    const now = new Date();
+    const inactivityDeadline = addMinutes(now, conversation.inactivity_minutes);
+
     await tx.participants.upsert({
       where: {
         conversation_id_participant_ext_id: {
@@ -496,6 +504,9 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
         assigned_agent_ext_id: agent_ext_id,
         status: 'OPEN',
         is_live: true,
+        last_activity_at: now,
+        inactivity_deadline_at: inactivityDeadline,
+        updated_at: now,
       },
     });
 
@@ -616,7 +627,10 @@ export async function changeConversationStatus(conversationId, payload = {}) {
     });
 
     if (isFinalStatus(new_status)) {
-      const timeToCloseMs = Math.max(0, now.getTime() - new Date(conversation.opened_at).getTime());
+      const timeToCloseMs = Math.max(
+        0,
+        now.getTime() - new Date(conversation.opened_at).getTime()
+      );
 
       await tx.metrics.upsert({
         where: { conversation_id: id },
@@ -678,4 +692,172 @@ export async function changeConversationStatus(conversationId, payload = {}) {
   });
 
   return result;
+}
+
+export async function closeExpiredConversations({ limit = 50 } = {}) {
+  const safeLimit = Math.min(100, Math.max(1, Number(limit || 50)));
+  const now = new Date();
+
+  const expiredConversations = await prisma.conversations.findMany({
+    where: {
+      deleted_at: null,
+      status: 'OPEN',
+      inactivity_deadline_at: {
+        not: null,
+        lte: now,
+      },
+    },
+    orderBy: {
+      inactivity_deadline_at: 'asc',
+    },
+    take: safeLimit,
+    include: {
+      metrics: true,
+    },
+  });
+
+  if (expiredConversations.length === 0) {
+    return {
+      processed: 0,
+      closed: 0,
+      items: [],
+      timestamp: now,
+    };
+  }
+
+  const results = [];
+
+  for (const conversation of expiredConversations) {
+    const updatedConversation = await prisma.$transaction(async (tx) => {
+      const freshConversation = await tx.conversations.findFirst({
+        where: {
+          id: conversation.id,
+          deleted_at: null,
+        },
+        include: {
+          metrics: true,
+        },
+      });
+
+      if (!freshConversation) {
+        return null;
+      }
+
+      if (
+        freshConversation.status !== 'OPEN' ||
+        !freshConversation.inactivity_deadline_at ||
+        new Date(freshConversation.inactivity_deadline_at).getTime() > now.getTime()
+      ) {
+        return null;
+      }
+
+      await tx.conversations.update({
+        where: { id: freshConversation.id },
+        data: {
+          status: 'CLOSED_TIMEOUT',
+          close_reason: 'TIMEOUT',
+          closed_at: now,
+          is_live: false,
+          inactivity_deadline_at: null,
+          updated_at: now,
+        },
+      });
+
+      await tx.status_history.create({
+        data: {
+          conversation_id: freshConversation.id,
+          previous_status: freshConversation.status,
+          new_status: 'CLOSED_TIMEOUT',
+          changed_by_role: 'SYSTEM',
+          changed_by_ext_id: null,
+          reason: 'Cierre automático por inactividad.',
+        },
+      });
+
+      await tx.messages.create({
+        data: {
+          conversation_id: freshConversation.id,
+          sender_role: 'SYSTEM',
+          sender_ext_id: null,
+          message_type: 'AUTO_CLOSE',
+          content: 'El chat fue cerrado automáticamente por inactividad.',
+        },
+      });
+
+      const timeToCloseMs = Math.max(
+        0,
+        now.getTime() - new Date(freshConversation.opened_at).getTime()
+      );
+
+      await tx.metrics.upsert({
+        where: {
+          conversation_id: freshConversation.id,
+        },
+        update: {
+          resolved_at: now,
+          time_to_close_ms: timeToCloseMs,
+          deleted_at: null,
+        },
+        create: {
+          conversation_id: freshConversation.id,
+          resolved_at: now,
+          time_to_close_ms: timeToCloseMs,
+        },
+      });
+
+      await tx.events.create({
+        data: {
+          conversation_id: freshConversation.id,
+          event_type: 'STATUS_CHANGED',
+          payload: {
+            previous_status: freshConversation.status,
+            new_status: 'CLOSED_TIMEOUT',
+            changed_by_ext_id: null,
+            reason: 'Cierre automático por inactividad.',
+            automatic: true,
+          },
+        },
+      });
+
+      await tx.events.create({
+        data: {
+          conversation_id: freshConversation.id,
+          event_type: 'AUTO_TIMEOUT_CLOSED',
+          payload: {
+            inactivity_deadline_at: freshConversation.inactivity_deadline_at,
+            closed_at: now,
+          },
+        },
+      });
+
+      return tx.conversations.findFirst({
+        where: {
+          id: freshConversation.id,
+          deleted_at: null,
+        },
+        include: {
+          participants: {
+            where: { deleted_at: null },
+            orderBy: { joined_at: 'asc' },
+          },
+          metrics: true,
+          status_history: {
+            where: { deleted_at: null },
+            orderBy: { changed_at: 'asc' },
+          },
+        },
+      });
+    });
+
+    if (updatedConversation) {
+      results.push(updatedConversation);
+    }
+  }
+
+  return {
+    processed: expiredConversations.length,
+    closed: results.length,
+    items: results,
+    timestamp: now,
+  };
 }
