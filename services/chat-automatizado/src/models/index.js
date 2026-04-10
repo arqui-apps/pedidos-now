@@ -1,24 +1,22 @@
-// src/models/index.js
 "use strict";
 
 const { Sequelize, DataTypes } = require("sequelize");
 require("dotenv").config();
 
-// 1. CREAR LA CONEXIÓN
-//    Le decimos a Sequelize dónde está nuestra base de datos
+// CREAR LA CONEXIÓN
 const sequelize = new Sequelize(
-    process.env.DB_NAME,      // "chatbot"
-    process.env.DB_USER,      // "root"
-    process.env.DB_PASS,      // "tu_password"
+    process.env.DB_NAME,      
+    process.env.DB_USER,      
+    process.env.DB_PASS,      
     {
         host: process.env.DB_HOST || "localhost",
         dialect: "mysql",
-        logging: false, // cambiar a console.log si quieres ver el SQL generado
+        logging: false, 
     }
 );
 
 // 2. REGISTRAR LOS MODELOS
-//    Cada modelo recibe sequelize y DataTypes para definir sus columnas
+
 const ChatSession   = require("./ChatSession")(sequelize, DataTypes);
 const Mensaje       = require("./Mensaje")(sequelize, DataTypes);
 const Menu          = require("./Menu")(sequelize, DataTypes);
@@ -28,9 +26,6 @@ const SupportRequest = require("./SupportRequest")(sequelize, DataTypes);
 const Faq           = require("./Faq")(sequelize, DataTypes);
 
 // 3. DEFINIR RELACIONES (equivalente a los FOREIGN KEY de tu SQL)
-//    Esto permite hacer queries con JOIN usando Sequelize
-
-// Una sesión tiene muchos mensajes
 ChatSession.hasMany(Mensaje, { foreignKey: "id_session" });
 Mensaje.belongsTo(ChatSession, { foreignKey: "id_session" });
 
