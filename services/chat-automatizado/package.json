@@ -4,11 +4,13 @@
   "type": "module",
   "main": "src/app.js",
   "dependencies": {
+    "axios": "^1.15.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mysql2": "^3.20.0",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "xstate": "^5.30.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
