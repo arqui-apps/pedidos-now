@@ -75,6 +75,24 @@ function timeStringToDate(value) {
   return new Date(`1970-01-01T${normalized}.000Z`);
 }
 
+function formatTimeValue(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
+}
+
+function serializeAvailability(item) {
+  if (!item) return item;
+
+  return {
+    ...item,
+    start_time: formatTimeValue(item.start_time),
+    end_time: formatTimeValue(item.end_time),
+  };
+}
+
 function validateCreateConversationPayload(payload = {}) {
   const requester_type = normalizeOptionalString(payload.requester_type);
   const requester_ext_id = normalizeOptionalString(payload.requester_ext_id);
@@ -952,9 +970,11 @@ export async function createAvailability(payload = {}) {
     );
   }
 
-  return prisma.chat_availability.create({
+  const created = await prisma.chat_availability.create({
     data,
   });
+
+  return serializeAvailability(created);
 }
 
 export async function listAvailability() {
@@ -967,7 +987,7 @@ export async function listAvailability() {
     },
   });
 
-  return items;
+  return items.map(serializeAvailability);
 }
 
 export async function getAvailabilityById(availabilityId) {
@@ -992,7 +1012,7 @@ export async function getAvailabilityById(availabilityId) {
     );
   }
 
-  return item;
+  return serializeAvailability(item);
 }
 
 export async function updateAvailability(availabilityId, payload = {}) {
@@ -1058,13 +1078,15 @@ export async function updateAvailability(availabilityId, payload = {}) {
     );
   }
 
-  return prisma.chat_availability.update({
+  const updated = await prisma.chat_availability.update({
     where: { id },
     data: {
       ...data,
       updated_at: new Date(),
     },
   });
+
+  return serializeAvailability(updated);
 }
 
 export async function deleteAvailability(availabilityId) {
@@ -1089,7 +1111,7 @@ export async function deleteAvailability(availabilityId) {
     );
   }
 
-  return prisma.chat_availability.update({
+  const deleted = await prisma.chat_availability.update({
     where: { id },
     data: {
       enabled: false,
@@ -1097,4 +1119,6 @@ export async function deleteAvailability(availabilityId) {
       updated_at: new Date(),
     },
   });
+
+  return serializeAvailability(deleted);
 }
