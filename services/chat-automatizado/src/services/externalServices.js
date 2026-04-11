@@ -1,30 +1,34 @@
-/**
- * Por qué este archivo:
- * Es la fachada (patrón Facade) de todos los servicios externos
- *
- * Beneficio: si mañana el equipo de Auth cambia su endpoint,
- */
+import {
+    getUserById,
+    getDeliveryById,
+    getBusinessById,
+} from "./external/auth.external.js";
 
-const auth       = require("./external/auth.external");
-const pedidos    = require("./external/pedidos.external");
-const descuentos = require("./external/descuentos.external");
-const cobros     = require("./external/cobros.external");
+import {
+    getOrderByCode,
+    getPendingOrdersByDelivery,
+    cancelOrder,
+} from "./external/pedidos.external.js";
 
-module.exports = {
-    // ── AUTH ────────────────────────────────────────────
-    getUserById:      auth.getUserById,
-    getDeliveryById:  auth.getDeliveryById,
-    getBusinessById:  auth.getBusinessById,
+import {
+    createCompensationCoupon,
+    validateCoupon,
+} from "./external/descuentos.external.js";
 
-    // ── PEDIDOS ─────────────────────────────────────────
-    getOrderByCode:              pedidos.getOrderByCode,
-    getPendingOrdersByDelivery:  pedidos.getPendingOrdersByDelivery,
-    cancelOrder:                 pedidos.cancelOrder,
+import { requestRefund } from "./external/cobros.external.js";
 
-    // ── DESCUENTOS ──────────────────────────────────────
-    createCompensationCoupon: descuentos.createCompensationCoupon,
-    validateCoupon:           descuentos.validateCoupon,
-
-    // ── COBROS ───────────────────────────────────────────
-    requestRefund: cobros.requestRefund,
+export {
+    // Auth
+    getUserById,
+    getDeliveryById,
+    getBusinessById,
+    // Pedidos
+    getOrderByCode,
+    getPendingOrdersByDelivery,
+    cancelOrder,
+    // Descuentos
+    createCompensationCoupon,
+    validateCoupon,
+    // Cobros
+    requestRefund,
 };
