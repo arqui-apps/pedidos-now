@@ -1,4 +1,10 @@
 import { prisma } from './prisma';
+import {
+  emitConversationAssigned,
+  emitConversationCreated,
+  emitConversationStatusChanged,
+  emitConversationUpdated,
+} from './realtime';
 
 const REQUESTER_TYPES = ['CUSTOMER', 'COURIER', 'BUSINESS'];
 const CASE_TYPES = ['ORDER', 'DELIVERY', 'BUSINESS_CASE', 'OTHER'];
@@ -53,7 +59,7 @@ function getGuatemalaNow() {
 
 function timeValueToMinutes(value) {
   const date = value instanceof Date ? value : new Date(value);
-  return (date.getUTCHours() * 60) + date.getUTCMinutes();
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
 }
 
 function normalizeTimeString(value) {
@@ -380,6 +386,9 @@ export async function createConversation(payload) {
     });
   });
 
+  emitConversationCreated(createdConversation);
+  emitConversationUpdated(createdConversation);
+
   return createdConversation;
 }
 
@@ -583,6 +592,9 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
     });
   });
 
+  emitConversationAssigned(result);
+  emitConversationUpdated(result);
+
   return result;
 }
 
@@ -725,6 +737,14 @@ export async function changeConversationStatus(conversationId, payload = {}) {
       },
     });
   });
+
+  emitConversationStatusChanged(result, {
+    new_status,
+    changed_by_ext_id,
+    reason,
+  });
+
+  emitConversationUpdated(result);
 
   return result;
 }
@@ -885,6 +905,15 @@ export async function closeExpiredConversations({ limit = 50 } = {}) {
     });
 
     if (updatedConversation) {
+      emitConversationStatusChanged(updatedConversation, {
+        previous_status: 'OPEN',
+        new_status: 'CLOSED_TIMEOUT',
+        automatic: true,
+        reason: 'Cierre automático por inactividad.',
+      });
+
+      emitConversationUpdated(updatedConversation);
+
       results.push(updatedConversation);
     }
   }

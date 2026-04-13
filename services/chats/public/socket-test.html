@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Socket Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    input, button {
+      margin: 4px;
+      padding: 8px;
+    }
+
+    #log {
+      white-space: pre-wrap;
+      background: #111;
+      color: #0f0;
+      padding: 12px;
+      height: 400px;
+      overflow: auto;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prueba Socket.IO - Chats</h1>
+
+  <div>
+    <input id="conversationId" placeholder="conversationId" />
+    <button onclick="joinConversation()">Unirse a conversación</button>
+  </div>
+
+  <div>
+    <input id="agentId" placeholder="agent_ext_id" />
+    <button onclick="subscribeAgent()">Suscribir agente</button>
+  </div>
+
+  <div>
+    <input id="userId" placeholder="requester_ext_id" />
+    <button onclick="subscribeUser()">Suscribir usuario</button>
+  </div>
+
+  <h3>Eventos</h3>
+  <div id="log"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const logEl = document.getElementById('log');
+    const socket = io();
+
+    function log(message) {
+      logEl.textContent += message + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    socket.on('connect', () => {
+      log('Conectado: ' + socket.id);
+    });
+
+    socket.on('socket:connected', (data) => log('[socket:connected] ' + JSON.stringify(data, null, 2)));
+    socket.on('conversation:joined', (data) => log('[conversation:joined] ' + JSON.stringify(data, null, 2)));
+    socket.on('user:subscribed', (data) => log('[user:subscribed] ' + JSON.stringify(data, null, 2)));
+    socket.on('agent:subscribed', (data) => log('[agent:subscribed] ' + JSON.stringify(data, null, 2)));
+
+    socket.on('conversation.created', (data) => log('[conversation.created] ' + JSON.stringify(data, null, 2)));
+    socket.on('conversation.updated', (data) => log('[conversation.updated] ' + JSON.stringify(data, null, 2)));
+    socket.on('conversation.assigned', (data) => log('[conversation.assigned] ' + JSON.stringify(data, null, 2)));
+    socket.on('conversation.status_changed', (data) => log('[conversation.status_changed] ' + JSON.stringify(data, null, 2)));
+    socket.on('message.created', (data) => log('[message.created] ' + JSON.stringify(data, null, 2)));
+
+    function joinConversation() {
+      const conversationId = document.getElementById('conversationId').value.trim();
+      socket.emit('conversation:join', { conversationId });
+    }
+
+    function subscribeAgent() {
+      const agent_ext_id = document.getElementById('agentId').value.trim();
+      socket.emit('agent:subscribe', { agent_ext_id });
+    }
+
+    function subscribeUser() {
+      const requester_ext_id = document.getElementById('userId').value.trim();
+      socket.emit('user:subscribe', { requester_ext_id });
+    }
+  </script>
+</body>
+</html>

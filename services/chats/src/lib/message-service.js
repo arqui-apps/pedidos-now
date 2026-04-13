@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
+import { emitMessageCreated } from './realtime';
 
 function createAppError(code, message, status = 400) {
   const error = new Error(message);
@@ -208,10 +209,33 @@ export async function createConversationMessage(conversationId, payload = {}) {
         },
       });
 
-      return message;
+      const updatedConversation = await tx.conversations.findFirst({
+        where: { id, deleted_at: null },
+        include: {
+          metrics: true,
+          participants: {
+            where: { deleted_at: null },
+            orderBy: { joined_at: 'asc' },
+          },
+          status_history: {
+            where: { deleted_at: null },
+            orderBy: { changed_at: 'asc' },
+          },
+        },
+      });
+
+      return {
+        message,
+        conversation: updatedConversation,
+      };
     });
 
-    return result;
+    emitMessageCreated({
+      conversation: result.conversation,
+      message: result.message,
+    });
+
+    return result.message;
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
