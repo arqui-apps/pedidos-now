@@ -1,5 +1,5 @@
 // src/models/ChatSession.js
-module.exports = (sequelize, DataTypes) => {
+export default (sequelize, DataTypes) => {
     const ChatSession = sequelize.define(
         "ChatSession",  // nombre del modelo en JS
         {
@@ -28,6 +28,21 @@ module.exports = (sequelize, DataTypes) => {
             },
             chat_context: {
                 type: DataTypes.JSON,
+                get() {
+                    const raw = this.getDataValue("chat_context");
+
+                    if (!raw) return null;
+
+                    if (typeof raw === "string") {
+                        try {
+                            return JSON.parse(raw);
+                        } catch {
+                            return null;
+                        }
+                    }
+
+                    return raw;
+                },
 
             },
 
@@ -58,8 +73,8 @@ module.exports = (sequelize, DataTypes) => {
             },
         },
         {
-            tableName: "chat_session", 
-            timestamps: false, 
+            tableName: "chat_session",
+            timestamps: false,
         }
     );
 

@@ -1,5 +1,5 @@
 // src/models/SupportRequest.js
-module.exports = (sequelize, DataTypes) => {
+export default (sequelize, DataTypes) => {
     const SupportRequest = sequelize.define(
         "SupportRequest",
         {

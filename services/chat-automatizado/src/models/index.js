@@ -1,48 +1,46 @@
-"use strict";
+import { Sequelize, DataTypes } from "sequelize";
+import "dotenv/config";
 
-const { Sequelize, DataTypes } = require("sequelize");
-require("dotenv").config();
+import ChatSessionModel from "./ChatSession.js";
+import MensajeModel from "./Mensaje.js";
+import MenuModel from "./Menu.js";
+import OptionChoiceModel from "./OptionChoice.js";
+import CompensationModel from "./Compensation.js";
+import SupportRequestModel from "./SupportRequest.js";
+import FaqModel from "./Faq.js";
 
-// CREAR LA CONEXIÓN
 const sequelize = new Sequelize(
-    process.env.DB_NAME,      
-    process.env.DB_USER,      
-    process.env.DB_PASS,      
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
     {
         host: process.env.DB_HOST || "localhost",
         dialect: "mysql",
-        logging: false, 
+        logging: false,
     }
 );
 
-// 2. REGISTRAR LOS MODELOS
+const ChatSession = ChatSessionModel(sequelize, DataTypes);
+const Mensaje = MensajeModel(sequelize, DataTypes);
+const Menu = MenuModel(sequelize, DataTypes);
+const OptionChoice = OptionChoiceModel(sequelize, DataTypes);
+const Compensation = CompensationModel(sequelize, DataTypes);
+const SupportRequest = SupportRequestModel(sequelize, DataTypes);
+const Faq = FaqModel(sequelize, DataTypes);
 
-const ChatSession   = require("./ChatSession")(sequelize, DataTypes);
-const Mensaje       = require("./Mensaje")(sequelize, DataTypes);
-const Menu          = require("./Menu")(sequelize, DataTypes);
-const OptionChoice  = require("./OptionChoice")(sequelize, DataTypes);
-const Compensation  = require("./Compensation")(sequelize, DataTypes);
-const SupportRequest = require("./SupportRequest")(sequelize, DataTypes);
-const Faq           = require("./Faq")(sequelize, DataTypes);
-
-// 3. DEFINIR RELACIONES (equivalente a los FOREIGN KEY de tu SQL)
 ChatSession.hasMany(Mensaje, { foreignKey: "id_session" });
 Mensaje.belongsTo(ChatSession, { foreignKey: "id_session" });
 
-// Una sesión tiene muchas compensaciones
 ChatSession.hasMany(Compensation, { foreignKey: "id_session" });
 Compensation.belongsTo(ChatSession, { foreignKey: "id_session" });
 
-// Una sesión tiene muchos support requests
 ChatSession.hasMany(SupportRequest, { foreignKey: "id_session" });
 SupportRequest.belongsTo(ChatSession, { foreignKey: "id_session" });
 
-// Un menú tiene muchas opciones
 Menu.hasMany(OptionChoice, { foreignKey: "id_menu" });
 OptionChoice.belongsTo(Menu, { foreignKey: "id_menu" });
 
-// Exportar todo junto para usarlo en cualquier parte del proyecto
-module.exports = {
+export {
     sequelize,
     ChatSession,
     Mensaje,

@@ -1,5 +1,5 @@
 // src/models/ChatSession.js
-module.exports = (sequelize, DataTypes) => {
+export default (sequelize, DataTypes) => {
     const ChatSession = sequelize.define(
         "ChatSession",  // nombre del modelo en JS
         {
