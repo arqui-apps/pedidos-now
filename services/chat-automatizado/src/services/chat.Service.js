@@ -8,6 +8,8 @@ import {
     Compensation,
     SupportRequest,
 } from "../models/index.js";
+import pool from "../config/database.js";
+
 
 const HUMAN_SENDER_BY_USER_TYPE = {
     cliente: "cliente",
@@ -377,6 +379,13 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             order,
         };
 
+        // Guardar registro de la consulta en order_inquiry
+        await pool.query(
+            `INSERT INTO order_inquiry (id_session, inquiry_type, input_value, result_found, is_active)
+             VALUES (?, 'pedido', ?, ?, 1)`,
+            [id_session, actor.getSnapshot().context.order_code, order ? 1 : 0]
+        );
+
         botMessage = await buildBotMessage(
             currentState,
             actor.getSnapshot().context,
@@ -488,11 +497,24 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             session.user_type
         );
 
+        // Cuando el negocio confirma cancelación del pedido
+        if (currentState === "RESUELTO" && beforeState === "CANCELAR_PEDIDO_NEGOCIO_CONFIRMAR") {
+            const orderCode = actor.getSnapshot().context.order_code;
+            if (orderCode) {
+                try {
+                    await ext.cancelOrder(orderCode, session.id_usuario, "Cancelado por negocio desde chat automatizado");
+                } catch (cancelErr) {
+                    console.warn("[Chat] No se pudo cancelar el pedido en servicio externo:", cancelErr.message);
+                }
+            }
+            resolution = "resuelto";
+        }
+
         if (currentState === "ESCALAR_AGENTE") {
             resolution = "escalado_a_agente";
         }
 
-        if (currentState === "RESUELTO") {
+        if (currentState === "RESUELTO" && !resolution) {
             resolution = "resuelto";
         }
     }
