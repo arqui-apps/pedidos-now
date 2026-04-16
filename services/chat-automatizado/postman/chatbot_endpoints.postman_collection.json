@@ -1,0 +1,574 @@
+{
+  "info": {
+    "_postman_id": "chatbot-service-complete",
+    "name": "Chat Automatizado — Colección Completa",
+    "description": "Todos los endpoints del microservicio de servicio al cliente automatizado.\n\n**Flujo básico de demostración:**\n1. POST /session → obtener id_session\n2. POST /session/message → enviar opciones al bot\n3. GET /session/:id/history → ver historial completo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3004" },
+    { "key": "session_id", "value": "1" },
+    { "key": "faq_id", "value": "1" },
+    { "key": "compensation_id", "value": "1" },
+    { "key": "support_id", "value": "1" },
+    { "key": "cupon_code", "value": "COMP-123456" }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health",
+      "item": [
+        {
+          "name": "GET / — Estado del servidor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] }
+          }
+        },
+        {
+          "name": "GET /health — Health check completo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Sesión (flujo del bot)",
+      "item": [
+        {
+          "name": "POST /session — Iniciar sesión CLIENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.id_session) {",
+                  "    pm.collectionVariables.set('session_id', json.data.id_session);",
+                  "    console.log('session_id guardado:', json.data.id_session);",
+                  "}",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_usuario\": 1,\n  \"user_type\": \"cliente\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+          }
+        },
+        {
+          "name": "POST /session — Iniciar sesión REPARTIDOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.id_session) {",
+                  "    pm.collectionVariables.set('session_id', json.data.id_session);",
+                  "}",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_usuario\": 10,\n  \"user_type\": \"repartidor\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+          }
+        },
+        {
+          "name": "POST /session — Iniciar sesión NEGOCIO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.id_session) {",
+                  "    pm.collectionVariables.set('session_id', json.data.id_session);",
+                  "}",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_usuario\": 20,\n  \"user_type\": \"negocio\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+          }
+        },
+        {
+          "name": "POST /session/message — Enviar opción (número)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"1\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] },
+            "description": "Opciones comunes:\n- **Cliente:** 1=Problema pedido, 2=Cobro, 3=Consultar pedido, 4=FAQ\n- **Repartidor:** 1=Prob entrega, 2=Prob pago, 3=Soporte carretera, 4=FAQ\n- **Negocio:** 1=Prob pedido, 2=Cancelar pedido, 3=Prob cobro, 4=FAQ\n- **0** = Volver al menú anterior"
+          }
+        },
+        {
+          "name": "POST /session/message — Ingresar código de pedido",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"PED-001\",\n  \"input_type\": \"INPUT_CODE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] },
+            "description": "Usar input_type=INPUT_CODE cuando el estado actual es CONSULTA_PEDIDO o CANCELAR_PEDIDO_NEGOCIO."
+          }
+        },
+        {
+          "name": "GET /session/:id — Estado actual de sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/session/{{session_id}}", "host": ["{{base_url}}"], "path": ["session", "{{session_id}}"] }
+          }
+        },
+        {
+          "name": "GET /session/:id/history — Historial completo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/session/{{session_id}}/history", "host": ["{{base_url}}"], "path": ["session", "{{session_id}}", "history"] }
+          }
+        },
+        {
+          "name": "PATCH /session/:id/close — Cerrar sesión",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{base_url}}/session/{{session_id}}/close", "host": ["{{base_url}}"], "path": ["session", "{{session_id}}", "close"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "❓ FAQs",
+      "item": [
+        {
+          "name": "GET /faqs — Listar todas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/support/api/faqs?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["support", "api", "faqs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "category_type", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "include_inactive", "value": "false", "disabled": true }
+              ]
+            },
+            "description": "Parámetros opcionales:\n- category_type: cliente | repartidor | restaurante | farmacia | supermercado | paqueteria\n- search: texto a buscar en pregunta/respuesta\n- include_inactive: true | false\n- page, limit: paginación"
+          }
+        },
+        {
+          "name": "GET /faqs — Filtrar por categoría (cliente)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/support/api/faqs?category_type=cliente",
+              "host": ["{{base_url}}"],
+              "path": ["support", "api", "faqs"],
+              "query": [{ "key": "category_type", "value": "cliente" }]
+            }
+          }
+        },
+        {
+          "name": "GET /faqs/:id — Obtener una FAQ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/support/api/faqs/{{faq_id}}", "host": ["{{base_url}}"], "path": ["support", "api", "faqs", "{{faq_id}}"] }
+          }
+        },
+        {
+          "name": "POST /faqs — Crear FAQ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.data && json.data.id_faq) {",
+                  "    pm.collectionVariables.set('faq_id', json.data.id_faq);",
+                  "}",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_type\": \"restaurante\",\n  \"question\": \"¿Cómo actualizo mi menú?\",\n  \"answer\": \"Ingresa al panel del negocio y edita tus productos en la sección Menú.\",\n  \"faq_status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/support/api/faqs", "host": ["{{base_url}}"], "path": ["support", "api", "faqs"] },
+            "description": "category_type: cliente | repartidor | restaurante | farmacia | supermercado | paqueteria"
+          }
+        },
+        {
+          "name": "PATCH /faqs/:id — Actualizar FAQ",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answer\": \"Ve a Configuración → Menú → Editar producto.\",\n  \"faq_status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/support/api/faqs/{{faq_id}}", "host": ["{{base_url}}"], "path": ["support", "api", "faqs", "{{faq_id}}"] }
+          }
+        },
+        {
+          "name": "DELETE /faqs/:id — Desactivar FAQ",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/support/api/faqs/{{faq_id}}", "host": ["{{base_url}}"], "path": ["support", "api", "faqs", "{{faq_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎁 Compensaciones",
+      "item": [
+        {
+          "name": "GET /compensation — Listar todas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/compensation",
+              "host": ["{{base_url}}"],
+              "path": ["compensation"],
+              "query": [
+                { "key": "id_usuario", "value": "", "disabled": true },
+                { "key": "id_session", "value": "", "disabled": true },
+                { "key": "compensation_type", "value": "", "disabled": true },
+                { "key": "compensation_status", "value": "", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "10", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /compensation/:id — Obtener una",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/compensation/{{compensation_id}}", "host": ["{{base_url}}"], "path": ["compensation", "{{compensation_id}}"] }
+          }
+        },
+        {
+          "name": "GET /compensation/validate/:code — Validar cupón",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/compensation/validate/{{cupon_code}}", "host": ["{{base_url}}"], "path": ["compensation", "validate", "{{cupon_code}}"] },
+            "description": "Verifica si un cupón es válido, está usado, o expirado. Los cupones expirados se marcan automáticamente."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛠️ Soporte",
+      "item": [
+        {
+          "name": "GET /support — Listar solicitudes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/support",
+              "host": ["{{base_url}}"],
+              "path": ["support"],
+              "query": [
+                { "key": "id_session", "value": "", "disabled": true },
+                { "key": "id_delivery", "value": "", "disabled": true },
+                { "key": "request_status", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /support/:id — Obtener una solicitud",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/support/{{support_id}}", "host": ["{{base_url}}"], "path": ["support", "{{support_id}}"] }
+          }
+        },
+        {
+          "name": "PATCH /support/:id/status — Actualizar estado",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_status\": \"en_proceso\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/support/{{support_id}}/status", "host": ["{{base_url}}"], "path": ["support", "{{support_id}}", "status"] },
+            "description": "Estados válidos: pendiente | en_proceso | resuelto | cancelado"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📨 Mensajes",
+      "item": [
+        {
+          "name": "GET /message — Mensajes de una sesión",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/message?id_session={{session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["message"],
+              "query": [{ "key": "id_session", "value": "{{session_id}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Consultas (Inquiries)",
+      "item": [
+        {
+          "name": "GET /inquiry — Listar consultas de pedidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inquiry",
+              "host": ["{{base_url}}"],
+              "path": ["inquiry"],
+              "query": [
+                { "key": "id_session", "value": "", "disabled": true },
+                { "key": "inquiry_type", "value": "pedido", "disabled": true },
+                { "key": "result_found", "value": "true", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /inquiry/:id — Obtener una consulta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/inquiry/1", "host": ["{{base_url}}"], "path": ["inquiry", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Menús",
+      "item": [
+        {
+          "name": "GET /menu — Todos los menús",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/menu",
+              "host": ["{{base_url}}"],
+              "path": ["menu"],
+              "query": [
+                { "key": "user_type", "value": "cliente", "disabled": true },
+                { "key": "state", "value": "MENU_PRINCIPAL_CLIENTE", "disabled": true }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎮 DEMOS COMPLETOS",
+      "item": [
+        {
+          "name": "DEMO 1 — Cliente obtiene cupón",
+          "item": [
+            {
+              "name": "1. Iniciar sesión cliente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var json = pm.response.json();",
+                      "pm.collectionVariables.set('session_id', json.data.id_session);",
+                      "pm.test('Sesión iniciada', () => pm.response.to.have.status(201));",
+                      "console.log('Mensaje del bot:', json.data.message);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_usuario\": 100,\n  \"user_type\": \"cliente\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+              }
+            },
+            {
+              "name": "2. Elegir opción 1 (Problema pedido)",
+              "event": [{ "listen": "test", "script": { "exec": ["console.log('Bot dice:', pm.response.json().data.message);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"1\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            },
+            {
+              "name": "3. Elegir opción 1 (Pedido no llegó → CUPÓN)",
+              "event": [{ "listen": "test", "script": { "exec": ["var r = pm.response.json(); console.log('Estado final:', r.data.state); console.log('Mensaje:', r.data.message);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"1\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            },
+            {
+              "name": "4. Ver historial completo",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/session/{{session_id}}/history", "host": ["{{base_url}}"], "path": ["session", "{{session_id}}", "history"] }
+              }
+            }
+          ]
+        },
+        {
+          "name": "DEMO 2 — Repartidor solicita apoyo en carretera",
+          "item": [
+            {
+              "name": "1. Iniciar sesión repartidor",
+              "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('session_id', pm.response.json().data.id_session);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_usuario\": 200,\n  \"user_type\": \"repartidor\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+              }
+            },
+            {
+              "name": "2. Elegir opción 3 (Soporte en carretera)",
+              "event": [{ "listen": "test", "script": { "exec": ["var r = pm.response.json(); console.log('Estado:', r.data.state); console.log('Mensaje:', r.data.message);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"3\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            },
+            {
+              "name": "3. Ver solicitud de soporte creada",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/support?id_session={{session_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["support"],
+                  "query": [{ "key": "id_session", "value": "{{session_id}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "DEMO 3 — Negocio cancela pedido",
+          "item": [
+            {
+              "name": "1. Iniciar sesión negocio",
+              "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('session_id', pm.response.json().data.id_session);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_usuario\": 300,\n  \"user_type\": \"negocio\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session", "host": ["{{base_url}}"], "path": ["session"] }
+              }
+            },
+            {
+              "name": "2. Elegir opción 2 (Cancelar pedido)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"2\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            },
+            {
+              "name": "3. Ingresar código del pedido",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"PED-001\",\n  \"input_type\": \"INPUT_CODE\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            },
+            {
+              "name": "4. Confirmar cancelación (opción 1)",
+              "event": [{ "listen": "test", "script": { "exec": ["var r = pm.response.json(); console.log('Estado final:', r.data.state);"], "type": "text/javascript" } }],
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"id_session\": {{session_id}},\n  \"input\": \"1\"\n}", "options": { "raw": { "language": "json" } } },
+                "url": { "raw": "{{base_url}}/session/message", "host": ["{{base_url}}"], "path": ["session", "message"] }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
