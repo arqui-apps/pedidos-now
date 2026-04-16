@@ -11,6 +11,7 @@ import messageRoutes from './routes/message.routes.js';
 import inquiryRoutes from './routes/inquiry.routes.js';
 import menuRoutes from './routes/menu.routes.js';
 import supportRoutes from './routes/support.routes.js';
+import escalationRoutes from './routes/escalation.routes.js';
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/message', messageRoutes);
 app.use('/inquiry', inquiryRoutes);
 app.use('/menu', menuRoutes);
 app.use('/support', supportRoutes);
+app.use('/escalation', escalationRoutes);
 
 app.use(errorHandler);
 
