@@ -7,6 +7,7 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const movimientoRoutes = require('./routes/movimiento.routes');
 const reembolsoRoutes = require('./routes/reembolso.route');
 const compesacionRoutes = require('./routes/compensacion.routes');
+const chatAutomatizadoRoutes = require('./routes/chat_automatizado.routes');
 
 const app = express();
 app.use(express.json());
@@ -18,6 +19,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/movimientos', movimientoRoutes);
 app.use('/api/reembolsos', reembolsoRoutes);
 app.use('/api/compensaciones', compesacionRoutes);
+app.use('/api/chat-automatizado', chatAutomatizadoRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'Microservicio Admin/Contabilidad OK' });
