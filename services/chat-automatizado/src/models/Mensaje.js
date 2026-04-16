@@ -1,56 +1,25 @@
-// src/models/ChatSession.js
+// src/models/Mensaje.js
 export default (sequelize, DataTypes) => {
-    const ChatSession = sequelize.define(
-        "ChatSession",  // nombre del modelo en JS
+    const Mensaje = sequelize.define(
+        "Mensaje",  // nombre del modelo en JS
         {
-            // ── IDENTIFICACIÓN ──────────────────────────────────
-            id_session: {
+            id_mensaje: {
                 type: DataTypes.INTEGER,
                 primaryKey: true,
                 autoIncrement: true,
             },
-            id_usuario: {
+            id_session: {
                 type: DataTypes.INTEGER,
                 allowNull: false,
-
+                // Foreign key reference to ChatSession
             },
-            user_type: {
-                type: DataTypes.ENUM("cliente", "repartidor", "negocio"),
+            message_sender: {
+                type: DataTypes.ENUM("bot", "cliente", "repartidor", "negocio"),
                 allowNull: false,
             },
-
-            // ── ESTADO DE LA CONVERSACIÓN ────────────────────────
-            current_state: {
-                type: DataTypes.STRING(50),
-            },
-            previous_state: {
-                type: DataTypes.STRING(50),
-            },
-            chat_context: {
-                type: DataTypes.JSON,
-            },
-
-            // ── CONTROL DE SESIÓN ────────────────────────────────
-            session_status: {
-                type: DataTypes.ENUM("active", "inactive", "expired"),
-                defaultValue: "active",
-            },
-            resolution: {
-                type: DataTypes.ENUM(
-                    "resuelto",
-                    "resuelto_con_cupon",
-                    "resuelto_con_reembolso",
-                    "escalado_a_agente",
-                    "cerrado_sin_resolver"
-                ),
-            },
-            start_time: {
-                type: DataTypes.DATE,
-                defaultValue: DataTypes.NOW,
-            },
-            end_time: {
-                type: DataTypes.DATE,
-            
+            message_content: {
+                type: DataTypes.TEXT,
+                allowNull: false,
             },
             is_active: {
                 type: DataTypes.TINYINT,
@@ -58,10 +27,10 @@ export default (sequelize, DataTypes) => {
             },
         },
         {
-            tableName: "chat_session", 
+            tableName: "mensaje",  // ← Different table name
             timestamps: false,
         }
     );
 
-    return ChatSession;
+    return Mensaje;
 };
