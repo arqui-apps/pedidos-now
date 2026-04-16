@@ -1,8 +1,14 @@
 import { Router } from 'express';
-import { createCompensation } from '../controllers/compensation.controller.js';
+import {
+    getCompensations,
+    getCompensationById,
+    validateCoupon,
+} from '../controllers/compensation.controller.js';
 
 const router = Router();
 
-router.post('/', createCompensation);
+router.get('/', getCompensations);
+router.get('/validate/:cupon_code', validateCoupon);
+router.get('/:id', getCompensationById);
 
 export default router;
