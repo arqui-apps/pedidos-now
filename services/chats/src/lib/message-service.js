@@ -153,7 +153,7 @@ export async function createConversationMessage(conversationId, payload = {}) {
         }
       }
 
-      const message = await tx.messages.create({
+            const message = await tx.messages.create({
         data: {
           conversation_id: id,
           sender_role,
@@ -164,38 +164,123 @@ export async function createConversationMessage(conversationId, payload = {}) {
         },
       });
 
+      const messageSentAt = new Date(message.sent_at);
+      const inactivityDeadline = new Date(
+        messageSentAt.getTime() + conversation.inactivity_minutes * 60 * 1000
+      );
+
+      const conversationUpdateData = {
+        last_activity_at: messageSentAt,
+        inactivity_deadline_at: inactivityDeadline,
+        updated_at: messageSentAt,
+      };
+
+      if (sender_role === 'USER') {
+        conversationUpdateData.last_user_message_at = messageSentAt;
+      }
+
+      if (sender_role === 'AGENT') {
+        conversationUpdateData.last_agent_message_at = messageSentAt;
+      }
+
+      await tx.conversations.update({
+        where: { id },
+        data: conversationUpdateData,
+      });
+
+      const metricsUpdateData = {
+        total_messages: {
+          increment: 1,
+        },
+      };
+
+      if (sender_role === 'USER') {
+        metricsUpdateData.total_user_messages = {
+          increment: 1,
+        };
+      }
+
+      if (sender_role === 'AGENT') {
+        metricsUpdateData.total_agent_messages = {
+          increment: 1,
+        };
+      }
+
       if (
         sender_role === 'AGENT' &&
         conversation.last_user_message_at &&
-        (!conversation.metrics || conversation.metrics.first_agent_response_ms == null)
+        (!conversation.last_agent_message_at ||
+          new Date(conversation.last_agent_message_at).getTime() <
+            new Date(conversation.last_user_message_at).getTime())
       ) {
-        const firstAgentResponseMs = Math.max(
+        const responseMs = Math.max(
           0,
-          new Date(message.sent_at).getTime() -
+          messageSentAt.getTime() -
             new Date(conversation.last_user_message_at).getTime()
         );
 
-        await tx.metrics.upsert({
-          where: { conversation_id: id },
-          update: {
-            first_agent_response_ms: firstAgentResponseMs,
-            total_agent_response_ms: {
-              increment: firstAgentResponseMs,
-            },
-            agent_response_count: {
-              increment: 1,
-            },
-            deleted_at: null,
-          },
-          create: {
-            conversation_id: id,
-            first_agent_response_ms: firstAgentResponseMs,
-            total_agent_response_ms: firstAgentResponseMs,
-            agent_response_count: 1,
-          },
-        });
+        if (
+          !conversation.metrics ||
+          conversation.metrics.first_agent_response_ms == null
+        ) {
+          metricsUpdateData.first_agent_response_ms = responseMs;
+        }
+
+        metricsUpdateData.total_agent_response_ms = {
+          increment: responseMs,
+        };
+        metricsUpdateData.agent_response_count = {
+          increment: 1,
+        };
       }
 
+      await tx.metrics.upsert({
+        where: { conversation_id: id },
+        update: {
+          ...metricsUpdateData,
+          deleted_at: null,
+        },
+        create: {
+          conversation_id: id,
+          total_messages: 1,
+          total_user_messages: sender_role === 'USER' ? 1 : 0,
+          total_agent_messages: sender_role === 'AGENT' ? 1 : 0,
+          first_agent_response_ms:
+            sender_role === 'AGENT' &&
+            conversation.last_user_message_at &&
+            (!conversation.last_agent_message_at ||
+              new Date(conversation.last_agent_message_at).getTime() <
+                new Date(conversation.last_user_message_at).getTime()) &&
+            (!conversation.metrics ||
+              conversation.metrics.first_agent_response_ms == null)
+              ? Math.max(
+                  0,
+                  messageSentAt.getTime() -
+                    new Date(conversation.last_user_message_at).getTime()
+                )
+              : null,
+          total_agent_response_ms:
+            sender_role === 'AGENT' &&
+            conversation.last_user_message_at &&
+            (!conversation.last_agent_message_at ||
+              new Date(conversation.last_agent_message_at).getTime() <
+                new Date(conversation.last_user_message_at).getTime())
+              ? Math.max(
+                  0,
+                  messageSentAt.getTime() -
+                    new Date(conversation.last_user_message_at).getTime()
+                )
+              : 0,
+          agent_response_count:
+            sender_role === 'AGENT' &&
+            conversation.last_user_message_at &&
+            (!conversation.last_agent_message_at ||
+              new Date(conversation.last_agent_message_at).getTime() <
+                new Date(conversation.last_user_message_at).getTime())
+              ? 1
+              : 0,
+        },
+      });
       await tx.events.create({
         data: {
           conversation_id: id,

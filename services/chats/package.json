@@ -14,7 +14,8 @@
     "next": "^16.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "swagger-ui-dist": "^5.32.4"
   },
   "devDependencies": {
     "prisma": "^7.5.0"
