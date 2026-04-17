@@ -9,6 +9,7 @@ import {
     SupportRequest,
 } from "../models/index.js";
 import pool from "../config/database.js";
+import { buildEscalationPayload } from "./escalation.service.js";
 
 
 const HUMAN_SENDER_BY_USER_TYPE = {
@@ -512,6 +513,19 @@ export async function sendMessage({ id_session, input, input_type = null }) {
 
         if (currentState === "ESCALAR_AGENTE") {
             resolution = "escalado_a_agente";
+
+            // Construir y persistir el payload de transferencia al agente
+            try {
+                const machineCtx = actor.getSnapshot().context;
+                extra.escalationPayload = await buildEscalationPayload({
+                    session,
+                    previousState: beforeState,
+                    lastUserInput: normalizedInput,
+                    machineContext: machineCtx,
+                });
+            } catch (escErr) {
+                console.warn("[Escalation] No se pudo guardar el payload:", escErr.message);
+            }
         }
 
         if (currentState === "RESUELTO" && !resolution) {
@@ -540,6 +554,7 @@ export async function sendMessage({ id_session, input, input_type = null }) {
         state: finalState,
         message: botMessage,
         is_final: final,
+        ...(extra.escalationPayload ? { escalation_payload: extra.escalationPayload } : {}),
     };
 }
 
