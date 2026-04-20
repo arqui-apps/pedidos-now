@@ -132,23 +132,6 @@ Evitar PRs enormes (mejor dividir por partes)
 ## Colaboradores
 Aquí se detallara un listado de todos los colaboradores del proyecto, agradeciendo desde ya la participación de cada uno de ellos.
 =======
-# Modulo Paqueteria - Arquitectura de Sistemas II
-
-## Tecnologias
-- **Node.js** (API)
-- **Express** (Framework)
-- **MySQL** (Base de datos)
-- **Sequelize** (ORM)
-- **Nodemon** (Desarrollo)
-
-## Instalacion
-
-1. Clonar el repositorio:
-
-```bash
-git clone https://github.com/JulioTzicap/modulo-paqueteria.git
-cd modulo-paqueteria
-```
 
 2. Instalar dependencias:
 
