@@ -133,9 +133,3 @@ Evitar PRs enormes (mejor dividir por partes)
 Aquí se detallara un listado de todos los colaboradores del proyecto, agradeciendo desde ya la participación de cada uno de ellos.
 =======
 
-2. Instalar dependencias:
-
-```bash
-npm install
-```
->>>>>>> main
