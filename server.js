@@ -6,7 +6,7 @@ const initModels = require('./src/models/init-models');
 
 const models = initModels(sequelize);
 
-sequelize.authenticate()
+/*sequelize.authenticate()
   .then(() => {
     console.log("Conectado a MySQL");
 
@@ -14,4 +14,7 @@ sequelize.authenticate()
       console.log(`Servidor corriendo en puerto ${process.env.PORT}`);
     });
   })
-  .catch(err => console.log(err));
+  .catch(err => console.log(err));*/
+app.listen(process.env.PORT || 10000, () => {
+  console.log(`Servidor corriendo en puerto ${process.env.PORT}`);
+});
