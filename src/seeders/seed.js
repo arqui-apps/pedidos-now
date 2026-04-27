@@ -13,14 +13,14 @@ const {
   Package,
   CourierStatus,
   CourierStatusType,
-  Price // ✅ CORRECTO (no Prices)
+  Price 
 } = models;
 
 async function seed() {
   try {
-    console.log('🌱 Iniciando seed...');
+    console.log('Iniciando seed...');
 
-    // 🔥 DESACTIVAR FK
+    // DESACTIVAR FK
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
     // LIMPIAR TABLAS
@@ -32,7 +32,7 @@ async function seed() {
     await User.destroy({ where: {}, truncate: true });
     await Price.destroy({ where: {}, truncate: true });
 
-    // 🔥 ACTIVAR FK
+    // ACTIVAR FK
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
 
     // =====================
