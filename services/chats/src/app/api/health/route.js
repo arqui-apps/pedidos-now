@@ -6,16 +6,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const result = await prisma.$queryRaw`SELECT 1 AS ok`;
+    await prisma.$queryRaw`SELECT 1`;
 
     return successResponse({
       data: {
-        service: 'chats-service',
         status: 'ok',
-        database: Array.isArray(result) && result.length > 0 ? 'ok' : 'unknown',
-        timestamp: new Date().toISOString(),
+        database: 'connected',
       },
-      message: 'Servicio disponible.',
+      message: 'Servicio y base de datos operando correctamente.',
       status: 200,
     });
   } catch (error) {
