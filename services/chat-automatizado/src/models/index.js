@@ -26,7 +26,6 @@ const Menu = MenuModel(sequelize, DataTypes);
 const OptionChoice = OptionChoiceModel(sequelize, DataTypes);
 const Compensation = CompensationModel(sequelize, DataTypes);
 const SupportRequest = SupportRequestModel(sequelize, DataTypes);
-const Faq = FaqModel(sequelize, DataTypes);
 const EscalationPayload = EscalationPayloadModel(sequelize, DataTypes);
 
 ChatSession.hasMany(Mensaje, { foreignKey: "id_session" });
