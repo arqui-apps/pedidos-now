@@ -1,28 +1,20 @@
-const env = require('../src/config/env.cjs');
+require('dotenv').config();
 
 module.exports = {
   development: {
-    username: env.dbUser,
-    password: env.dbPassword,
-    database: env.dbName,
-    host: env.dbHost,
-    port: env.dbPort,
-    dialect: 'mysql'
-  },
-  test: {
-    username: env.dbUser,
-    password: env.dbPassword,
-    database: env.dbName,
-    host: env.dbHost,
-    port: env.dbPort,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
     dialect: 'mysql'
   },
   production: {
-    username: env.dbUser,
-    password: env.dbPassword,
-    database: env.dbName,
-    host: env.dbHost,
-    port: env.dbPort,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
     dialect: 'mysql'
   }
 };
