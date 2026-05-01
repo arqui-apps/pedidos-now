@@ -10,17 +10,7 @@ function createAdapter() {
     throw new Error('DATABASE_URL no está definida');
   }
 
-  const url = new URL(databaseUrl);
-
-  return new PrismaMariaDb({
-    host: url.hostname,
-    port: Number(url.port || 3306),
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: url.pathname.replace(/^\//, ''),
-    connectTimeout: 5000,
-    idleTimeout: 300,
-  });
+  return new PrismaMariaDb(databaseUrl);
 }
 
 const adapter = createAdapter();
