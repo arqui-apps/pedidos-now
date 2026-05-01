@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise';
-import { successResponse, errorResponse } from '../../../../../lib/api-response';
+import { successResponse, errorResponse } from '../../../../lib/api-response';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
