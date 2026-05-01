@@ -18,6 +18,10 @@
   },
   "scripts": {
     "dev": "nodemon src/app.js",
-    "start": "node src/app.js"
+    "start": "node src/app.js",
+    "migrate": "npx sequelize-cli db:migrate --config config/config.cjs",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo --config config/config.cjs",
+    "seed": "npx sequelize-cli db:seed:all --config config/config.cjs",
+    "setup": "npm run migrate && npm run seed"
   }
 }
