@@ -7,7 +7,6 @@ import MenuModel from "./Menu.js";
 import OptionChoiceModel from "./OptionChoice.js";
 import CompensationModel from "./Compensation.js";
 import SupportRequestModel from "./SupportRequest.js";
-import FaqModel from "./Faq.js";
 import EscalationPayloadModel from "./EscalationPayload.js";
 
 const sequelize = new Sequelize(
@@ -53,6 +52,5 @@ export {
     OptionChoice,
     Compensation,
     SupportRequest,
-    Faq,
     EscalationPayload,
 };
