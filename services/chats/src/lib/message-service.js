@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { prisma } from './prisma';
+// src/lib/message-service.js
+import { query, transaction } from './db';
 import { emitMessageCreated } from './realtime';
 
 function createAppError(code, message, status = 400) {
@@ -26,42 +26,146 @@ function isConversationFinal(status) {
   ].includes(status);
 }
 
-export async function listConversationMessages(conversationId, query = {}) {
+function toDate(value) {
+  if (!value) return null;
+  return value instanceof Date ? value : new Date(value);
+}
+
+function toMysqlDateTime(date) {
+  const d = date instanceof Date ? date : new Date(date);
+
+  const pad = (number) => String(number).padStart(2, '0');
+
+  return [
+    d.getFullYear(),
+    pad(d.getMonth() + 1),
+    pad(d.getDate()),
+  ].join('-') +
+    ' ' +
+    [
+      pad(d.getHours()),
+      pad(d.getMinutes()),
+      pad(d.getSeconds()),
+    ].join(':');
+}
+
+async function getConversationDetail(db, conversationId) {
+  const conversations = await db.query(
+    `
+    SELECT *
+    FROM conversations
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [conversationId]
+  );
+
+  if (!conversations.length) return null;
+
+  const conversation = conversations[0];
+
+  const metricsRows = await db.query(
+    `
+    SELECT *
+    FROM metrics
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [conversationId]
+  );
+
+  const participants = await db.query(
+    `
+    SELECT *
+    FROM participants
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    ORDER BY joined_at ASC
+    `,
+    [conversationId]
+  );
+
+  const statusHistory = await db.query(
+    `
+    SELECT *
+    FROM status_history
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    ORDER BY changed_at ASC
+    `,
+    [conversationId]
+  );
+
+  return {
+    ...conversation,
+    metrics: metricsRows[0] || null,
+    participants,
+    status_history: statusHistory,
+  };
+}
+
+export async function listConversationMessages(conversationId, queryParams = {}) {
   const id = normalizeOptionalString(conversationId);
 
   if (!id) {
     throw createAppError('VALIDATION_ERROR', 'conversationId es obligatorio.', 400);
   }
 
-  const page = Math.max(1, Number(query.page || 1));
-  const limit = Math.min(100, Math.max(1, Number(query.limit || 20)));
+  const page = Math.max(1, Number(queryParams.page || 1));
+  const limit = Math.min(100, Math.max(1, Number(queryParams.limit || 20)));
   const skip = (page - 1) * limit;
 
-  const conversation = await prisma.conversations.findFirst({
-    where: { id, deleted_at: null },
-  });
+  const conversationRows = await query(
+    `
+    SELECT id
+    FROM conversations
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [id]
+  );
 
-  if (!conversation) {
+  if (!conversationRows.length) {
     throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
   }
 
-  const [items, total] = await prisma.$transaction([
-    prisma.messages.findMany({
-      where: {
-        conversation_id: id,
-        deleted_at: null,
-      },
-      orderBy: { sent_at: 'asc' },
-      skip,
-      take: limit,
-    }),
-    prisma.messages.count({
-      where: {
-        conversation_id: id,
-        deleted_at: null,
-      },
-    }),
-  ]);
+const items = await query(
+  `
+  SELECT
+    id,
+    conversation_id,
+    sender_role,
+    sender_ext_id,
+    message_type,
+    content,
+    client_message_id,
+    sent_at,
+    deleted_at,
+    created_at,
+    updated_at
+  FROM messages
+  WHERE conversation_id = ?
+    AND deleted_at IS NULL
+  ORDER BY sent_at ASC
+  LIMIT ${limit} OFFSET ${skip}
+  `,
+  [id]
+);
+
+  const totalRows = await query(
+    `
+    SELECT COUNT(*) AS total
+    FROM messages
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    `,
+    [id]
+  );
+
+  const total = Number(totalRows?.[0]?.total || 0);
 
   return {
     items,
@@ -102,20 +206,37 @@ export async function createConversationMessage(conversationId, payload = {}) {
   }
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const conversation = await tx.conversations.findFirst({
-        where: { id, deleted_at: null },
-        include: {
-          metrics: true,
-          participants: {
-            where: { deleted_at: null },
-          },
-        },
-      });
+    const result = await transaction(async (tx) => {
+      const conversationRows = await tx.query(
+        `
+        SELECT *
+        FROM conversations
+        WHERE id = ?
+          AND deleted_at IS NULL
+        LIMIT 1
+        FOR UPDATE
+        `,
+        [id]
+      );
+
+      const conversation = conversationRows[0];
 
       if (!conversation) {
         throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
       }
+
+      const metricsRows = await tx.query(
+        `
+        SELECT *
+        FROM metrics
+        WHERE conversation_id = ?
+          AND deleted_at IS NULL
+        LIMIT 1
+        `,
+        [id]
+      );
+
+      conversation.metrics = metricsRows[0] || null;
 
       if (isConversationFinal(conversation.status)) {
         throw createAppError(
@@ -153,161 +274,253 @@ export async function createConversationMessage(conversationId, payload = {}) {
         }
       }
 
-            const message = await tx.messages.create({
-        data: {
-          conversation_id: id,
-          sender_role,
-          sender_ext_id,
-          message_type: 'TEXT',
-          content,
-          client_message_id: sender_role === 'USER' ? client_message_id : null,
-        },
-      });
-
-      const messageSentAt = new Date(message.sent_at);
-      const inactivityDeadline = new Date(
-        messageSentAt.getTime() + conversation.inactivity_minutes * 60 * 1000
+      const messageRowsBefore = await tx.query(
+        `
+        SELECT UUID() AS id, NOW() AS sent_at
+        `
       );
 
-      const conversationUpdateData = {
-        last_activity_at: messageSentAt,
-        inactivity_deadline_at: inactivityDeadline,
-        updated_at: messageSentAt,
-      };
+      const messageId = messageRowsBefore[0].id;
+      const messageSentAt = toDate(messageRowsBefore[0].sent_at);
+      const inactivityDeadline = new Date(
+        messageSentAt.getTime() + Number(conversation.inactivity_minutes) * 60 * 1000
+      );
+
+      await tx.execute(
+        `
+        INSERT INTO messages
+          (
+            id,
+            conversation_id,
+            sender_role,
+            sender_ext_id,
+            message_type,
+            content,
+            client_message_id,
+            sent_at,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            ?,
+            ?,
+            ?,
+            ?,
+            'TEXT',
+            ?,
+            ?,
+            ?,
+            ?,
+            ?
+          )
+        `,
+        [
+          messageId,
+          id,
+          sender_role,
+          sender_ext_id,
+          content,
+          sender_role === 'USER' ? client_message_id : null,
+          toMysqlDateTime(messageSentAt),
+          toMysqlDateTime(messageSentAt),
+          toMysqlDateTime(messageSentAt),
+        ]
+      );
+
+      const messageRows = await tx.query(
+        `
+        SELECT
+          id,
+          conversation_id,
+          sender_role,
+          sender_ext_id,
+          message_type,
+          content,
+          client_message_id,
+          sent_at,
+          deleted_at,
+          created_at,
+          updated_at
+        FROM messages
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [messageId]
+      );
+
+      const message = messageRows[0];
+
+      const updateParts = [
+        'last_activity_at = ?',
+        'inactivity_deadline_at = ?',
+        'updated_at = ?',
+      ];
+
+      const updateParams = [
+        toMysqlDateTime(messageSentAt),
+        toMysqlDateTime(inactivityDeadline),
+        toMysqlDateTime(messageSentAt),
+      ];
 
       if (sender_role === 'USER') {
-        conversationUpdateData.last_user_message_at = messageSentAt;
+        updateParts.push('last_user_message_at = ?');
+        updateParams.push(toMysqlDateTime(messageSentAt));
       }
 
       if (sender_role === 'AGENT') {
-        conversationUpdateData.last_agent_message_at = messageSentAt;
+        updateParts.push('last_agent_message_at = ?');
+        updateParams.push(toMysqlDateTime(messageSentAt));
       }
 
-      await tx.conversations.update({
-        where: { id },
-        data: conversationUpdateData,
-      });
+      updateParams.push(id);
 
-      const metricsUpdateData = {
-        total_messages: {
-          increment: 1,
-        },
-      };
+      await tx.execute(
+        `
+        UPDATE conversations
+        SET ${updateParts.join(', ')}
+        WHERE id = ?
+          AND deleted_at IS NULL
+        `,
+        updateParams
+      );
 
-      if (sender_role === 'USER') {
-        metricsUpdateData.total_user_messages = {
-          increment: 1,
-        };
-      }
-
-      if (sender_role === 'AGENT') {
-        metricsUpdateData.total_agent_messages = {
-          increment: 1,
-        };
-      }
+      let responseMs = null;
+      let shouldCountAgentResponse = false;
 
       if (
         sender_role === 'AGENT' &&
         conversation.last_user_message_at &&
         (!conversation.last_agent_message_at ||
-          new Date(conversation.last_agent_message_at).getTime() <
-            new Date(conversation.last_user_message_at).getTime())
+          toDate(conversation.last_agent_message_at).getTime() <
+            toDate(conversation.last_user_message_at).getTime())
       ) {
-        const responseMs = Math.max(
+        responseMs = Math.max(
           0,
-          messageSentAt.getTime() -
-            new Date(conversation.last_user_message_at).getTime()
+          messageSentAt.getTime() - toDate(conversation.last_user_message_at).getTime()
         );
 
-        if (
-          !conversation.metrics ||
-          conversation.metrics.first_agent_response_ms == null
-        ) {
-          metricsUpdateData.first_agent_response_ms = responseMs;
-        }
-
-        metricsUpdateData.total_agent_response_ms = {
-          increment: responseMs,
-        };
-        metricsUpdateData.agent_response_count = {
-          increment: 1,
-        };
+        shouldCountAgentResponse = true;
       }
 
-      await tx.metrics.upsert({
-        where: { conversation_id: id },
-        update: {
-          ...metricsUpdateData,
-          deleted_at: null,
-        },
-        create: {
-          conversation_id: id,
-          total_messages: 1,
-          total_user_messages: sender_role === 'USER' ? 1 : 0,
-          total_agent_messages: sender_role === 'AGENT' ? 1 : 0,
-          first_agent_response_ms:
-            sender_role === 'AGENT' &&
-            conversation.last_user_message_at &&
-            (!conversation.last_agent_message_at ||
-              new Date(conversation.last_agent_message_at).getTime() <
-                new Date(conversation.last_user_message_at).getTime()) &&
-            (!conversation.metrics ||
-              conversation.metrics.first_agent_response_ms == null)
-              ? Math.max(
-                  0,
-                  messageSentAt.getTime() -
-                    new Date(conversation.last_user_message_at).getTime()
-                )
-              : null,
-          total_agent_response_ms:
-            sender_role === 'AGENT' &&
-            conversation.last_user_message_at &&
-            (!conversation.last_agent_message_at ||
-              new Date(conversation.last_agent_message_at).getTime() <
-                new Date(conversation.last_user_message_at).getTime())
-              ? Math.max(
-                  0,
-                  messageSentAt.getTime() -
-                    new Date(conversation.last_user_message_at).getTime()
-                )
-              : 0,
-          agent_response_count:
-            sender_role === 'AGENT' &&
-            conversation.last_user_message_at &&
-            (!conversation.last_agent_message_at ||
-              new Date(conversation.last_agent_message_at).getTime() <
-                new Date(conversation.last_user_message_at).getTime())
-              ? 1
-              : 0,
-        },
-      });
-      await tx.events.create({
-        data: {
-          conversation_id: id,
-          event_type: 'MESSAGE_CREATED',
-          payload: {
+      const existingMetricsRows = await tx.query(
+        `
+        SELECT *
+        FROM metrics
+        WHERE conversation_id = ?
+        LIMIT 1
+        `,
+        [id]
+      );
+
+      const existingMetrics = existingMetricsRows[0] || null;
+
+      if (existingMetrics) {
+        await tx.execute(
+          `
+          UPDATE metrics
+          SET
+            total_messages = total_messages + 1,
+            total_user_messages = total_user_messages + ?,
+            total_agent_messages = total_agent_messages + ?,
+            first_agent_response_ms =
+              CASE
+                WHEN ? = 1 AND first_agent_response_ms IS NULL THEN ?
+                ELSE first_agent_response_ms
+              END,
+            total_agent_response_ms = total_agent_response_ms + ?,
+            agent_response_count = agent_response_count + ?,
+            deleted_at = NULL,
+            updated_at = ?
+          WHERE conversation_id = ?
+          `,
+          [
+            sender_role === 'USER' ? 1 : 0,
+            sender_role === 'AGENT' ? 1 : 0,
+            shouldCountAgentResponse ? 1 : 0,
+            responseMs,
+            shouldCountAgentResponse ? responseMs : 0,
+            shouldCountAgentResponse ? 1 : 0,
+            toMysqlDateTime(messageSentAt),
+            id,
+          ]
+        );
+      } else {
+        await tx.execute(
+          `
+          INSERT INTO metrics
+            (
+              conversation_id,
+              total_messages,
+              total_user_messages,
+              total_agent_messages,
+              first_agent_response_ms,
+              total_agent_response_ms,
+              agent_response_count,
+              created_at,
+              updated_at
+            )
+          VALUES
+            (
+              ?,
+              1,
+              ?,
+              ?,
+              ?,
+              ?,
+              ?,
+              ?,
+              ?
+            )
+          `,
+          [
+            id,
+            sender_role === 'USER' ? 1 : 0,
+            sender_role === 'AGENT' ? 1 : 0,
+            shouldCountAgentResponse ? responseMs : null,
+            shouldCountAgentResponse ? responseMs : 0,
+            shouldCountAgentResponse ? 1 : 0,
+            toMysqlDateTime(messageSentAt),
+            toMysqlDateTime(messageSentAt),
+          ]
+        );
+      }
+
+      await tx.execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'MESSAGE_CREATED',
+            CAST(? AS JSON),
+            ?,
+            ?
+          )
+        `,
+        [
+          id,
+          JSON.stringify({
             message_id: message.id,
             sender_role,
             sender_ext_id,
             message_type: message.message_type,
-          },
-        },
-      });
+          }),
+          toMysqlDateTime(messageSentAt),
+          toMysqlDateTime(messageSentAt),
+        ]
+      );
 
-      const updatedConversation = await tx.conversations.findFirst({
-        where: { id, deleted_at: null },
-        include: {
-          metrics: true,
-          participants: {
-            where: { deleted_at: null },
-            orderBy: { joined_at: 'asc' },
-          },
-          status_history: {
-            where: { deleted_at: null },
-            orderBy: { changed_at: 'asc' },
-          },
-        },
-      });
+      const updatedConversation = await getConversationDetail(tx, id);
 
       return {
         message,
@@ -322,10 +535,7 @@ export async function createConversationMessage(conversationId, payload = {}) {
 
     return result.message;
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
+    if (error.code === 'ER_DUP_ENTRY') {
       throw createAppError(
         'DUPLICATE_CLIENT_MESSAGE',
         'El client_message_id ya fue usado en esta conversación.',
