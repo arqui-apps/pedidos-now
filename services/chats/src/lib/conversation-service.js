@@ -1,4 +1,5 @@
-import { prisma } from './prisma';
+// src/lib/conversation-service.js
+import { query, execute, transaction } from './db';
 import {
   emitConversationAssigned,
   emitConversationCreated,
@@ -57,9 +58,21 @@ function getGuatemalaNow() {
   );
 }
 
-function timeValueToMinutes(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  return date.getUTCHours() * 60 + date.getUTCMinutes();
+function toDate(value) {
+  if (!value) return null;
+  return value instanceof Date ? value : new Date(value);
+}
+
+function toMysqlDateTime(value) {
+  const d = value instanceof Date ? value : new Date(value);
+
+  const pad = (number) => String(number).padStart(2, '0');
+
+  return (
+    [d.getFullYear(), pad(d.getMonth() + 1), pad(d.getDate())].join('-') +
+    ' ' +
+    [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(':')
+  );
 }
 
 function normalizeTimeString(value) {
@@ -76,16 +89,30 @@ function normalizeTimeString(value) {
   return time.length === 5 ? `${time}:00` : time;
 }
 
-function timeStringToDate(value) {
-  const normalized = normalizeTimeString(value);
-  return new Date(`1970-01-01T${normalized}.000Z`);
+function timeValueToMinutes(value) {
+  if (!value) return 0;
+
+  if (typeof value === 'string') {
+    const [hh, mm] = value.split(':').map(Number);
+    return hh * 60 + mm;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
 }
 
 function formatTimeValue(value) {
+  if (!value) return value;
+
+  if (typeof value === 'string') {
+    return value.length === 5 ? `${value}:00` : value;
+  }
+
   const date = value instanceof Date ? value : new Date(value);
   const hh = String(date.getUTCHours()).padStart(2, '0');
   const mm = String(date.getUTCMinutes()).padStart(2, '0');
   const ss = String(date.getUTCSeconds()).padStart(2, '0');
+
   return `${hh}:${mm}:${ss}`;
 }
 
@@ -99,10 +126,47 @@ function serializeAvailability(item) {
   };
 }
 
+function isFinalStatus(status) {
+  return [
+    'RESOLVED_NO_SOLUTION',
+    'RESOLVED_COUPON',
+    'RESOLVED_REFUND',
+    'CLOSED_TIMEOUT',
+    'CLOSED_MANUAL',
+    'CLOSED_OUT_OF_HOURS',
+  ].includes(status);
+}
+
+function isResolvedStatus(status) {
+  return ['RESOLVED_NO_SOLUTION', 'RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(
+    status
+  );
+}
+
+function getAllowedNextStatuses(currentStatus) {
+  if (currentStatus === 'IN_QUEUE') {
+    return ['OPEN'];
+  }
+
+  if (currentStatus === 'OPEN') {
+    return [
+      'RESOLVED_NO_SOLUTION',
+      'RESOLVED_COUPON',
+      'RESOLVED_REFUND',
+      'CLOSED_TIMEOUT',
+      'CLOSED_MANUAL',
+    ];
+  }
+
+  return [];
+}
+
 function validateCreateConversationPayload(payload = {}) {
   const requester_type = normalizeOptionalString(payload.requester_type);
   const requester_ext_id = normalizeOptionalString(payload.requester_ext_id);
-  const requester_display_name = normalizeOptionalString(payload.requester_display_name);
+  const requester_display_name = normalizeOptionalString(
+    payload.requester_display_name
+  );
   const case_type = normalizeOptionalString(payload.case_type) || 'OTHER';
   const case_reference = normalizeOptionalString(payload.case_reference);
   const subject = normalizeOptionalString(payload.subject);
@@ -148,13 +212,19 @@ async function resolveAvailability() {
   const dayOfWeek = gtNow.getDay();
   const currentMinutes = gtNow.getHours() * 60 + gtNow.getMinutes();
 
-  const availability = await prisma.chat_availability.findFirst({
-    where: {
-      day_of_week: dayOfWeek,
-      enabled: true,
-      deleted_at: null,
-    },
-  });
+  const rows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE day_of_week = ?
+      AND enabled = true
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [dayOfWeek]
+  );
+
+  const availability = rows[0] || null;
 
   if (!availability) {
     return {
@@ -199,10 +269,9 @@ function parseDateFilter(value, endOfDay = false) {
   return date;
 }
 
-function buildConversationWhere(filters = {}) {
-  const where = {
-    deleted_at: null,
-  };
+function buildConversationWhereSql(filters = {}) {
+  const conditions = ['c.deleted_at IS NULL'];
+  const params = [];
 
   if (filters.status) {
     if (!CONVERSATION_STATUSES.includes(filters.status)) {
@@ -212,7 +281,9 @@ function buildConversationWhere(filters = {}) {
         400
       );
     }
-    where.status = filters.status;
+
+    conditions.push('c.status = ?');
+    params.push(filters.status);
   }
 
   if (filters.requester_type) {
@@ -223,7 +294,9 @@ function buildConversationWhere(filters = {}) {
         400
       );
     }
-    where.requester_type = filters.requester_type;
+
+    conditions.push('c.requester_type = ?');
+    params.push(filters.requester_type);
   }
 
   if (filters.case_type) {
@@ -234,56 +307,90 @@ function buildConversationWhere(filters = {}) {
         400
       );
     }
-    where.case_type = filters.case_type;
+
+    conditions.push('c.case_type = ?');
+    params.push(filters.case_type);
   }
 
   if (filters.assigned_agent_ext_id) {
-    where.assigned_agent_ext_id = String(filters.assigned_agent_ext_id).trim();
+    conditions.push('c.assigned_agent_ext_id = ?');
+    params.push(String(filters.assigned_agent_ext_id).trim());
   }
 
   const fromDate = parseDateFilter(filters.from_date, false);
   const toDate = parseDateFilter(filters.to_date, true);
 
-  if (fromDate || toDate) {
-    where.opened_at = {};
-    if (fromDate) where.opened_at.gte = fromDate;
-    if (toDate) where.opened_at.lte = toDate;
+  if (fromDate) {
+    conditions.push('c.opened_at >= ?');
+    params.push(toMysqlDateTime(fromDate));
   }
 
-  return where;
-}
-
-function isFinalStatus(status) {
-  return [
-    'RESOLVED_NO_SOLUTION',
-    'RESOLVED_COUPON',
-    'RESOLVED_REFUND',
-    'CLOSED_TIMEOUT',
-    'CLOSED_MANUAL',
-    'CLOSED_OUT_OF_HOURS',
-  ].includes(status);
-}
-
-function isResolvedStatus(status) {
-  return ['RESOLVED_NO_SOLUTION', 'RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(status);
-}
-
-function getAllowedNextStatuses(currentStatus) {
-  if (currentStatus === 'IN_QUEUE') {
-    return ['OPEN'];
+  if (toDate) {
+    conditions.push('c.opened_at <= ?');
+    params.push(toMysqlDateTime(toDate));
   }
 
-  if (currentStatus === 'OPEN') {
-    return [
-      'RESOLVED_NO_SOLUTION',
-      'RESOLVED_COUPON',
-      'RESOLVED_REFUND',
-      'CLOSED_TIMEOUT',
-      'CLOSED_MANUAL',
-    ];
-  }
+  return {
+    whereSql: conditions.join(' AND '),
+    params,
+  };
+}
 
-  return [];
+async function getConversationDetail(db, conversationId) {
+  const conversationRows = await db.query(
+    `
+    SELECT *
+    FROM conversations
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [conversationId]
+  );
+
+  const conversation = conversationRows[0];
+
+  if (!conversation) return null;
+
+  const participants = await db.query(
+    `
+    SELECT *
+    FROM participants
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    ORDER BY joined_at ASC
+    `,
+    [conversationId]
+  );
+
+  const metricsRows = await db.query(
+    `
+    SELECT *
+    FROM metrics
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [conversationId]
+  );
+
+  const statusHistory = await db.query(
+    `
+    SELECT *
+    FROM status_history
+    WHERE conversation_id = ?
+      AND deleted_at IS NULL
+    ORDER BY changed_at ASC
+    `,
+    [conversationId]
+  );
+
+  return {
+    ...conversation,
+    participants,
+    metrics: metricsRows[0] || null,
+    status_history: statusHistory,
+  };
 }
 
 export async function createConversation(payload) {
@@ -300,90 +407,209 @@ export async function createConversation(payload) {
     ? 'Tu chat fue abierto correctamente. En breve te atenderá un agente.'
     : 'Estamos fuera de horario. Tu solicitud fue registrada como fuera de horario.';
 
-  const createdConversation = await prisma.$transaction(async (tx) => {
-    const conversation = await tx.conversations.create({
-      data: {
-        requester_type: data.requester_type,
-        requester_ext_id: data.requester_ext_id,
-        case_type: data.case_type,
-        case_reference: data.case_reference,
-        subject: data.subject,
-        status: initialStatus,
-        opened_at: openedAt,
-        inactivity_minutes: data.inactivity_minutes,
-        is_live: inHours,
-        out_of_hours: !inHours,
-        close_reason: initialCloseReason,
-        closed_at: inHours ? null : openedAt,
-      },
-    });
+  const createdConversation = await transaction(async (tx) => {
+    const uuidRows = await tx.query('SELECT UUID() AS id, NOW() AS now_value');
+    const conversationId = uuidRows[0].id;
+    const nowValue = toDate(uuidRows[0].now_value);
+    const openedAtValue = openedAt || nowValue;
 
-    await tx.participants.create({
-      data: {
-        conversation_id: conversation.id,
-        participant_ext_id: data.requester_ext_id,
-        role: 'USER',
-        display_name: data.requester_display_name,
-      },
-    });
+    await tx.execute(
+      `
+      INSERT INTO conversations
+        (
+          id,
+          requester_type,
+          requester_ext_id,
+          case_type,
+          case_reference,
+          subject,
+          status,
+          opened_at,
+          last_activity_at,
+          inactivity_minutes,
+          is_live,
+          out_of_hours,
+          close_reason,
+          closed_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?
+        )
+      `,
+      [
+        conversationId,
+        data.requester_type,
+        data.requester_ext_id,
+        data.case_type,
+        data.case_reference,
+        data.subject,
+        initialStatus,
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+        data.inactivity_minutes,
+        inHours,
+        !inHours,
+        initialCloseReason,
+        inHours ? null : toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+      ]
+    );
 
-    await tx.status_history.create({
-      data: {
-        conversation_id: conversation.id,
-        previous_status: null,
-        new_status: initialStatus,
-        changed_by_role: 'SYSTEM',
-        changed_by_ext_id: null,
-        reason: inHours
+    await tx.execute(
+      `
+      INSERT INTO participants
+        (
+          conversation_id,
+          participant_ext_id,
+          role,
+          display_name,
+          joined_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (?, ?, 'USER', ?, ?, ?, ?)
+      `,
+      [
+        conversationId,
+        data.requester_ext_id,
+        data.requester_display_name,
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+      ]
+    );
+
+    await tx.execute(
+      `
+      INSERT INTO status_history
+        (
+          id,
+          conversation_id,
+          previous_status,
+          new_status,
+          changed_by_role,
+          changed_by_ext_id,
+          reason,
+          changed_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          NULL,
+          ?,
+          'SYSTEM',
+          NULL,
+          ?,
+          ?,
+          ?,
+          ?
+        )
+      `,
+      [
+        conversationId,
+        initialStatus,
+        inHours
           ? 'Conversación creada dentro de horario.'
           : 'Conversación creada fuera de horario.',
-      },
-    });
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+      ]
+    );
 
-    await tx.metrics.upsert({
-      where: {
-        conversation_id: conversation.id,
-      },
-      update: {
-        deleted_at: null,
-      },
-      create: {
-        conversation_id: conversation.id,
-      },
-    });
+    await tx.execute(
+      `
+      INSERT INTO metrics
+        (
+          conversation_id,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        deleted_at = NULL,
+        updated_at = VALUES(updated_at)
+      `,
+      [
+        conversationId,
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+      ]
+    );
 
-    await tx.messages.create({
-      data: {
-        conversation_id: conversation.id,
-        sender_role: 'SYSTEM',
-        sender_ext_id: null,
-        message_type: autoMessageType,
-        content: autoMessageContent,
-      },
-    });
+    await tx.execute(
+      `
+      INSERT INTO messages
+        (
+          id,
+          conversation_id,
+          sender_role,
+          sender_ext_id,
+          message_type,
+          content,
+          sent_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          'SYSTEM',
+          NULL,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?
+        )
+      `,
+      [
+        conversationId,
+        autoMessageType,
+        autoMessageContent,
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+        toMysqlDateTime(openedAtValue),
+      ]
+    );
 
     if (!inHours) {
-      await tx.conversations.update({
-        where: { id: conversation.id },
-        data: {
-          inactivity_deadline_at: null,
-        },
-      });
+      await tx.execute(
+        `
+        UPDATE conversations
+        SET inactivity_deadline_at = NULL
+        WHERE id = ?
+        `,
+        [conversationId]
+      );
     }
 
-    return tx.conversations.findFirst({
-      where: {
-        id: conversation.id,
-        deleted_at: null,
-      },
-      include: {
-        participants: {
-          where: { deleted_at: null },
-          orderBy: { joined_at: 'asc' },
-        },
-        metrics: true,
-      },
-    });
+    return getConversationDetail(tx, conversationId);
   });
 
   emitConversationCreated(createdConversation);
@@ -397,26 +623,56 @@ export async function listConversations(filters = {}) {
   const limit = Math.min(100, Math.max(1, Number(filters.limit || 10)));
   const skip = (page - 1) * limit;
 
-  const where = buildConversationWhere(filters);
+  const { whereSql, params } = buildConversationWhereSql(filters);
 
-  const [items, total] = await prisma.$transaction([
-    prisma.conversations.findMany({
-      where,
-      include: {
-        participants: {
-          where: { deleted_at: null },
-          orderBy: { joined_at: 'asc' },
-        },
-        metrics: true,
-      },
-      orderBy: {
-        last_activity_at: 'desc',
-      },
-      skip,
-      take: limit,
-    }),
-    prisma.conversations.count({ where }),
-  ]);
+  const items = await query(
+    `
+    SELECT c.*
+    FROM conversations c
+    WHERE ${whereSql}
+    ORDER BY c.last_activity_at DESC
+    LIMIT ${limit} OFFSET ${skip}
+    `,
+    params
+  );
+
+  const totalRows = await query(
+    `
+    SELECT COUNT(*) AS total
+    FROM conversations c
+    WHERE ${whereSql}
+    `,
+    params
+  );
+
+  const total = Number(totalRows[0]?.total || 0);
+
+  for (const item of items) {
+    const participants = await query(
+      `
+      SELECT *
+      FROM participants
+      WHERE conversation_id = ?
+        AND deleted_at IS NULL
+      ORDER BY joined_at ASC
+      `,
+      [item.id]
+    );
+
+    const metricsRows = await query(
+      `
+      SELECT *
+      FROM metrics
+      WHERE conversation_id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+      `,
+      [item.id]
+    );
+
+    item.participants = participants;
+    item.metrics = metricsRows[0] || null;
+  }
 
   return {
     items,
@@ -444,23 +700,12 @@ export async function getConversationById(conversationId) {
     throw createAppError('VALIDATION_ERROR', 'conversationId es obligatorio.', 400);
   }
 
-  const conversation = await prisma.conversations.findFirst({
-    where: {
-      id,
-      deleted_at: null,
+  const conversation = await getConversationDetail(
+    {
+      query,
     },
-    include: {
-      participants: {
-        where: { deleted_at: null },
-        orderBy: { joined_at: 'asc' },
-      },
-      metrics: true,
-      status_history: {
-        where: { deleted_at: null },
-        orderBy: { changed_at: 'asc' },
-      },
-    },
-  });
+    id
+  );
 
   if (!conversation) {
     throw createAppError(
@@ -486,15 +731,20 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
     throw createAppError('VALIDATION_ERROR', 'agent_ext_id es obligatorio.', 400);
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const conversation = await tx.conversations.findFirst({
-      where: { id, deleted_at: null },
-      include: {
-        participants: {
-          where: { deleted_at: null },
-        },
-      },
-    });
+  const result = await transaction(async (tx) => {
+    const conversationRows = await tx.query(
+      `
+      SELECT *
+      FROM conversations
+      WHERE id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [id]
+    );
+
+    const conversation = conversationRows[0];
 
     if (!conversation) {
       throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
@@ -508,7 +758,17 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
       );
     }
 
-    const activeAgent = conversation.participants.find((p) => p.role === 'AGENT');
+    const participants = await tx.query(
+      `
+      SELECT *
+      FROM participants
+      WHERE conversation_id = ?
+        AND deleted_at IS NULL
+      `,
+      [id]
+    );
+
+    const activeAgent = participants.find((p) => p.role === 'AGENT');
 
     if (activeAgent && activeAgent.participant_ext_id !== agent_ext_id) {
       throw createAppError(
@@ -519,77 +779,135 @@ export async function assignAgentToConversation(conversationId, payload = {}) {
     }
 
     const now = new Date();
-    const inactivityDeadline = addMinutes(now, conversation.inactivity_minutes);
+    const inactivityDeadline = addMinutes(now, Number(conversation.inactivity_minutes));
 
-    await tx.participants.upsert({
-      where: {
-        conversation_id_participant_ext_id: {
-          conversation_id: id,
-          participant_ext_id: agent_ext_id,
-        },
-      },
-      update: {
-        role: 'AGENT',
-        display_name: agent_display_name,
-        left_at: null,
-        deleted_at: null,
-      },
-      create: {
-        conversation_id: id,
-        participant_ext_id: agent_ext_id,
-        role: 'AGENT',
-        display_name: agent_display_name,
-      },
-    });
+    await tx.execute(
+      `
+      INSERT INTO participants
+        (
+          conversation_id,
+          participant_ext_id,
+          role,
+          display_name,
+          joined_at,
+          left_at,
+          deleted_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (?, ?, 'AGENT', ?, ?, NULL, NULL, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        role = 'AGENT',
+        display_name = VALUES(display_name),
+        left_at = NULL,
+        deleted_at = NULL,
+        updated_at = VALUES(updated_at)
+      `,
+      [
+        id,
+        agent_ext_id,
+        agent_display_name,
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+      ]
+    );
 
-    await tx.conversations.update({
-      where: { id },
-      data: {
-        assigned_agent_ext_id: agent_ext_id,
-        status: 'OPEN',
-        is_live: true,
-        last_activity_at: now,
-        inactivity_deadline_at: inactivityDeadline,
-        updated_at: now,
-      },
-    });
+    await tx.execute(
+      `
+      UPDATE conversations
+      SET
+        assigned_agent_ext_id = ?,
+        status = 'OPEN',
+        is_live = true,
+        last_activity_at = ?,
+        inactivity_deadline_at = ?,
+        updated_at = ?
+      WHERE id = ?
+        AND deleted_at IS NULL
+      `,
+      [
+        agent_ext_id,
+        toMysqlDateTime(now),
+        toMysqlDateTime(inactivityDeadline),
+        toMysqlDateTime(now),
+        id,
+      ]
+    );
 
-    await tx.status_history.create({
-      data: {
-        conversation_id: id,
-        previous_status: conversation.status,
-        new_status: 'OPEN',
-        changed_by_role: 'AGENT',
-        changed_by_ext_id: agent_ext_id,
-        reason: 'Agente asignado a la conversación.',
-      },
-    });
+    await tx.execute(
+      `
+      INSERT INTO status_history
+        (
+          id,
+          conversation_id,
+          previous_status,
+          new_status,
+          changed_by_role,
+          changed_by_ext_id,
+          reason,
+          changed_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          ?,
+          'OPEN',
+          'AGENT',
+          ?,
+          'Agente asignado a la conversación.',
+          ?,
+          ?,
+          ?
+        )
+      `,
+      [
+        id,
+        conversation.status,
+        agent_ext_id,
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+      ]
+    );
 
-    await tx.events.create({
-      data: {
-        conversation_id: id,
-        event_type: 'AGENT_ASSIGNED',
-        payload: {
+    await tx.execute(
+      `
+      INSERT INTO events
+        (
+          id,
+          conversation_id,
+          event_type,
+          payload,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          'AGENT_ASSIGNED',
+          CAST(? AS JSON),
+          ?,
+          ?
+        )
+      `,
+      [
+        id,
+        JSON.stringify({
           agent_ext_id,
           agent_display_name,
-        },
-      },
-    });
+        }),
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+      ]
+    );
 
-    return tx.conversations.findFirst({
-      where: { id, deleted_at: null },
-      include: {
-        participants: {
-          where: { deleted_at: null },
-          orderBy: { joined_at: 'asc' },
-        },
-        metrics: true,
-        status_history: {
-          where: { deleted_at: null },
-          orderBy: { changed_at: 'asc' },
-        },
-      },
-    });
+    return getConversationDetail(tx, id);
   });
 
   emitConversationAssigned(result);
@@ -616,11 +934,20 @@ export async function changeConversationStatus(conversationId, payload = {}) {
     );
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const conversation = await tx.conversations.findFirst({
-      where: { id, deleted_at: null },
-      include: { metrics: true },
-    });
+  const result = await transaction(async (tx) => {
+    const conversationRows = await tx.query(
+      `
+      SELECT *
+      FROM conversations
+      WHERE id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [id]
+    );
+
+    const conversation = conversationRows[0];
 
     if (!conversation) {
       throw createAppError('CONVERSATION_NOT_FOUND', 'Conversación no encontrada.', 404);
@@ -638,104 +965,189 @@ export async function changeConversationStatus(conversationId, payload = {}) {
 
     const now = new Date();
 
-    const updateData = {
-      status: new_status,
-      updated_at: now,
-    };
+    const updateParts = ['status = ?', 'updated_at = ?'];
+    const updateParams = [new_status, toMysqlDateTime(now)];
 
     if (isFinalStatus(new_status)) {
-      updateData.is_live = false;
-      updateData.closed_at = now;
-      updateData.inactivity_deadline_at = null;
+      updateParts.push('is_live = false');
+      updateParts.push('closed_at = ?');
+      updateParams.push(toMysqlDateTime(now));
+      updateParts.push('inactivity_deadline_at = NULL');
     }
 
     if (new_status === 'CLOSED_TIMEOUT') {
-      updateData.close_reason = 'TIMEOUT';
+      updateParts.push('close_reason = ?');
+      updateParams.push('TIMEOUT');
     } else if (new_status === 'CLOSED_MANUAL') {
-      updateData.close_reason = 'MANUAL';
+      updateParts.push('close_reason = ?');
+      updateParams.push('MANUAL');
     } else if (isResolvedStatus(new_status)) {
-      updateData.close_reason = 'SYSTEM';
+      updateParts.push('close_reason = ?');
+      updateParams.push('SYSTEM');
     }
 
-    await tx.conversations.update({
-      where: { id },
-      data: updateData,
-    });
+    updateParams.push(id);
 
-    await tx.status_history.create({
-      data: {
-        conversation_id: id,
-        previous_status: conversation.status,
+    await tx.execute(
+      `
+      UPDATE conversations
+      SET ${updateParts.join(', ')}
+      WHERE id = ?
+        AND deleted_at IS NULL
+      `,
+      updateParams
+    );
+
+    await tx.execute(
+      `
+      INSERT INTO status_history
+        (
+          id,
+          conversation_id,
+          previous_status,
+          new_status,
+          changed_by_role,
+          changed_by_ext_id,
+          reason,
+          changed_at,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          ?,
+          ?,
+          'AGENT',
+          ?,
+          ?,
+          ?,
+          ?,
+          ?
+        )
+      `,
+      [
+        id,
+        conversation.status,
         new_status,
-        changed_by_role: 'AGENT',
         changed_by_ext_id,
         reason,
-      },
-    });
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+      ]
+    );
 
     if (isFinalStatus(new_status)) {
       const timeToCloseMs = Math.max(
         0,
-        now.getTime() - new Date(conversation.opened_at).getTime()
+        now.getTime() - toDate(conversation.opened_at).getTime()
       );
 
-      await tx.metrics.upsert({
-        where: { conversation_id: id },
-        update: {
-          resolved_at: now,
-          time_to_close_ms: timeToCloseMs,
-          deleted_at: null,
-        },
-        create: {
-          conversation_id: id,
-          resolved_at: now,
-          time_to_close_ms: timeToCloseMs,
-        },
-      });
+      await tx.execute(
+        `
+        INSERT INTO metrics
+          (
+            conversation_id,
+            resolved_at,
+            time_to_close_ms,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          resolved_at = VALUES(resolved_at),
+          time_to_close_ms = VALUES(time_to_close_ms),
+          deleted_at = NULL,
+          updated_at = VALUES(updated_at)
+        `,
+        [
+          id,
+          toMysqlDateTime(now),
+          timeToCloseMs,
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
     }
 
     if (new_status === 'CLOSED_TIMEOUT' || new_status === 'CLOSED_MANUAL') {
-      await tx.messages.create({
-        data: {
-          conversation_id: id,
-          sender_role: 'SYSTEM',
-          sender_ext_id: null,
-          message_type: 'AUTO_CLOSE',
-          content:
-            new_status === 'CLOSED_TIMEOUT'
-              ? 'El chat fue cerrado automáticamente por inactividad.'
-              : 'El chat fue cerrado manualmente por un agente.',
-        },
-      });
+      await tx.execute(
+        `
+        INSERT INTO messages
+          (
+            id,
+            conversation_id,
+            sender_role,
+            sender_ext_id,
+            message_type,
+            content,
+            sent_at,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'SYSTEM',
+            NULL,
+            'AUTO_CLOSE',
+            ?,
+            ?,
+            ?,
+            ?
+          )
+        `,
+        [
+          id,
+          new_status === 'CLOSED_TIMEOUT'
+            ? 'El chat fue cerrado automáticamente por inactividad.'
+            : 'El chat fue cerrado manualmente por un agente.',
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
     }
 
-    await tx.events.create({
-      data: {
-        conversation_id: id,
-        event_type: 'STATUS_CHANGED',
-        payload: {
+    await tx.execute(
+      `
+      INSERT INTO events
+        (
+          id,
+          conversation_id,
+          event_type,
+          payload,
+          created_at,
+          updated_at
+        )
+      VALUES
+        (
+          UUID(),
+          ?,
+          'STATUS_CHANGED',
+          CAST(? AS JSON),
+          ?,
+          ?
+        )
+      `,
+      [
+        id,
+        JSON.stringify({
           previous_status: conversation.status,
           new_status,
           changed_by_ext_id,
           reason,
-        },
-      },
-    });
+        }),
+        toMysqlDateTime(now),
+        toMysqlDateTime(now),
+      ]
+    );
 
-    return tx.conversations.findFirst({
-      where: { id, deleted_at: null },
-      include: {
-        participants: {
-          where: { deleted_at: null },
-          orderBy: { joined_at: 'asc' },
-        },
-        metrics: true,
-        status_history: {
-          where: { deleted_at: null },
-          orderBy: { changed_at: 'asc' },
-        },
-      },
-    });
+    return getConversationDetail(tx, id);
   });
 
   emitConversationStatusChanged(result, {
@@ -753,23 +1165,19 @@ export async function closeExpiredConversations({ limit = 50 } = {}) {
   const safeLimit = Math.min(100, Math.max(1, Number(limit || 50)));
   const now = new Date();
 
-  const expiredConversations = await prisma.conversations.findMany({
-    where: {
-      deleted_at: null,
-      status: 'OPEN',
-      inactivity_deadline_at: {
-        not: null,
-        lte: now,
-      },
-    },
-    orderBy: {
-      inactivity_deadline_at: 'asc',
-    },
-    take: safeLimit,
-    include: {
-      metrics: true,
-    },
-  });
+  const expiredConversations = await query(
+    `
+    SELECT *
+    FROM conversations
+    WHERE deleted_at IS NULL
+      AND status = 'OPEN'
+      AND inactivity_deadline_at IS NOT NULL
+      AND inactivity_deadline_at <= ?
+    ORDER BY inactivity_deadline_at ASC
+    LIMIT ${safeLimit}
+    `,
+    [toMysqlDateTime(now)]
+  );
 
   if (expiredConversations.length === 0) {
     return {
@@ -783,16 +1191,20 @@ export async function closeExpiredConversations({ limit = 50 } = {}) {
   const results = [];
 
   for (const conversation of expiredConversations) {
-    const updatedConversation = await prisma.$transaction(async (tx) => {
-      const freshConversation = await tx.conversations.findFirst({
-        where: {
-          id: conversation.id,
-          deleted_at: null,
-        },
-        include: {
-          metrics: true,
-        },
-      });
+    const updatedConversation = await transaction(async (tx) => {
+      const freshRows = await tx.query(
+        `
+        SELECT *
+        FROM conversations
+        WHERE id = ?
+          AND deleted_at IS NULL
+        LIMIT 1
+        FOR UPDATE
+        `,
+        [conversation.id]
+      );
+
+      const freshConversation = freshRows[0];
 
       if (!freshConversation) {
         return null;
@@ -801,107 +1213,200 @@ export async function closeExpiredConversations({ limit = 50 } = {}) {
       if (
         freshConversation.status !== 'OPEN' ||
         !freshConversation.inactivity_deadline_at ||
-        new Date(freshConversation.inactivity_deadline_at).getTime() > now.getTime()
+        toDate(freshConversation.inactivity_deadline_at).getTime() > now.getTime()
       ) {
         return null;
       }
 
-      await tx.conversations.update({
-        where: { id: freshConversation.id },
-        data: {
-          status: 'CLOSED_TIMEOUT',
-          close_reason: 'TIMEOUT',
-          closed_at: now,
-          is_live: false,
-          inactivity_deadline_at: null,
-          updated_at: now,
-        },
-      });
+      await tx.execute(
+        `
+        UPDATE conversations
+        SET
+          status = 'CLOSED_TIMEOUT',
+          close_reason = 'TIMEOUT',
+          closed_at = ?,
+          is_live = false,
+          inactivity_deadline_at = NULL,
+          updated_at = ?
+        WHERE id = ?
+          AND deleted_at IS NULL
+        `,
+        [toMysqlDateTime(now), toMysqlDateTime(now), freshConversation.id]
+      );
 
-      await tx.status_history.create({
-        data: {
-          conversation_id: freshConversation.id,
-          previous_status: freshConversation.status,
-          new_status: 'CLOSED_TIMEOUT',
-          changed_by_role: 'SYSTEM',
-          changed_by_ext_id: null,
-          reason: 'Cierre automático por inactividad.',
-        },
-      });
+      await tx.execute(
+        `
+        INSERT INTO status_history
+          (
+            id,
+            conversation_id,
+            previous_status,
+            new_status,
+            changed_by_role,
+            changed_by_ext_id,
+            reason,
+            changed_at,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            ?,
+            'CLOSED_TIMEOUT',
+            'SYSTEM',
+            NULL,
+            'Cierre automático por inactividad.',
+            ?,
+            ?,
+            ?
+          )
+        `,
+        [
+          freshConversation.id,
+          freshConversation.status,
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
 
-      await tx.messages.create({
-        data: {
-          conversation_id: freshConversation.id,
-          sender_role: 'SYSTEM',
-          sender_ext_id: null,
-          message_type: 'AUTO_CLOSE',
-          content: 'El chat fue cerrado automáticamente por inactividad.',
-        },
-      });
+      await tx.execute(
+        `
+        INSERT INTO messages
+          (
+            id,
+            conversation_id,
+            sender_role,
+            sender_ext_id,
+            message_type,
+            content,
+            sent_at,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'SYSTEM',
+            NULL,
+            'AUTO_CLOSE',
+            'El chat fue cerrado automáticamente por inactividad.',
+            ?,
+            ?,
+            ?
+          )
+        `,
+        [
+          freshConversation.id,
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
 
       const timeToCloseMs = Math.max(
         0,
-        now.getTime() - new Date(freshConversation.opened_at).getTime()
+        now.getTime() - toDate(freshConversation.opened_at).getTime()
       );
 
-      await tx.metrics.upsert({
-        where: {
-          conversation_id: freshConversation.id,
-        },
-        update: {
-          resolved_at: now,
-          time_to_close_ms: timeToCloseMs,
-          deleted_at: null,
-        },
-        create: {
-          conversation_id: freshConversation.id,
-          resolved_at: now,
-          time_to_close_ms: timeToCloseMs,
-        },
-      });
+      await tx.execute(
+        `
+        INSERT INTO metrics
+          (
+            conversation_id,
+            resolved_at,
+            time_to_close_ms,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          resolved_at = VALUES(resolved_at),
+          time_to_close_ms = VALUES(time_to_close_ms),
+          deleted_at = NULL,
+          updated_at = VALUES(updated_at)
+        `,
+        [
+          freshConversation.id,
+          toMysqlDateTime(now),
+          timeToCloseMs,
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
 
-      await tx.events.create({
-        data: {
-          conversation_id: freshConversation.id,
-          event_type: 'STATUS_CHANGED',
-          payload: {
+      await tx.execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'STATUS_CHANGED',
+            CAST(? AS JSON),
+            ?,
+            ?
+          )
+        `,
+        [
+          freshConversation.id,
+          JSON.stringify({
             previous_status: freshConversation.status,
             new_status: 'CLOSED_TIMEOUT',
             changed_by_ext_id: null,
             reason: 'Cierre automático por inactividad.',
             automatic: true,
-          },
-        },
-      });
+          }),
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
 
-      await tx.events.create({
-        data: {
-          conversation_id: freshConversation.id,
-          event_type: 'AUTO_TIMEOUT_CLOSED',
-          payload: {
+      await tx.execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'AUTO_TIMEOUT_CLOSED',
+            CAST(? AS JSON),
+            ?,
+            ?
+          )
+        `,
+        [
+          freshConversation.id,
+          JSON.stringify({
             inactivity_deadline_at: freshConversation.inactivity_deadline_at,
-            closed_at: now,
-          },
-        },
-      });
+            closed_at: toMysqlDateTime(now),
+          }),
+          toMysqlDateTime(now),
+          toMysqlDateTime(now),
+        ]
+      );
 
-      return tx.conversations.findFirst({
-        where: {
-          id: freshConversation.id,
-          deleted_at: null,
-        },
-        include: {
-          participants: {
-            where: { deleted_at: null },
-            orderBy: { joined_at: 'asc' },
-          },
-          metrics: true,
-          status_history: {
-            where: { deleted_at: null },
-            orderBy: { changed_at: 'asc' },
-          },
-        },
-      });
+      return getConversationDetail(tx, freshConversation.id);
     });
 
     if (updatedConversation) {
@@ -944,15 +1449,15 @@ function validateAvailabilityPayload(payload = {}, { partial = false } = {}) {
   }
 
   if (!partial || payload.start_time !== undefined) {
-    parsed.start_time = timeStringToDate(payload.start_time);
+    parsed.start_time = normalizeTimeString(payload.start_time);
   }
 
   if (!partial || payload.end_time !== undefined) {
-    parsed.end_time = timeStringToDate(payload.end_time);
+    parsed.end_time = normalizeTimeString(payload.end_time);
   }
 
   if (parsed.start_time && parsed.end_time) {
-    if (parsed.start_time.getTime() >= parsed.end_time.getTime()) {
+    if (timeValueToMinutes(parsed.start_time) >= timeValueToMinutes(parsed.end_time)) {
       throw createAppError(
         'VALIDATION_ERROR',
         'start_time debe ser menor que end_time.',
@@ -974,7 +1479,8 @@ function validateAvailabilityPayload(payload = {}, { partial = false } = {}) {
   }
 
   if (!partial || payload.timezone !== undefined) {
-    const timezone = normalizeOptionalString(payload.timezone) || 'America/Guatemala';
+    const timezone =
+      normalizeOptionalString(payload.timezone) || 'America/Guatemala';
     parsed.timezone = timezone;
   }
 
@@ -984,14 +1490,18 @@ function validateAvailabilityPayload(payload = {}, { partial = false } = {}) {
 export async function createAvailability(payload = {}) {
   const data = validateAvailabilityPayload(payload);
 
-  const exists = await prisma.chat_availability.findFirst({
-    where: {
-      day_of_week: data.day_of_week,
-      deleted_at: null,
-    },
-  });
+  const exists = await query(
+    `
+    SELECT id
+    FROM chat_availability
+    WHERE day_of_week = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [data.day_of_week]
+  );
 
-  if (exists) {
+  if (exists.length) {
     throw createAppError(
       'AVAILABILITY_ALREADY_EXISTS',
       `Ya existe un horario activo para el día ${data.day_of_week}.`,
@@ -999,22 +1509,67 @@ export async function createAvailability(payload = {}) {
     );
   }
 
-  const created = await prisma.chat_availability.create({
-    data,
-  });
+  await execute(
+    `
+    INSERT INTO chat_availability
+      (
+        id,
+        day_of_week,
+        start_time,
+        end_time,
+        enabled,
+        timezone,
+        active_day_of_week,
+        created_at,
+        updated_at
+      )
+    VALUES
+      (
+        UUID(),
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        NOW(),
+        NOW()
+      )
+    `,
+    [
+      data.day_of_week,
+      data.start_time,
+      data.end_time,
+      data.enabled,
+      data.timezone,
+      data.enabled ? data.day_of_week : null,
+    ]
+  );
 
-  return serializeAvailability(created);
+  const rows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE day_of_week = ?
+      AND deleted_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [data.day_of_week]
+  );
+
+  return serializeAvailability(rows[0]);
 }
 
 export async function listAvailability() {
-  const items = await prisma.chat_availability.findMany({
-    where: {
-      deleted_at: null,
-    },
-    orderBy: {
-      day_of_week: 'asc',
-    },
-  });
+  const items = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE deleted_at IS NULL
+    ORDER BY day_of_week ASC
+    `
+  );
 
   return items.map(serializeAvailability);
 }
@@ -1026,12 +1581,18 @@ export async function getAvailabilityById(availabilityId) {
     throw createAppError('VALIDATION_ERROR', 'availabilityId es obligatorio.', 400);
   }
 
-  const item = await prisma.chat_availability.findFirst({
-    where: {
-      id,
-      deleted_at: null,
-    },
-  });
+  const rows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [id]
+  );
+
+  const item = rows[0];
 
   if (!item) {
     throw createAppError(
@@ -1061,12 +1622,18 @@ export async function updateAvailability(availabilityId, payload = {}) {
     );
   }
 
-  const current = await prisma.chat_availability.findFirst({
-    where: {
-      id,
-      deleted_at: null,
-    },
-  });
+  const currentRows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [id]
+  );
+
+  const current = currentRows[0];
 
   if (!current) {
     throw createAppError(
@@ -1076,19 +1643,22 @@ export async function updateAvailability(availabilityId, payload = {}) {
     );
   }
 
-  const nextDayOfWeek = data.day_of_week ?? current.day_of_week;
+  const nextDayOfWeek =
+    data.day_of_week !== undefined ? data.day_of_week : current.day_of_week;
 
-  const duplicate = await prisma.chat_availability.findFirst({
-    where: {
-      day_of_week: nextDayOfWeek,
-      deleted_at: null,
-      NOT: {
-        id,
-      },
-    },
-  });
+  const duplicateRows = await query(
+    `
+    SELECT id
+    FROM chat_availability
+    WHERE day_of_week = ?
+      AND deleted_at IS NULL
+      AND id <> ?
+    LIMIT 1
+    `,
+    [nextDayOfWeek, id]
+  );
 
-  if (duplicate) {
+  if (duplicateRows.length) {
     throw createAppError(
       'AVAILABILITY_ALREADY_EXISTS',
       `Ya existe otro horario activo para el día ${nextDayOfWeek}.`,
@@ -1096,10 +1666,13 @@ export async function updateAvailability(availabilityId, payload = {}) {
     );
   }
 
-  const nextStartTime = data.start_time ?? current.start_time;
-  const nextEndTime = data.end_time ?? current.end_time;
+  const nextStartTime =
+    data.start_time !== undefined ? data.start_time : current.start_time;
 
-  if (nextStartTime.getTime() >= nextEndTime.getTime()) {
+  const nextEndTime =
+    data.end_time !== undefined ? data.end_time : current.end_time;
+
+  if (timeValueToMinutes(nextStartTime) >= timeValueToMinutes(nextEndTime)) {
     throw createAppError(
       'VALIDATION_ERROR',
       'start_time debe ser menor que end_time.',
@@ -1107,15 +1680,49 @@ export async function updateAvailability(availabilityId, payload = {}) {
     );
   }
 
-  const updated = await prisma.chat_availability.update({
-    where: { id },
-    data: {
-      ...data,
-      updated_at: new Date(),
-    },
-  });
+  const enabled =
+    data.enabled !== undefined ? data.enabled : Boolean(current.enabled);
 
-  return serializeAvailability(updated);
+  const timezone =
+    data.timezone !== undefined ? data.timezone : current.timezone;
+
+  await execute(
+    `
+    UPDATE chat_availability
+    SET
+      day_of_week = ?,
+      start_time = ?,
+      end_time = ?,
+      enabled = ?,
+      timezone = ?,
+      active_day_of_week = ?,
+      updated_at = NOW()
+    WHERE id = ?
+      AND deleted_at IS NULL
+    `,
+    [
+      nextDayOfWeek,
+      nextStartTime,
+      nextEndTime,
+      enabled,
+      timezone,
+      enabled ? nextDayOfWeek : null,
+      id,
+    ]
+  );
+
+  const rows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [id]
+  );
+
+  return serializeAvailability(rows[0]);
 }
 
 export async function deleteAvailability(availabilityId) {
@@ -1125,12 +1732,18 @@ export async function deleteAvailability(availabilityId) {
     throw createAppError('VALIDATION_ERROR', 'availabilityId es obligatorio.', 400);
   }
 
-  const current = await prisma.chat_availability.findFirst({
-    where: {
-      id,
-      deleted_at: null,
-    },
-  });
+  const currentRows = await query(
+    `
+    SELECT *
+    FROM chat_availability
+    WHERE id = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+    `,
+    [id]
+  );
+
+  const current = currentRows[0];
 
   if (!current) {
     throw createAppError(
@@ -1140,14 +1753,25 @@ export async function deleteAvailability(availabilityId) {
     );
   }
 
-  const deleted = await prisma.chat_availability.update({
-    where: { id },
-    data: {
-      enabled: false,
-      deleted_at: new Date(),
-      updated_at: new Date(),
-    },
-  });
+  await execute(
+    `
+    UPDATE chat_availability
+    SET
+      enabled = false,
+      active_day_of_week = NULL,
+      deleted_at = NOW(),
+      updated_at = NOW()
+    WHERE id = ?
+      AND deleted_at IS NULL
+    `,
+    [id]
+  );
 
-  return serializeAvailability(deleted);
+  return serializeAvailability({
+    ...current,
+    enabled: false,
+    active_day_of_week: null,
+    deleted_at: new Date(),
+    updated_at: new Date(),
+  });
 }
