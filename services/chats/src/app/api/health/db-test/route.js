@@ -1,49 +1,46 @@
-import mysql from 'mysql2/promise';
-import { successResponse, errorResponse } from '../../../../lib/api-response';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+// src/app/api/health/db-test/route.js
+import { NextResponse } from 'next/server';
+import { pingDb, query } from '../../../../lib/db';
 
 export async function GET() {
-  let connection;
-
   try {
-    const databaseUrl = process.env.DATABASE_URL;
+    const isConnected = await pingDb();
 
-    if (!databaseUrl) {
-      return errorResponse({
-        code: 'DATABASE_URL_MISSING',
-        message: 'DATABASE_URL no está definida.',
-        status: 500,
-      });
-    }
+    const dbInfo = await query(`
+      SELECT 
+        DATABASE() AS database_name,
+        NOW() AS server_time
+    `);
 
-    connection = await mysql.createConnection(databaseUrl);
-
-    const [rows] = await connection.query('SELECT 1 AS ok');
-
-    return successResponse({
-      data: {
-        status: 'ok',
-        database: 'connected',
-        rows,
+    return NextResponse.json(
+      {
+        success: true,
+        service: 'chats-service',
+        database: {
+          connected: isConnected,
+          name: dbInfo?.[0]?.database_name || null,
+          server_time: dbInfo?.[0]?.server_time || null,
+        },
+        message: 'Conexión a MySQL funcionando correctamente.',
+        timestamp: new Date().toISOString(),
       },
-      message: 'Conexión mysql2 funcionando correctamente.',
-      status: 200,
-    });
+      { status: 200 }
+    );
   } catch (error) {
-    console.error('mysql2 db-test error:', error);
+    console.error('DB health error:', error);
 
-    return errorResponse({
-      code: 'MYSQL2_CONNECTION_ERROR',
-      message: error.message || 'mysql2 no pudo conectar.',
-      status: 500,
-    });
-  } finally {
-    if (connection) {
-      try {
-        await connection.end();
-      } catch {}
-    }
+    return NextResponse.json(
+      {
+        success: false,
+        service: 'chats-service',
+        database: {
+          connected: false,
+        },
+        error: 'Database connection error',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
   }
 }
