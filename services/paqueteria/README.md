@@ -24,20 +24,29 @@ Cliente solicita cotización → Cálculo de precio basado en distancia/peso →
 
 ### 2. Creación del Envío
 ```
-Cliente crea envío → Envío en estado "pending" → Listo para asignación de repartidor
+Cliente crea envío → Envío en estado "pending" → Receptor recibe notificación
 ```
 - **Endpoint**: `POST /api/shipments`
 - El envío requiere `senderId` (remitente) y `receiverId` (receptor)
-- Se crea directamente en estado "pending" para asignación inmediata
+- Se crea en estado `pending` y espera confirmación del receptor
 
-### 3. Asignación de Repartidor
+### 3. Confirmación por el Receptor
+```
+Receptor acepta el envío → Estado cambia a "receiver_accepted" → Listo para asignación de repartidor
+```
+- **Endpoint**: `PATCH /api/shipments/:id/confirm`
+- Requiere `x-customer-token` con el `receiverId`
+- Solo el destinatario puede confirmar el envío
+
+### 4. Asignación de Repartidor
 ```
 Repartidor acepta envío → Estado cambia a "assigned" → Sistema registra evento de tracking
 ```
 - **Endpoint**: `PATCH /api/shipments/:id/accept`
-- El repartidor debe ser válido y existir en la base de datos
+- Solo se puede asignar cuando el envío está en estado `receiver_accepted`
+- El repartidor debe existir en la base de datos
 
-### 4. Entrega del Paquete
+### 5. Entrega del Paquete
 ```
 Repartidor en tránsito → Estado "in_transit" → Paquete entregado → Estado "delivered"
 ```
@@ -85,6 +94,7 @@ Cliente solicita cancelación → Validación de permisos → Envío marcado com
 | GET | `/api/shipments/:id` | Obtener detalles de un envío |
 | POST | `/api/shipments` | Crear un nuevo envío |
 | DELETE | `/api/shipments/:id` | Eliminar envío (lógico) |
+| PATCH | `/api/shipments/:id/confirm` | Confirmación del receptor antes de asignar repartidor |
 | PATCH | `/api/shipments/:id/accept` | Aceptar y asignar repartidor |
 | PATCH | `/api/shipments/:id/status` | Actualizar estado del envío |
 
@@ -156,7 +166,10 @@ Cliente solicita cancelación → Validación de permisos → Envío marcado com
 
 ### Configuración de Acceso
 
-**URL Base**: `http://localhost:3001/api` (desarrollo local)
+**URL Base**: `http://localhost:<PORT>/api` (desarrollo local)
+
+- Puerto por defecto: `10000`
+- Se puede configurar con `process.env.PORT`
 
 ### Autenticación
 
@@ -181,7 +194,7 @@ GET /api/packages/customers/me?customerToken=<token_del_cliente>
 
 #### 1. Obtener Cotización
 ```bash
-curl -X POST http://localhost:3001/api/packages/quote \
+curl -X POST http://localhost:<PORT>/api/packages/quote \
   -H "Content-Type: application/json" \
   -d '{
     "senderId": 1,
@@ -203,7 +216,7 @@ curl -X POST http://localhost:3001/api/packages/quote \
 
 #### 2. Crear Envío
 ```bash
-curl -X POST http://localhost:3001/api/shipments \
+curl -X POST http://localhost:<PORT>/api/shipments \
   -H "Content-Type: application/json" \
   -d '{
     "senderId": 1,
@@ -214,38 +227,44 @@ curl -X POST http://localhost:3001/api/shipments \
   }'
 ```
 
-#### 3. Aceptar Envío (Repartidor)
+#### 3. Confirmar Envío (Receptor)
 ```bash
-curl -X PATCH http://localhost:3001/api/shipments/1/accept \
+curl -X PATCH http://localhost:<PORT>/api/shipments/1/confirm \
+  -H "x-customer-token: 2"
+```
+
+#### 4. Aceptar Envío (Repartidor)
+```bash
+curl -X PATCH http://localhost:<PORT>/api/shipments/1/accept \
   -H "Content-Type: application/json" \
   -d '{
     "courierId": 1
   }'
 ```
 
-#### 6. Actualizar Estado del Envío
+#### 5. Actualizar Estado del Envío
 ```bash
-curl -X PATCH http://localhost:3001/api/shipments/1/status \
+curl -X PATCH http://localhost:<PORT>/api/shipments/1/status \
   -H "Content-Type: application/json" \
   -d '{
     "status": "in_transit"
   }'
 ```
 
-#### 7. Obtener Paquetes del Cliente
+#### 6. Obtener Paquetes del Cliente
 ```bash
-curl -X GET "http://localhost:3001/api/packages/customers/me" \
+curl -X GET "http://localhost:<PORT>/api/packages/customers/me" \
   -H "x-customer-token: 1"
 ```
 
-#### 8. Obtener Seguimiento
+#### 7. Obtener Seguimiento
 ```bash
-curl -X GET http://localhost:3001/api/packages/1/tracking
+curl -X GET http://localhost:<PORT>/api/packages/1/tracking
 ```
 
-#### 9. Cancelar Paquete
+#### 8. Cancelar Paquete
 ```bash
-curl -X POST http://localhost:3001/api/packages/1/cancel \
+curl -X POST http://localhost:<PORT>/api/packages/1/cancel \
   -H "Content-Type: application/json" \
   -H "x-customer-token: 1"
 ```
@@ -258,7 +277,8 @@ El servicio maneja los siguientes estados de envío:
 
 | Estado | Descripción | Transiciones Válidas |
 |--------|-------------|----------------------|
-| `pending` | Esperando asignación de repartidor | → assigned |
+| `pending` | Esperando confirmación del receptor | → receiver_accepted |
+| `receiver_accepted` | Receptor confirmó el envío | → assigned |
 | `assigned` | Repartidor asignado | → in_transit |
 | `in_transit` | Paquete en camino | → delivered |
 | `delivered` | Paquete entregado | (final) |
@@ -413,7 +433,7 @@ npm run dev
 npm start
 ```
 
-El servidor estará disponible en: `http://localhost:3001`
+El servidor estará disponible en: `http://localhost:10000`
 
 ---
 
@@ -439,7 +459,7 @@ npm run seed:all
 npm run dev
 
 # 7. Verificar que funciona (en otra terminal)
-curl http://localhost:3001/
+curl http://localhost:10000/
 
 # Respuesta esperada:
 # "Servicio de Paquetería funcionando"

@@ -47,7 +47,7 @@ CREATE TABLE prices (
 -- ENUM shipment_status
 -- =========================
 CREATE TYPE shipment_status_enum AS ENUM (
-    'pending','assigned','in_transit','delivered','cancelled'
+    'pending','receiver_accepted','assigned','in_transit','delivered','cancelled'
 );
 
 -- =========================
@@ -63,10 +63,11 @@ CREATE TABLE shipment (
     sender_id INT,
     receiver_id INT,
     courier_id INT,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
+    quote_data JSONB,
     invoice_series VARCHAR(50),
     status BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
 
     CONSTRAINT fk_shipment_sender
         FOREIGN KEY (sender_id)
@@ -132,4 +133,21 @@ CREATE TABLE courier_status (
     CONSTRAINT fk_courier_status_type
         FOREIGN KEY (id_status)
         REFERENCES courier_status_type(id_status)
+);
+
+-- =========================
+-- TABLE: shipment_tracking
+-- =========================
+CREATE TABLE shipment_tracking (
+    id_tracking SERIAL PRIMARY KEY,
+    id_shipment INT NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    description TEXT,
+    location_lat DECIMAL(10,8),
+    location_lng DECIMAL(11,8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_shipment_tracking_shipment
+        FOREIGN KEY (id_shipment)
+        REFERENCES shipment(id_shipment) ON DELETE CASCADE
 );

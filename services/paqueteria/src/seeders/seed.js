@@ -21,21 +21,10 @@ async function seed() {
   try {
     console.log('Iniciando seed...');
 
-    // DESACTIVAR FK (PostgreSQL)
-    await sequelize.query('SET session_replication_role = replica;');
-
-    // LIMPIAR TABLAS
-    await Package.destroy({ where: {}, truncate: true });
-    await ShipmentTracking.destroy({ where: {}, truncate: true });
-    await Shipment.destroy({ where: {}, truncate: true });
-    await Address.destroy({ where: {}, truncate: true });
-    await CourierStatus.destroy({ where: {}, truncate: true });
-    await Courier.destroy({ where: {}, truncate: true });
-    await User.destroy({ where: {}, truncate: true });
-    await Price.destroy({ where: {}, truncate: true });
-
-    // ACTIVAR FK
-    await sequelize.query('SET session_replication_role = DEFAULT;');
+    // LIMPIAR TABLAS de forma segura en PostgreSQL
+    await sequelize.query(
+      'TRUNCATE TABLE "package", shipment_tracking, shipment, address, courier_status, courier, "user", prices, courier_status_type RESTART IDENTITY CASCADE;'
+    );
 
     // =====================
     // USERS

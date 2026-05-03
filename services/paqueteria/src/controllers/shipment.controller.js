@@ -138,9 +138,9 @@ const shipmentController = {
         });
       }
 
-      if (shipment.shipmentStatus !== 'pending') {
+      if (shipment.shipmentStatus !== 'receiver_accepted') {
         return res.status(400).json({
-          message: 'El envío ya no está disponible'
+          message: 'El envío debe ser confirmado por el receptor antes de asignar repartidor'
         });
       }
 
@@ -177,6 +177,62 @@ const shipmentController = {
   },
 
   /**
+   * El receptor confirma el envío antes de que se asigne un repartidor.
+   */
+  async confirmByReceiver(req, res) {
+    try {
+      const { id } = req.params;
+      const customerToken = req.headers['x-customer-token'] || req.query.customerToken;
+
+      if (!customerToken) {
+        return res.status(400).json({
+          message: 'Token de cliente requerido'
+        });
+      }
+
+      const shipment = await Shipment.findByPk(id);
+
+      if (!shipment) {
+        return res.status(404).json({
+          message: 'Envío no encontrado'
+        });
+      }
+
+      if (shipment.shipmentStatus !== 'pending') {
+        return res.status(400).json({
+          message: 'El envío no está pendiente de confirmación'
+        });
+      }
+
+      if (shipment.receiverId !== parseInt(customerToken, 10)) {
+        return res.status(403).json({
+          message: 'No tienes permiso para confirmar este envío'
+        });
+      }
+
+      await shipment.update({
+        shipmentStatus: 'receiver_accepted'
+      });
+
+      await ShipmentTracking.create({
+        idShipment: shipment.idShipment,
+        status: 'receiver_accepted',
+        description: 'El receptor aceptó el envío y espera asignación de repartidor'
+      });
+
+      res.json({
+        message: 'Envío confirmado por el receptor'
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        message: 'Error al confirmar envío',
+        error: error.message
+      });
+    }
+  },
+
+  /**
    * Actualiza el estado del envío siguiendo transiciones válidas definidas en el proceso.
    */
   async updateStatus(req, res) {
@@ -193,6 +249,7 @@ const shipmentController = {
       }
 
       const validTransitions = {
+        receiver_accepted: ['assigned'],
         assigned: ['in_transit'],
         in_transit: ['delivered']
       };

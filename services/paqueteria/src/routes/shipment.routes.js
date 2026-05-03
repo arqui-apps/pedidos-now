@@ -9,6 +9,7 @@ router.post('/', shipmentController.create);
 router.delete('/:id', shipmentController.remove);
 
 //  Flujo del negocio
+router.patch('/:id/confirm', shipmentController.confirmByReceiver);
 router.patch('/:id/accept', shipmentController.accept);
 router.patch('/:id/status', shipmentController.updateStatus);
 
