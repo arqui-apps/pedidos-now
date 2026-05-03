@@ -12,33 +12,30 @@ module.exports = function(sequelize, DataTypes) {
     idCourier: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
-      field: 'id_courier',
+      unique: "id_courier",
       references: {
         model: 'courier',
         key: 'id_courier'
-      }
+      },
+      field: 'id_courier'
     },
     idStatus: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'id_status',
       references: {
         model: 'courier_status_type',
         key: 'id_status'
-      }
+      },
+      field: 'id_status'
     },
     changedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
       field: 'changed_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
-      onUpdate: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
       field: 'updated_at'
     }
   }, {
@@ -60,6 +57,13 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "id_courier" }
+        ]
+      },
+      {
+        name: "fk_courier_status_type",
+        using: "BTREE",
+        fields: [
+          { name: "id_status" }
         ]
       }
     ]

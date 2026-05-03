@@ -1,11 +1,10 @@
 CREATE DATABASE paqueteria_db;
-USE paqueteria_db;
 
 -- =========================
 -- TABLE: courier (Repartidor)
 -- =========================
 CREATE TABLE courier (
-    id_courier INT AUTO_INCREMENT PRIMARY KEY,
+    id_courier SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     status BOOLEAN DEFAULT TRUE
 );
@@ -13,8 +12,8 @@ CREATE TABLE courier (
 -- =========================
 -- TABLE: user (Usuario)
 -- =========================
-CREATE TABLE user (
-    id_user INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE "user" (
+    id_user SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     status BOOLEAN DEFAULT TRUE
 );
@@ -23,7 +22,7 @@ CREATE TABLE user (
 -- TABLE: address (Direccion)
 -- =========================
 CREATE TABLE address (
-    id_address INT AUTO_INCREMENT PRIMARY KEY,
+    id_address SERIAL PRIMARY KEY,
     id_user INT NOT NULL,
     latitude DECIMAL(10,8),
     longitude DECIMAL(11,8),
@@ -31,44 +30,51 @@ CREATE TABLE address (
 
     CONSTRAINT fk_address_user
         FOREIGN KEY (id_user)
-        REFERENCES user(id_user)
+        REFERENCES "user"(id_user)
 );
 
 -- =========================
 -- TABLE: prices (Precios)
 -- =========================
 CREATE TABLE prices (
-    id_price INT AUTO_INCREMENT PRIMARY KEY,
+    id_price SERIAL PRIMARY KEY,
     price DECIMAL(10,2),
     criteria VARCHAR(100),
     status BOOLEAN DEFAULT TRUE
 );
 
 -- =========================
+-- ENUM shipment_status
+-- =========================
+CREATE TYPE shipment_status_enum AS ENUM (
+    'pending','assigned','in_transit','delivered','cancelled'
+);
+
+-- =========================
 -- TABLE: shipment (Envio)
 -- =========================
 CREATE TABLE shipment (
-    id_shipment INT AUTO_INCREMENT PRIMARY KEY,
+    id_shipment SERIAL PRIMARY KEY,
     delivery_instructions TEXT,
     total DECIMAL(10,2),
-    shipment_status ENUM('pending','assigned','in_transit','delivered','cancelled'),
+    shipment_status shipment_status_enum,
     charge_type VARCHAR(50),
-    estimated_delivery_time DATETIME,
+    estimated_delivery_time TIMESTAMP,
     sender_id INT,
     receiver_id INT,
     courier_id INT,
-    created_at DATETIME,
-    updated_at DATETIME,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     invoice_series VARCHAR(50),
     status BOOLEAN DEFAULT TRUE,
 
     CONSTRAINT fk_shipment_sender
         FOREIGN KEY (sender_id)
-        REFERENCES user(id_user),
+        REFERENCES "user"(id_user),
 
     CONSTRAINT fk_shipment_receiver
         FOREIGN KEY (receiver_id)
-        REFERENCES user(id_user),
+        REFERENCES "user"(id_user),
 
     CONSTRAINT fk_shipment_courier
         FOREIGN KEY (courier_id)
@@ -79,7 +85,7 @@ CREATE TABLE shipment (
 -- TABLE: package (Paquete)
 -- =========================
 CREATE TABLE package (
-    id_package INT AUTO_INCREMENT PRIMARY KEY,
+    id_package SERIAL PRIMARY KEY,
     id_shipment INT NOT NULL,
     description VARCHAR(255),
     size VARCHAR(50),
@@ -93,16 +99,16 @@ CREATE TABLE package (
 );
 
 -- =========================
--- TABLE: courier_status_type (Tipos de estado del repartidor)
+-- TABLE: courier_status_type
 -- =========================
 CREATE TABLE courier_status_type (
-    id_status INT AUTO_INCREMENT PRIMARY KEY,
+    id_status SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insertar los estados por defecto
+-- Insert estados
 INSERT INTO courier_status_type (name, description) VALUES
 ('Disponible', 'Repartidor en línea y puede tomar pedidos'),
 ('Ocupado', 'Repartidor tiene un pedido en curso'),
@@ -110,14 +116,14 @@ INSERT INTO courier_status_type (name, description) VALUES
 ('Inactivo', 'Repartidor ya no trabaja en la aplicación (borrado lógico)');
 
 -- =========================
--- TABLE: courier_status (Estado actual del repartidor)
+-- TABLE: courier_status
 -- =========================
 CREATE TABLE courier_status (
-    id_courier_status INT AUTO_INCREMENT PRIMARY KEY,
+    id_courier_status SERIAL PRIMARY KEY,
     id_courier INT NOT NULL UNIQUE,
     id_status INT NOT NULL,
-    changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_courier_status_courier
         FOREIGN KEY (id_courier)

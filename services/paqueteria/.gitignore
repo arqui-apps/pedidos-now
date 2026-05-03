@@ -21,3 +21,10 @@ coverage/
 # Build
 dist/
 build/
+doc/
+
+# Local SQL scratch files
+tablasCourier.sql
+
+#docker
+docker-compose.yml

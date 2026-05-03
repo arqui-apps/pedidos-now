@@ -20,6 +20,7 @@ module.exports = function(sequelize, DataTypes) {
     shipmentStatus: {
       type: DataTypes.ENUM('pending','assigned','in_transit','delivered','cancelled'),
       allowNull: true,
+      defaultValue: 'pending',
       field: 'shipment_status'
     },
     chargeType: {
@@ -59,6 +60,16 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'courier_id'
     },
+    quoteData: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'quote_data'
+    },
+    invoiceSeries: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: 'invoice_series'
+    },
     invoiceSeries: {
       type: DataTypes.STRING(50),
       allowNull: true,
@@ -68,13 +79,25 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: 1
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
+      field: 'created_at'
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.Sequelize.literal('CURRENT_TIMESTAMP'),
+      field: 'updated_at'
     }
   }, {
     sequelize,
     tableName: 'shipment',
     timestamps: true,
-    createdAt: 'created_at',   
-    updatedAt: 'updated_at',   
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         name: "PRIMARY",
