@@ -4,6 +4,7 @@ import {
   ValidateAndReserveDto,
   ReleaseReservationDto,
   ConfirmReservationDto,
+  UpdateProductStockDto,
 } from '../../presentation/dto/inventory.dto';
 
 @Injectable()
@@ -24,6 +25,19 @@ export class InventoryService {
     return stock;
   }
 
+  async updateProductStock(
+    businessId: number,
+    productId: number,
+    dto: UpdateProductStockDto,
+  ) {
+    const result = await this.inventoryRepository.updateProductStock(
+      businessId,
+      productId,
+      dto,
+    );
+    return result;
+  }
+
   async validateAndReserve(dto: ValidateAndReserveDto) {
     const result =
       await this.inventoryRepository.createReservationWithTransaction(dto);
@@ -40,6 +54,13 @@ export class InventoryService {
   async confirmReservation(dto: ConfirmReservationDto) {
     const result = await this.inventoryRepository.confirmReservation(
       dto.reservationCode,
+    );
+    return result;
+  }
+  async cancelConfirmedReservation(reservationCode: string, reason?: string) {
+    const result = await this.inventoryRepository.cancelConfirmedReservation(
+      reservationCode,
+      reason,
     );
     return result;
   }

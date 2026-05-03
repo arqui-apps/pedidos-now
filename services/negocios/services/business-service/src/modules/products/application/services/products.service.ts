@@ -62,18 +62,51 @@ export class ProductsService {
     await this.ensureProductTypeExists(businessId, dto.productTypeId);
 
     try {
-      const record = await this.productsRepository.create({
-        business_id: businessId,
-        product_type_id: dto.productTypeId,
-        name: dto.name,
-        description: dto.description,
-        internal_code: dto.internalCode,
-        base_price: dto.basePrice,
-        image_url: dto.imageUrl,
-        image_public_id: dto.imagePublicId,
-        product_status: dto.productStatus ?? product_product_status.active,
-        visible_in_catalog: dto.visibleInCatalog === false ? 0 : 1,
-      });
+      const record = await this.productsRepository.withTransaction(
+        async (tx) => {
+          const createdProduct = await this.productsRepository.create(
+            {
+              business_id: businessId,
+              product_type_id: dto.productTypeId,
+              name: dto.name,
+              description: dto.description,
+              internal_code: dto.internalCode,
+              base_price: dto.basePrice,
+              image_url: dto.imageUrl,
+              image_public_id: dto.imagePublicId,
+              product_status:
+                dto.productStatus ?? product_product_status.active,
+              visible_in_catalog: dto.visibleInCatalog === false ? 0 : 1,
+            },
+            tx,
+          );
+
+          await this.productsRepository.createProductStock(
+            {
+              product_id: createdProduct.product_id,
+              available_quantity: 0,
+              reserved_quantity: 0,
+              minimum_alert_quantity: 0,
+            },
+            tx,
+          );
+
+          const hydratedProduct = await this.productsRepository.findById(
+            businessId,
+            createdProduct.product_id,
+            true,
+            tx,
+          );
+
+          if (!hydratedProduct) {
+            throw new NotFoundException(
+              `Product ${createdProduct.product_id} was created but could not be reloaded.`,
+            );
+          }
+
+          return hydratedProduct;
+        },
+      );
 
       return mapProductToResponseDto(record);
     } catch (error) {

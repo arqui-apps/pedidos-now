@@ -618,3 +618,9 @@ select * from business;
 select * from product;
 SHOW CREATE TABLE business;
 -- JOSE--
+
+
+
+SHOW COLUMNS FROM business_order_delivery LIKE 'branch_id';
+SHOW COLUMNS FROM business_order_delivery LIKE 'external_delivery_code';
+SHOW COLUMNS FROM business_order_delivery LIKE 'external_logistics_order_code';

@@ -78,3 +78,22 @@ export class ReleaseReservationDto {
   @IsOptional()
   reason?: string;
 }
+
+export class UpdateProductStockDto {
+  @ApiProperty({ example: 25, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  availableQuantity?: number;
+
+  @ApiProperty({ example: 5, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  minimumAlertQuantity?: number;
+
+  @ApiProperty({ example: 'Stock inicial del producto', required: false })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}

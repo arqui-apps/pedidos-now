@@ -9,7 +9,7 @@ import { ListProductsQueryDto } from '../../presentation/dto/list-products-query
 
 type PrismaProductsClient = Pick<
   Prisma.TransactionClient,
-  'business' | 'product' | 'product_type'
+  'business' | 'product' | 'product_type' | 'product_stock'
 >;
 
 type ProductCreateData = Prisma.productUncheckedCreateInput;
@@ -94,6 +94,15 @@ export class PrismaProductsRepository {
     return client.product.create({
       data,
       include: this.buildProductInclude(),
+    });
+  }
+
+  async createProductStock(
+    data: Prisma.product_stockUncheckedCreateInput,
+    client: PrismaProductsClient = this.prisma,
+  ) {
+    return client.product_stock.create({
+      data,
     });
   }
 
