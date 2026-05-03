@@ -84,6 +84,9 @@ model business_order_delivery {
   business_order_id                      Int                                      @unique(map: "uq_business_order_delivery_order") @db.UnsignedInt
   delivery_type                          business_order_delivery_delivery_type    @default(home_delivery)
   delivery_status                        business_order_delivery_delivery_status  @default(pending_assignment)
+  branch_id                              Int                                      @default(0) @db.UnsignedInt
+  external_delivery_code                 String?                                  @unique(map: "uq_business_order_delivery_ext_delivery_code") @db.VarChar(64)
+  external_logistics_order_code          String?                                  @unique(map: "uq_business_order_delivery_ext_logistics_order_code") @db.VarChar(64)
   external_courier_id                    Int?                                     @db.UnsignedInt
   recipient_name_snapshot                String?                                  @db.VarChar(150)
   recipient_phone_snapshot               String?                                  @db.VarChar(20)
@@ -105,6 +108,7 @@ model business_order_delivery {
   business_order_delivery_fee_adjustment business_order_delivery_fee_adjustment[]
   business_order_delivery_status_history business_order_delivery_status_history[]
 
+  @@index([branch_id], map: "idx_business_order_delivery_branch")
   @@index([created_at], map: "idx_business_order_delivery_created_at")
   @@index([external_courier_id], map: "idx_business_order_delivery_ext_courier")
   @@index([delivery_status], map: "idx_business_order_delivery_status")
