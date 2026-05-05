@@ -2,6 +2,8 @@
 const paqueteriaHandler = require('./paqueteria/paqueteria.handler');
 // Admin-contabilidad Emmanuel
 const restaurantesHandler = require('./restaurantes/restaurantes.handler');
+// Admin-contabilidad Jeff. Daniel Ramos
+const descuentosHandler = require('./descuentos/descuentos.handler');
 
 
 exports.procesarEvento = async (evento) => {
@@ -13,6 +15,10 @@ exports.procesarEvento = async (evento) => {
 
       case 'restaurantes':
         await restaurantesHandler(evento);
+        break;
+
+      case 'descuentos':
+        await descuentosHandler(evento);
         break;
 
       default:
