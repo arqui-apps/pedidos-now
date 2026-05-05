@@ -1,6 +1,19 @@
 //Admin-Conta Jeff. Daniel Ramos
-const movimientoService = require('../../services/movimiento.service');
-const eventoRepo = require('../../repositories/evento.repository');
+// mocks para pruebas (no BD)
+const movimientoService = {
+  registrarEgreso: async (data) => {
+    console.log('Mock egreso:', data);
+  },
+  registrarIngresoPedido: async (data) => {
+    console.log('Mock ingreso:', data);
+  }
+};
+
+const eventoRepo = {
+  guardarEvento: async (data) => {
+    console.log('Mock evento guardado:', data);
+  }
+};
 
 module.exports = async (evento) => {
 
