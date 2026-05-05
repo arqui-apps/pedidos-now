@@ -20,7 +20,12 @@ module.exports = async (evento) => {
         promocion_id,
         tipo_alcance,
         referencia_id,
-        monto_descuento
+        monto_descuento,
+        nombre,
+        descripcion,
+        fecha_inicio,
+        fecha_fin,
+        tipo
       } = promo;
 
       // guardar evento
