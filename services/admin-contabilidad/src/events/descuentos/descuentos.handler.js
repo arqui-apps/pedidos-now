@@ -33,7 +33,17 @@ module.exports = async (evento) => {
         modulo_origen: 'promociones',
         tipo_evento: evento.tipo,
         referencia_id: pedido_id,
-        payload: promo
+        payload: {
+          promocion_id,
+          tipo_alcance,
+          referencia_id,
+          monto_descuento,
+          nombre,
+          descripcion,
+          fecha_inicio,
+          fecha_fin,
+          tipo
+        }
       });
 
       // movimiento contable (egreso)
