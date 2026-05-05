@@ -1,7 +1,12 @@
 // Admin-Conta Jeff. Daniel Ramos
 
 const movimientoService = require('../../services/movimiento.service.mock');
-const eventoRepo = require('../../repositories/evento.repository');
+// MOCK LOCAL (solo para entrega)
+const eventoRepo = {
+  guardarEvento: async (data) => {
+    console.log('MOCK EVENTO:', data);
+  }
+};
 const promoService = require('../../services/promocionContabilidad.service');
 
 module.exports = async (evento) => {
