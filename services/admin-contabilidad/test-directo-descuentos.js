@@ -1,5 +1,6 @@
 // prueba directa sin index
 console.log('🔥 INICIANDO TEST');
+console.log('Handler cargado:', handler);
 const handler = require('./src/events/descuentos/descuentos.handler');
 
 
