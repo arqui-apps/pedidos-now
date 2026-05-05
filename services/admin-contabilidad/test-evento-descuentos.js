@@ -6,12 +6,17 @@ const eventoPrueba = {
   tipo: 'PROMOCION_APLICADA',
   data: {
     pedido_id: 3001,
-    promocion_id: 10,
     cliente_id: 5,
-    monto_descuento: 15.00
+    promociones: [
+      {
+        promocion_id: 10,
+        tipo_alcance: 'PRODUCTO',
+        referencia_id: 108,
+        monto_descuento: 15.00
+      }
+    ]
   }
 };
-
 eventos.procesarEvento(eventoPrueba)
   .then(() => {
     console.log(' Evento de promociones procesado correctamente');
