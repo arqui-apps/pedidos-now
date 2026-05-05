@@ -1,6 +1,6 @@
 // Admin-Conta Jeff. Daniel Ramos
 
-const movimientoService = require('../../services/movimiento.service');
+const movimientoService = require('../../services/movimiento.service.mock');
 const eventoRepo = require('../../repositories/evento.repository');
 const promoService = require('../../services/promocionContabilidad.service');
 
