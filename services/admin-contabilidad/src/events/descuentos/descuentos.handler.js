@@ -18,6 +18,7 @@ module.exports = async (evento) => {
         monto_descuento
       } = promo;
 
+      // guardar evento
       await eventoRepo.guardarEvento({
         modulo_origen: 'promociones',
         tipo_evento: evento.tipo,
@@ -25,6 +26,7 @@ module.exports = async (evento) => {
         payload: promo
       });
 
+      // movimiento contable (egreso)
       await movimientoService.registrarEgreso({
         tipo: 'descuento_promocion',
         empleado_id: cliente_id,
@@ -32,7 +34,7 @@ module.exports = async (evento) => {
         descripcion: `Descuento promo #${promocion_id}`
       });
 
-      // 🔥 NUEVO (igual que tus compañeros)
+      // 🔥 TU PARTE (perfecta)
       await promoService.registrarPromocionAplicada({
         pedido_id,
         cliente_id,
