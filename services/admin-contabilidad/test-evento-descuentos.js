@@ -6,17 +6,18 @@ const eventoPrueba = {
   tipo: 'PROMOCION_APLICADA',
   data: {
     pedido_id: 3001,
+    promocion_id: 10,
     cliente_id: 5,
-    promociones: [
-      {
-        promocion_id: 10,
-        tipo_alcance: 'PRODUCTO',
-        referencia_id: 108,
-        monto_descuento: 15.00
-      }
-    ]
+    monto_descuento: 15,
+    tipo: 'FLASH',
+    nombre: 'Flash Mediodía',
+    descripcion: 'Promo rápida',
+    fecha_inicio: new Date(),
+    fecha_fin: new Date(),
+    fecha_aplicacion: new Date()
   }
 };
+
 eventos.procesarEvento(eventoPrueba)
   .then(() => {
     console.log(' Evento de promociones procesado correctamente');
