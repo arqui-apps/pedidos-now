@@ -1,25 +1,41 @@
-// prueba directa sin index
-console.log('🔥 INICIANDO TEST');
-console.log('Handler cargado:', handler);
-const handler = require('./src/events/descuentos/descuentos.handler');
+// Admin-Conta Jeff. Daniel Ramos
 
-
-const eventoPrueba = {
-  tipo: 'PROMOCION_APLICADA',
-  data: {
-    pedido_id: 3001,
-    promocion_id: 10,
-    cliente_id: 5,
-    monto_descuento: 15.00
+// ✅ mocks (SIN BD)
+const movimientoService = {
+  registrarEgreso: async (data) => {
+    console.log('Mock egreso:', data);
+  },
+  registrarIngresoPedido: async (data) => {
+    console.log('Mock ingreso:', data);
   }
 };
 
-handler(eventoPrueba)
-  .then(() => {
-    console.log('✅ Test directo ejecutado correctamente');
-  })
-  .catch((error) => {
-    console.error('❌ Error en test directo:', error);
-  });
+const eventoRepo = {
+  guardarEvento: async (data) => {
+    console.log('Mock evento guardado:', data);
+  }
+};
 
-console.log('🔥 FIN DEL ARCHIVO');
+module.exports = async (evento) => {
+  console.log('👉 Handler ejecutándose');
+
+  if (evento.tipo === 'PROMOCION_APLICADA') {
+    const { pedido_id, promocion_id, cliente_id, monto_descuento } = evento.data;
+
+    await eventoRepo.guardarEvento({
+      modulo_origen: 'promociones',
+      tipo_evento: evento.tipo,
+      referencia_id: pedido_id,
+      payload: evento.data
+    });
+
+    await movimientoService.registrarEgreso({
+      tipo: 'descuento_promocion',
+      empleado_id: cliente_id,
+      monto: monto_descuento,
+      descripcion: `Descuento aplicado promo #${promocion_id}`
+    });
+
+    console.log('✅ Flujo promoción aplicada ejecutado');
+  }
+};
