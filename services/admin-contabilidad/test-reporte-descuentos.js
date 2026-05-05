@@ -4,6 +4,7 @@ const eventos = [
   {
     tipo: 'PROMOCION_APLICADA',
     promocion_id: 1,
+    tipo_promocion: 'cupon',
     nombre: '2x1 Pizza',
     descripcion: 'Promo fin de semana',
     fecha_inicio: '2026-05-01',
@@ -13,6 +14,7 @@ const eventos = [
   {
     tipo: 'PROMOCION_APLICADA',
     promocion_id: 1,
+    tipo_promocion: 'cupon',
     nombre: '2x1 Pizza',
     descripcion: 'Promo fin de semana',
     fecha_inicio: '2026-05-01',
@@ -22,6 +24,7 @@ const eventos = [
   {
     tipo: 'PROMOCION_APLICADA',
     promocion_id: 2,
+    tipo_promocion: 'inmediata',
     nombre: 'Descuento Q20',
     descripcion: 'Primera compra',
     fecha_inicio: '2026-05-02',
@@ -38,6 +41,7 @@ eventos.forEach(e => {
   if (!reporte[e.promocion_id]) {
     reporte[e.promocion_id] = {
       promocion_id: e.promocion_id,
+      tipo_promocion: e.tipo_promocion || null,
       nombre: e.nombre || null,
       descripcion: e.descripcion || null,
       fecha_inicio: e.fecha_inicio || null,
@@ -51,15 +55,25 @@ eventos.forEach(e => {
   reporte[e.promocion_id].total_descuento += e.monto;
 });
 
-console.log('📊 REPORTE POR PROMOCIÓN\n');
+console.log('📊 REPORTE FINAL POR PROMOCIÓN\n');
 
 Object.values(reporte).forEach(promo => {
   console.log(`🟢 Promoción ID: ${promo.promocion_id}`);
 
-  if (promo.nombre) console.log(`   Nombre: ${promo.nombre}`);
-  if (promo.descripcion) console.log(`   Descripción: ${promo.descripcion}`);
-  if (promo.fecha_inicio) console.log(`   Inicio: ${promo.fecha_inicio}`);
-  if (promo.fecha_fin) console.log(`   Fin: ${promo.fecha_fin}`);
+  if (promo.tipo_promocion)
+    console.log(`   Tipo: ${promo.tipo_promocion}`);
+
+  if (promo.nombre)
+    console.log(`   Nombre: ${promo.nombre}`);
+
+  if (promo.descripcion)
+    console.log(`   Descripción: ${promo.descripcion}`);
+
+  if (promo.fecha_inicio)
+    console.log(`   Inicio: ${promo.fecha_inicio}`);
+
+  if (promo.fecha_fin)
+    console.log(`   Fin: ${promo.fecha_fin}`);
 
   console.log(`   Veces usada: ${promo.veces_usada}`);
   console.log(`   Total descuento: Q${promo.total_descuento}`);
