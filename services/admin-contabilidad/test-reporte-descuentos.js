@@ -1,81 +1,68 @@
 // Admin-conta Jeff. Daniel Ramos
 
-const eventos = [
+const eventosSimulados = [
   {
     tipo: 'PROMOCION_APLICADA',
-    promocion_id: 1,
-    tipo_promocion: 'cupon',
-    nombre: '2x1 Pizza',
-    descripcion: 'Promo fin de semana',
-    fecha_inicio: '2026-05-01',
-    fecha_fin: '2026-05-05',
-    monto: 10
+    data: {
+      pedido_id: 1,
+      promocion_id: 10,
+      cliente_id: 5,
+      monto_descuento: 10,
+      tipo: 'cupon',
+      nombre: 'Promo Verano'
+    }
   },
   {
     tipo: 'PROMOCION_APLICADA',
-    promocion_id: 1,
-    tipo_promocion: 'cupon',
-    nombre: '2x1 Pizza',
-    descripcion: 'Promo fin de semana',
-    fecha_inicio: '2026-05-01',
-    fecha_fin: '2026-05-05',
-    monto: 5
-  },
-  {
-    tipo: 'PROMOCION_APLICADA',
-    promocion_id: 2,
-    tipo_promocion: 'inmediata',
-    nombre: 'Descuento Q20',
-    descripcion: 'Primera compra',
-    fecha_inicio: '2026-05-02',
-    fecha_fin: '2026-05-10',
-    monto: 20
+    data: {
+      pedido_id: 2,
+      promocion_id: 11,
+      cliente_id: 8,
+      monto_descuento: 20,
+      tipo: 'flash'
+    }
   }
 ];
 
-const reporte = {};
+const generarReporte = (eventos) => {
+  let total = 0;
+  const porTipo = {};
+  const promociones = [];
 
-eventos.forEach(e => {
-  if (e.tipo !== 'PROMOCION_APLICADA') return;
+  eventos.forEach(e => {
+    if (e.tipo === 'PROMOCION_APLICADA') {
+      const d = e.data;
 
-  if (!reporte[e.promocion_id]) {
-    reporte[e.promocion_id] = {
-      promocion_id: e.promocion_id,
-      tipo_promocion: e.tipo_promocion || null,
-      nombre: e.nombre || null,
-      descripcion: e.descripcion || null,
-      fecha_inicio: e.fecha_inicio || null,
-      fecha_fin: e.fecha_fin || null,
-      veces_usada: 0,
-      total_descuento: 0
-    };
-  }
+      total += d.monto_descuento;
 
-  reporte[e.promocion_id].veces_usada++;
-  reporte[e.promocion_id].total_descuento += e.monto;
-});
+      // contar por tipo
+      const tipo = d.tipo || 'desconocido';
+      porTipo[tipo] = (porTipo[tipo] || 0) + 1;
 
-console.log('📊 REPORTE FINAL POR PROMOCIÓN\n');
+      promociones.push({
+        promocion_id: d.promocion_id,
+        nombre: d.nombre || null,
+        descripcion: d.descripcion || null,
+        tipo,
+        pedido_id: d.pedido_id,
+        cliente_id: d.cliente_id,
+        monto_descuento: d.monto_descuento,
+        fecha_aplicacion: d.fecha_aplicacion || new Date().toISOString(),
+        fecha_inicio: d.fecha_inicio || null,
+        fecha_fin: d.fecha_fin || null
+      });
+    }
+  });
 
-Object.values(reporte).forEach(promo => {
-  console.log(`🟢 Promoción ID: ${promo.promocion_id}`);
+  return {
+    total_promociones_aplicadas: promociones.length,
+    total_descuento: total,
+    por_tipo: porTipo,
+    promociones
+  };
+};
 
-  if (promo.tipo_promocion)
-    console.log(`   Tipo: ${promo.tipo_promocion}`);
+const reporte = generarReporte(eventosSimulados);
 
-  if (promo.nombre)
-    console.log(`   Nombre: ${promo.nombre}`);
-
-  if (promo.descripcion)
-    console.log(`   Descripción: ${promo.descripcion}`);
-
-  if (promo.fecha_inicio)
-    console.log(`   Inicio: ${promo.fecha_inicio}`);
-
-  if (promo.fecha_fin)
-    console.log(`   Fin: ${promo.fecha_fin}`);
-
-  console.log(`   Veces usada: ${promo.veces_usada}`);
-  console.log(`   Total descuento: Q${promo.total_descuento}`);
-  console.log('-----------------------------');
-});
+console.log('📊 REPORTE DE PROMOCIONES');
+console.log(JSON.stringify(reporte, null, 2));
