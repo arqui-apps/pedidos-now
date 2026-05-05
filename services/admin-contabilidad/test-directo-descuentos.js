@@ -1,8 +1,8 @@
 // prueba directa sin index
-
+console.log('🔥 INICIANDO TEST');
 const handler = require('./admin-contabilidad/src/events/descuentos/descuentos.handler');
 
-console.log('🔥 INICIANDO TEST');
+
 const eventoPrueba = {
   tipo: 'PROMOCION_APLICADA',
   data: {
