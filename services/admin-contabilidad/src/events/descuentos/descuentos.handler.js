@@ -1,4 +1,5 @@
 //Admin-Conta Jeff. Daniel Ramos
+
 // mocks para pruebas (no BD)
 const movimientoService = {
   registrarEgreso: async (data) => {
@@ -25,7 +26,6 @@ module.exports = async (evento) => {
       monto_descuento
     } = evento.data;
 
-    // guardar evento
     await eventoRepo.guardarEvento({
       modulo_origen: 'promociones',
       tipo_evento: evento.tipo,
@@ -33,10 +33,9 @@ module.exports = async (evento) => {
       payload: evento.data
     });
 
-    // registrar egreso (descuento aplicado)
     await movimientoService.registrarEgreso({
       tipo: 'descuento_promocion',
-      empleado_id: cliente_id, // lo usamos como referencia
+      empleado_id: cliente_id,
       monto: monto_descuento,
       descripcion: `Descuento aplicado promo #${promocion_id} en pedido ${pedido_id}`
     });
@@ -58,7 +57,6 @@ module.exports = async (evento) => {
       payload: evento.data
     });
 
-    // reversión del descuento (ingreso)
     await movimientoService.registrarIngresoPedido({
       pedido_id,
       monto: monto_descuento,
