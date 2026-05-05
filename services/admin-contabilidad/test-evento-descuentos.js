@@ -2,7 +2,7 @@
 const eventos = require('./src/events');
 
 const eventoPrueba = {
-  modulo: 'promociones',
+  modulo: 'descuentos',
   tipo: 'PROMOCION_APLICADA',
   data: {
     pedido_id: 3001,
