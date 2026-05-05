@@ -1,6 +1,6 @@
 // prueba directa sin index
 console.log('🔥 INICIANDO TEST');
-const handler = require('./admin-contabilidad/src/events/descuentos/descuentos.handler');
+const handler = require('./src/events/descuentos/descuentos.handler');
 
 
 const eventoPrueba = {
