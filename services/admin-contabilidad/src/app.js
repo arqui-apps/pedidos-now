@@ -48,6 +48,9 @@ app.use('/api/compensaciones', compensacionRoutes);
 // Admin-contabilidad Emmanuel
 app.use('/api/reportes-restaurantes', reportesRestaurantesRoutes);
 
+// Admin-conta Jeff. Daniel Ramos
+app.use('/admin/promociones', promocionesRoutes);
+
 // Health check
 app.get('/', (req, res) => {
   res.json({ message: 'Microservicio Admin/Contabilidad OK' });
