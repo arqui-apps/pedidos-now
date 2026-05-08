@@ -1,25 +1,24 @@
 //Admin-conta Jeff. Daniel Ramos
 const descuentosApi = require('../services/descuentosApi.service');
 
-const validarPromociones = async (req, res) => {
-
+const aplicarPromocion = async (req, res) => {
   try {
 
-    const respuesta = await descuentosApi.validarPromociones(req.body);
+    const respuesta = await descuentosApi.registrarUsoPromocion(req.body);
 
-    return res.status(200).json(respuesta);
+    res.json(respuesta);
 
   } catch (error) {
 
-    console.error(error);
+    console.error(error.message);
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      message: 'Error validando promociones'
+      error: error.message
     });
   }
 };
 
 module.exports = {
-  validarPromociones
+  aplicarPromocion
 };
