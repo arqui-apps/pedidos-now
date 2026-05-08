@@ -1,12 +1,12 @@
 //Admin-conta Jeff. Daniel Ramos
 const express = require('express');
+
 const router = express.Router();
 
-const promocionesController = require('../controllers/promociones.controller');
+const {
+  aplicarPromocion
+} = require('../controllers/promociones.controller');
 
-router.post(
-  '/validar',
-  promocionesController.validarPromociones
-);
+router.post('/aplicar', aplicarPromocion);
 
 module.exports = router;
