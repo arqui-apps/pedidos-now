@@ -18,6 +18,9 @@ const compensacionRoutes = require('./src/routes/compensacion.routes');
 // Admin-contabilidad Emmanuel
 const reportesRestaurantesRoutes = require('./routes/reportesRestaurantes.routes');
 
+// Admin-conta Jeff. Daniel Ramos
+const promocionesRoutes = require('./routes/promociones.routes');
+
 const initDB = require('./database/init');
 
 const app = express();
