@@ -20,6 +20,7 @@ const reportesRestaurantesRoutes = require('./routes/reportesRestaurantes.routes
 
 // Admin-conta Jeff. Daniel Ramos
 const promocionesRoutes = require('./routes/promociones.routes');
+const promocionesReportesRoutes = require('./routes/promocionesReportes.routes');
 
 const initDB = require('./database/init');
 
@@ -50,6 +51,7 @@ app.use('/api/reportes-restaurantes', reportesRestaurantesRoutes);
 
 // Admin-conta Jeff. Daniel Ramos
 app.use('/admin/promociones', promocionesRoutes);
+app.use('/admin/promociones/reportes', promocionesReportesRoutes);
 
 // Health check
 app.get('/', (req, res) => {
