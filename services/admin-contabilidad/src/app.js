@@ -13,6 +13,8 @@ const movimientoRoutes = require('./routes/movimiento.routes');
 const reembolsoRoutes = require('./routes/reembolso.routes');
 const compesacionRoutes = require('./routes/compensacion.routes');
 
+const promocionesRoutes = require('./routes/promociones.routes');
+
 const app = express();
 //Middlewares de seguridad, logging y compresión
 app.use(cors({
@@ -31,6 +33,7 @@ app.use('/api/movimientos', movimientoRoutes);
 app.use('/api/reembolsos', reembolsoRoutes);
 app.use('/api/compensaciones', compesacionRoutes);
 
+app.use('/admin/promociones', promocionesRoutes);
 //Health check
 app.get('/', (req, res) => {
     res.json({ message: 'Microservicio Admin/Contabilidad OK' });
