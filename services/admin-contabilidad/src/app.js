@@ -5,13 +5,15 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 
-const testRoutes = require('./routes/test.routes');
-const pagosAgentesRoutes = require('./routes/pagos_agentes.routes');
-const reportesRoutes = require('./routes/reportes.routes');
-const dashboardRoutes = require('./routes/dashboard.routes');
-const movimientoRoutes = require('./routes/movimiento.routes');
-const reembolsoRoutes = require('./routes/reembolso.routes');
-const compensacionRoutes = require('./routes/compensacion.routes');
+const { sequelize } = require('./src/models');
+
+const testRoutes = require('./src/routes/test.routes');
+const pagosAgentesRoutes = require('./src/routes/pagos_agentes.routes');
+const reportesRoutes = require('./src/routes/reportes.routes');
+const dashboardRoutes = require('./src/routes/dashboard.routes');
+const movimientoRoutes = require('./src/routes/movimiento.routes');
+const reembolsoRoutes = require('./src/routes/reembolso.routes');
+const compensacionRoutes = require('./src/routes/compensacion.routes');
 
 // Admin-contabilidad Emmanuel
 const reportesRestaurantesRoutes = require('./routes/reportesRestaurantes.routes');
@@ -66,12 +68,12 @@ app.get('/debug', (req, res) => {
 
 // Middleware de errores
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    ok: false,
-    error: err.message,
-    timestamp: new Date().toISOString()
-  });
+    console.error(err.stack);
+    res.status(err.status || 500).json({
+        ok: false,
+        error: err.message,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Inicio del servidor
@@ -79,12 +81,15 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   try {
+    // Probar conexión a base de datos
     await sequelize.authenticate();
     console.log('Conexión a MySQL establecida correctamente.');
 
+    // Sincronizar modelos (crear tablas si no existen)
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('Modelos sincronizados con la base de datos.');
 
+    // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
       console.log(`URL: http://localhost:${PORT}`);
