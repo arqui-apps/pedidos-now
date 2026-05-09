@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 
-const { sequelize } = require('./models');
+const { sequelize } = require('./database/init');
 
 const testRoutes = require('./routes/test.routes');
 const pagosAgentesRoutes = require('./routes/pagos_agentes.routes');
