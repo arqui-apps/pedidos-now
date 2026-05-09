@@ -7,8 +7,10 @@ const {
   obtenerReportes
 } = require('../controllers/promocionesReportes.controller');
 
-router.post('/', guardarReporte);
-
+// GET /admin/promociones/reportes
 router.get('/', obtenerReportes);
+
+// POST /admin/promociones/reportes
+router.post('/', guardarReporte);
 
 module.exports = router;
