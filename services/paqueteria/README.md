@@ -34,9 +34,14 @@ Todos los endpoints disponibles deben usarse con el prefijo `/api`.
   - `originAddress`: dirección de origen
   - `destinationAddress`: dirección de destino
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/packages/quote" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/quote`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "senderId": 1,
   "receiverId": 2,
   "packageDetails": {
@@ -51,10 +56,10 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/packages/quote" -H "C
   },
   "destinationAddress": {
     "address": "Zona 1, Ciudad de Guatemala",
-    "latitude": 14.620,
+    "latitude": 14.62,
     "longitude": -90.547
   }
-}'
+}
 ```
 
 Respuesta esperada:
@@ -79,15 +84,20 @@ Respuesta esperada:
   - `subtotal`: costo calculado del paquete
   - `status`: opcional (true/false)
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/packages" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/packages`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "idShipment": 10,
   "description": "Caja con documentos",
   "size": "30x20x10 cm",
   "weight": 2.2,
-  "subtotal": 150.00
-}'
+  "subtotal": 150.0
+}
 ```
 
 ---
@@ -97,12 +107,17 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/packages" -H "Content
 - URL: `PUT /api/packages/:id`
 - Body: cualquiera de los campos del paquete
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/packages/5" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/5`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "weight": 2.5,
-  "subtotal": 165.00
-}'
+  "subtotal": 165.0
+}
 ```
 
 ---
@@ -111,10 +126,9 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/packages/5" -H "Conten
 
 - URL: `DELETE /api/packages/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/packages/5"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/5`
 
 ---
 
@@ -123,10 +137,12 @@ curl -X DELETE "https://pedidos-now-backend.onrender.com/api/packages/5"
 - URL: `POST /api/packages/:id/cancel`
 - Header: `x-customer-token: <senderId>`
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/packages/5/cancel" -H "x-customer-token: 1"
-```
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/5/cancel`
+- Headers:
+  - `x-customer-token: 1`
+- Body: No body definido
 
 Sólo el remitente puede cancelar un paquete y sólo cuando el envío está en estado `pending`.
 
@@ -136,10 +152,9 @@ Sólo el remitente puede cancelar un paquete y sólo cuando el envío está en e
 
 - URL: `GET /api/packages/:id/tracking`
 
-Ejemplo:
-```bash
-curl -X GET "https://pedidos-now-backend.onrender.com/api/packages/5/tracking"
-```
+Ejemplo (Postman):
+- Método: GET
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/5/tracking`
 
 Respuesta:
 - `packageId`
@@ -154,10 +169,11 @@ Respuesta:
 - URL: `GET /api/packages/customers/me`
 - Header: `x-customer-token: <cliente_id>` o query `?customerToken=<cliente_id>`
 
-Ejemplo:
-```bash
-curl -X GET "https://pedidos-now-backend.onrender.com/api/packages/customers/me" -H "x-customer-token: 2"
-```
+Ejemplo (Postman):
+- Método: GET
+- URL: `https://pedidos-now-backend.onrender.com/api/packages/customers/me`
+- Headers:
+  - `x-customer-token: 2`
 
 ---
 
@@ -174,16 +190,21 @@ curl -X GET "https://pedidos-now-backend.onrender.com/api/packages/customers/me"
   - `quoteData`: objeto o texto con datos de la cotización
   - `total`: valor total del envío
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/shipments" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/shipments`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "senderId": 1,
   "receiverId": 2,
   "deliveryInstructions": "Entregar en recepción",
   "chargeType": "prepaid",
   "quoteData": "Distancia corta, paquete ligero",
-  "total": 200.00
-}'
+  "total": 200.0
+}
 ```
 
 El envío creado se inicia en estado `pending`.
@@ -195,10 +216,12 @@ El envío creado se inicia en estado `pending`.
 - URL: `PATCH /api/shipments/:id/confirm`
 - Header: `x-customer-token: <receiverId>`
 
-Ejemplo:
-```bash
-curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/confirm" -H "x-customer-token: 2"
-```
+Ejemplo (Postman):
+- Método: PATCH
+- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/confirm`
+- Headers:
+  - `x-customer-token: 2`
+- Body: No body definido
 
 Esto cambia el estado de `pending` a `receiver_accepted`.
 
@@ -210,9 +233,16 @@ Esto cambia el estado de `pending` a `receiver_accepted`.
 - Body:
   - `courierId`: ID del repartidor que acepta el envío
 
-Ejemplo:
-```bash
-curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/accept" -H "Content-Type: application/json" -d '{ "courierId": 3 }'
+Ejemplo (Postman):
+- Método: PATCH
+- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/accept`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
+  "courierId": 3
+}
 ```
 
 Requiere que el envío ya esté en estado `receiver_accepted`.
@@ -230,9 +260,16 @@ Transiciones válidas:
 - `assigned` → `in_transit`
 - `in_transit` → `delivered`
 
-Ejemplo:
-```bash
-curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/status" -H "Content-Type: application/json" -d '{ "status": "in_transit" }'
+Ejemplo (Postman):
+- Método: PATCH
+- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/status`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
+  "status": "in_transit"
+}
 ```
 
 ---
@@ -241,10 +278,9 @@ curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/status" 
 
 - URL: `DELETE /api/shipments/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/shipments/8"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8`
 
 ---
 
@@ -257,11 +293,16 @@ curl -X DELETE "https://pedidos-now-backend.onrender.com/api/shipments/8"
   - `name`: nombre del repartidor
   - `status`: opcional, `true` o `false`
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/couriers" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/couriers`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "name": "Carlos López"
-}'
+}
 ```
 
 ---
@@ -271,12 +312,17 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/couriers" -H "Content
 - URL: `PUT /api/couriers/:id`
 - Body: `name`, `status`, y/o campos de estado actuales.
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/couriers/3" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/couriers/3`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "name": "Carlos L.",
   "status": true
-}'
+}
 ```
 
 ---
@@ -286,11 +332,16 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/couriers/3" -H "Conten
 - URL: `PUT /api/couriers/:id/status`
 - Body: `idStatus`, `id_status`, `statusName` o `status_name`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/couriers/3/status" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/couriers/3/status`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "statusName": "En ruta"
-}'
+}
 ```
 
 También puedes usar `idStatus` si ya conoces el ID del tipo de estado.
@@ -301,10 +352,9 @@ También puedes usar `idStatus` si ya conoces el ID del tipo de estado.
 
 - URL: `GET /api/couriers/available`
 
-Ejemplo:
-```bash
-curl -X GET "https://pedidos-now-backend.onrender.com/api/couriers/available"
-```
+Ejemplo (Postman):
+- Método: GET
+- URL: `https://pedidos-now-backend.onrender.com/api/couriers/available`
 
 ---
 
@@ -317,11 +367,16 @@ curl -X GET "https://pedidos-now-backend.onrender.com/api/couriers/available"
   - `name`: nombre del usuario
   - `status`: opcional, `true` o `false`
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/users" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/users`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "name": "Ana Martínez"
-}'
+}
 ```
 
 ---
@@ -331,12 +386,17 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/users" -H "Content-Ty
 - URL: `PUT /api/users/:id`
 - Body: `name` y/o `status`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/users/2" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/users/2`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "name": "Ana M.",
   "status": true
-}'
+}
 ```
 
 ---
@@ -352,14 +412,19 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/users/2" -H "Content-T
   - `longitude`: longitud
   - `address`: dirección completa
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/addresses" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/addresses`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "idUser": 2,
   "latitude": 14.621,
   "longitude": -90.526,
   "address": "Zona 10, Ciudad de Guatemala"
-}'
+}
 ```
 
 ---
@@ -369,11 +434,16 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/addresses" -H "Conten
 - URL: `PUT /api/addresses/:id`
 - Body: `idUser`, `latitude`, `longitude`, `address`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/addresses/5" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/addresses/5`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "address": "Zona 11, Ciudad de Guatemala"
-}'
+}
 ```
 
 ---
@@ -382,10 +452,9 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/addresses/5" -H "Conte
 
 - URL: `DELETE /api/addresses/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/addresses/5"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/addresses/5`
 
 ---
 
@@ -399,12 +468,17 @@ curl -X DELETE "https://pedidos-now-backend.onrender.com/api/addresses/5"
   - `criteria`: criterio que describe la tarifa
   - `status`: opcional, `true` o `false`
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/prices" -H "Content-Type: application/json" -d '{
-  "price": 45.00,
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/prices`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
+  "price": 45.0,
   "criteria": "Precio base por kg"
-}'
+}
 ```
 
 ---
@@ -414,12 +488,17 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/prices" -H "Content-T
 - URL: `PUT /api/prices/:id`
 - Body: `price`, `criteria` y/o `status`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/prices/4" -H "Content-Type: application/json" -d '{
-  "price": 49.00,
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/prices/4`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
+  "price": 49.0,
   "criteria": "Precio base por kg actualizado"
-}'
+}
 ```
 
 ---
@@ -428,10 +507,9 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/prices/4" -H "Content-
 
 - URL: `DELETE /api/prices/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/prices/4"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/prices/4`
 
 ---
 
@@ -444,12 +522,17 @@ curl -X DELETE "https://pedidos-now-backend.onrender.com/api/prices/4"
   - `name`: nombre del estado
   - `description`: descripción del estado
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-status-types" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "name": "En ruta",
   "description": "El repartidor está en camino hacia la entrega"
-}'
+}
 ```
 
 ---
@@ -459,11 +542,16 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-status-types"
 - URL: `PUT /api/courier-status-types/:id`
 - Body: `name` y/o `description`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-status-types/2" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types/2`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "description": "El repartidor está en ruta hacia el cliente"
-}'
+}
 ```
 
 ---
@@ -472,10 +560,9 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-status-types/2
 
 - URL: `DELETE /api/courier-status-types/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/courier-status-types/2"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types/2`
 
 ---
 
@@ -488,12 +575,17 @@ curl -X DELETE "https://pedidos-now-backend.onrender.com/api/courier-status-type
   - `idCourier`: ID del repartidor
   - `idStatus`: ID del tipo de estado
 
-Ejemplo:
-```bash
-curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-statuses" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: POST
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "idCourier": 3,
   "idStatus": 2
-}'
+}
 ```
 
 ---
@@ -503,11 +595,16 @@ curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-statuses" -H 
 - URL: `PUT /api/courier-statuses/:id`
 - Body: `idCourier` y/o `idStatus`
 
-Ejemplo:
-```bash
-curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-statuses/1" -H "Content-Type: application/json" -d '{
+Ejemplo (Postman):
+- Método: PUT
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses/1`
+- Headers:
+  - `Content-Type: application/json`
+- Body (raw JSON):
+```json
+{
   "idStatus": 3
-}'
+}
 ```
 
 ---
@@ -516,10 +613,9 @@ curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-statuses/1" -H
 
 - URL: `DELETE /api/courier-statuses/:id`
 
-Ejemplo:
-```bash
-curl -X DELETE "https://pedidos-now-backend.onrender.com/api/courier-statuses/1"
-```
+Ejemplo (Postman):
+- Método: DELETE
+- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses/1`
 
 ---
 
