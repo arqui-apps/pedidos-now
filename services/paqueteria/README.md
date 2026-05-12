@@ -1,600 +1,532 @@
 # Microservicio de Paquetería Instantánea
 
-## Descripción General
+## URL Base en la nube
 
-Servicio backend para la gestión de envíos de paquetes instantáneos. Permite a clientes enviar paquetes de manera segura a través de repartidores registrados, con asignación directa de repartidores y seguimiento completo del estado de entrega.
+**Base URL**: `https://pedidos-now-backend.onrender.com/`
 
-### Responsabilidades Principales
+Todos los endpoints disponibles deben usarse con el prefijo `/api`.
 
-- Gestión de cotizaciones de envío
-- Asignación automática de repartidores
-- Seguimiento del estado de envíos
-- Gestión de disponibilidad de repartidores
+> Ejemplo: `https://pedidos-now-backend.onrender.com/api/packages`
 
 ---
 
-## Flujo de Trabajo (Workflow)
+## Encabezados y parámetros comunes
 
-### 1. Solicitud de Cotización
-```
-Cliente solicita cotización → Cálculo de precio basado en distancia/peso → Respuesta con desglose de costos
-```
-- **Endpoint**: `POST /api/packages/quote`
-- **No crea registros** en la base de datos, solo devuelve una estimación.
+- `Content-Type: application/json` para requests que envían JSON.
+- `x-customer-token: <cliente_id>` se usa en endpoints donde el receptor o el remitente deben validar la acción.
+- Alternativamente, algunos endpoints aceptan `customerToken` como query string.
 
-### 2. Creación del Envío
-```
-Cliente crea envío → Envío en estado "pending" → Receptor recibe notificación
-```
-- **Endpoint**: `POST /api/shipments`
-- El envío requiere `senderId` (remitente) y `receiverId` (receptor)
-- Se crea en estado `pending` y espera confirmación del receptor
-
-### 3. Confirmación por el Receptor
-```
-Receptor acepta el envío → Estado cambia a "receiver_accepted" → Listo para asignación de repartidor
-```
-- **Endpoint**: `PATCH /api/shipments/:id/confirm`
-- Requiere `x-customer-token` con el `receiverId`
-- Solo el destinatario puede confirmar el envío
-
-### 4. Asignación de Repartidor
-```
-Repartidor acepta envío → Estado cambia a "assigned" → Sistema registra evento de tracking
-```
-- **Endpoint**: `PATCH /api/shipments/:id/accept`
-- Solo se puede asignar cuando el envío está en estado `receiver_accepted`
-- El repartidor debe existir en la base de datos
-
-### 5. Entrega del Paquete
-```
-Repartidor en tránsito → Estado "in_transit" → Paquete entregado → Estado "delivered"
-```
-- **Endpoint**: `PATCH /api/shipments/:id/status`
-- Las transiciones de estado están validadas
-- Cada cambio genera un evento en el historial de seguimiento
-
-### 5. Seguimiento en Tiempo Real
-```
-Cliente consulta historial de envío → Sistema retorna eventos ordenados cronológicamente
-```
-- **Endpoint**: `GET /api/packages/:id/tracking`
-- Incluye ubicación si está disponible
-
-### 6. Cancelación (Antes de Asignación)
-```
-Cliente solicita cancelación → Validación de permisos → Envío marcado como "cancelled"
-```
-- **Endpoint**: `POST /api/packages/:id/cancel`
-- Solo disponible mientras el envío esté en estado "pending"
+> Nota: en el servicio actual, el `x-customer-token` se trata de forma simplificada como el `receiverId` o `senderId` numérico.
 
 ---
 
-## Endpoints Disponibles
+## Endpoints y ejemplos
 
 ### 📦 Paquetes (Packages)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/packages/quote` | Generar cotización sin crear registro |
-| GET | `/api/packages` | Listar todos los paquetes |
-| GET | `/api/packages/:id` | Obtener detalles de un paquete |
-| POST | `/api/packages` | Crear un nuevo paquete |
-| PUT | `/api/packages/:id` | Actualizar un paquete |
-| DELETE | `/api/packages/:id` | Eliminar paquete (lógico) |
-| GET | `/api/packages/customers/me` | Obtener paquetes del cliente autenticado |
-| POST | `/api/packages/:id/cancel` | Cancelar un paquete |
-| GET | `/api/packages/:id/tracking` | Obtener historial de seguimiento |
+#### 1. Generar cotización de envío
+
+- URL: `POST /api/packages/quote`
+- Body:
+  - `senderId`: ID del remitente
+  - `receiverId`: ID del receptor
+  - `packageDetails`: detalles del paquete
+  - `originAddress`: dirección de origen
+  - `destinationAddress`: dirección de destino
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/packages/quote" -H "Content-Type: application/json" -d '{
+  "senderId": 1,
+  "receiverId": 2,
+  "packageDetails": {
+    "description": "Laptop",
+    "weight": 3.5,
+    "size": "40x30x20 cm"
+  },
+  "originAddress": {
+    "address": "Zona 10, Ciudad de Guatemala",
+    "latitude": 14.621,
+    "longitude": -90.526
+  },
+  "destinationAddress": {
+    "address": "Zona 1, Ciudad de Guatemala",
+    "latitude": 14.620,
+    "longitude": -90.547
+  }
+}'
+```
+
+Respuesta esperada:
+- `total`
+- `currency`
+- `estimatedDeliveryTime`
+- `breakdown`
+- `packageDetails`
+- `originAddress`
+- `destinationAddress`
+
+---
+
+#### 2. Crear un paquete
+
+- URL: `POST /api/packages`
+- Body:
+  - `idShipment`: ID del envío existente al que pertenece el paquete
+  - `description`: descripción del paquete
+  - `size`: tamaño o dimensión
+  - `weight`: peso en kg
+  - `subtotal`: costo calculado del paquete
+  - `status`: opcional (true/false)
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/packages" -H "Content-Type: application/json" -d '{
+  "idShipment": 10,
+  "description": "Caja con documentos",
+  "size": "30x20x10 cm",
+  "weight": 2.2,
+  "subtotal": 150.00
+}'
+```
+
+---
+
+#### 3. Actualizar un paquete
+
+- URL: `PUT /api/packages/:id`
+- Body: cualquiera de los campos del paquete
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/packages/5" -H "Content-Type: application/json" -d '{
+  "weight": 2.5,
+  "subtotal": 165.00
+}'
+```
+
+---
+
+#### 4. Eliminar un paquete
+
+- URL: `DELETE /api/packages/:id`
+
+Ejemplo:
+```bash
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/packages/5"
+```
+
+---
+
+#### 5. Cancelar un paquete
+
+- URL: `POST /api/packages/:id/cancel`
+- Header: `x-customer-token: <senderId>`
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/packages/5/cancel" -H "x-customer-token: 1"
+```
+
+Sólo el remitente puede cancelar un paquete y sólo cuando el envío está en estado `pending`.
+
+---
+
+#### 6. Obtener historial de seguimiento
+
+- URL: `GET /api/packages/:id/tracking`
+
+Ejemplo:
+```bash
+curl -X GET "https://pedidos-now-backend.onrender.com/api/packages/5/tracking"
+```
+
+Respuesta:
+- `packageId`
+- `shipmentId`
+- `currentStatus`
+- `events` con `status`, `description`, `timestamp` y `location`
+
+---
+
+#### 7. Paquetes del cliente autenticado
+
+- URL: `GET /api/packages/customers/me`
+- Header: `x-customer-token: <cliente_id>` o query `?customerToken=<cliente_id>`
+
+Ejemplo:
+```bash
+curl -X GET "https://pedidos-now-backend.onrender.com/api/packages/customers/me" -H "x-customer-token: 2"
+```
+
+---
 
 ### 📮 Envíos (Shipments)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/shipments` | Listar todos los envíos |
-| GET | `/api/shipments/:id` | Obtener detalles de un envío |
-| POST | `/api/shipments` | Crear un nuevo envío |
-| DELETE | `/api/shipments/:id` | Eliminar envío (lógico) |
-| PATCH | `/api/shipments/:id/confirm` | Confirmación del receptor antes de asignar repartidor |
-| PATCH | `/api/shipments/:id/accept` | Aceptar y asignar repartidor |
-| PATCH | `/api/shipments/:id/status` | Actualizar estado del envío |
+#### 1. Crear un envío
+
+- URL: `POST /api/shipments`
+- Body:
+  - `senderId`: ID del remitente
+  - `receiverId`: ID del receptor
+  - `deliveryInstructions`: instrucciones de entrega
+  - `chargeType`: tipo de cobro (por ejemplo `prepaid` o `collect`)
+  - `quoteData`: objeto o texto con datos de la cotización
+  - `total`: valor total del envío
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/shipments" -H "Content-Type: application/json" -d '{
+  "senderId": 1,
+  "receiverId": 2,
+  "deliveryInstructions": "Entregar en recepción",
+  "chargeType": "prepaid",
+  "quoteData": "Distancia corta, paquete ligero",
+  "total": 200.00
+}'
+```
+
+El envío creado se inicia en estado `pending`.
+
+---
+
+#### 2. Confirmar envío por el receptor
+
+- URL: `PATCH /api/shipments/:id/confirm`
+- Header: `x-customer-token: <receiverId>`
+
+Ejemplo:
+```bash
+curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/confirm" -H "x-customer-token: 2"
+```
+
+Esto cambia el estado de `pending` a `receiver_accepted`.
+
+---
+
+#### 3. Aceptar y asignar repartidor
+
+- URL: `PATCH /api/shipments/:id/accept`
+- Body:
+  - `courierId`: ID del repartidor que acepta el envío
+
+Ejemplo:
+```bash
+curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/accept" -H "Content-Type: application/json" -d '{ "courierId": 3 }'
+```
+
+Requiere que el envío ya esté en estado `receiver_accepted`.
+
+---
+
+#### 4. Actualizar estado del envío
+
+- URL: `PATCH /api/shipments/:id/status`
+- Body:
+  - `status`: nuevo estado válido
+
+Transiciones válidas:
+- `receiver_accepted` → `assigned`
+- `assigned` → `in_transit`
+- `in_transit` → `delivered`
+
+Ejemplo:
+```bash
+curl -X PATCH "https://pedidos-now-backend.onrender.com/api/shipments/8/status" -H "Content-Type: application/json" -d '{ "status": "in_transit" }'
+```
+
+---
+
+#### 5. Eliminar un envío
+
+- URL: `DELETE /api/shipments/:id`
+
+Ejemplo:
+```bash
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/shipments/8"
+```
+
+---
 
 ### 🚴 Repartidores (Couriers)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/couriers` | Listar todos los repartidores |
-| GET | `/api/couriers/available` | Listar repartidores disponibles |
-| GET | `/api/couriers/:id` | Obtener detalles de un repartidor |
-| POST | `/api/couriers` | Crear un nuevo repartidor |
-| PUT | `/api/couriers/:id` | Actualizar información del repartidor |
-| PUT | `/api/couriers/:id/status` | Actualizar estado del repartidor |
-| DELETE | `/api/couriers/:id` | Eliminar repartidor (lógico) |
+#### 1. Crear repartidor
+
+- URL: `POST /api/couriers`
+- Body:
+  - `name`: nombre del repartidor
+  - `status`: opcional, `true` o `false`
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/couriers" -H "Content-Type: application/json" -d '{
+  "name": "Carlos López"
+}'
+```
+
+---
+
+#### 2. Actualizar repartidor
+
+- URL: `PUT /api/couriers/:id`
+- Body: `name`, `status`, y/o campos de estado actuales.
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/couriers/3" -H "Content-Type: application/json" -d '{
+  "name": "Carlos L.",
+  "status": true
+}'
+```
+
+---
+
+#### 3. Actualizar estado actual del repartidor
+
+- URL: `PUT /api/couriers/:id/status`
+- Body: `idStatus`, `id_status`, `statusName` o `status_name`
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/couriers/3/status" -H "Content-Type: application/json" -d '{
+  "statusName": "En ruta"
+}'
+```
+
+También puedes usar `idStatus` si ya conoces el ID del tipo de estado.
+
+---
+
+#### 4. Ver repartidores disponibles
+
+- URL: `GET /api/couriers/available`
+
+Ejemplo:
+```bash
+curl -X GET "https://pedidos-now-backend.onrender.com/api/couriers/available"
+```
+
+---
 
 ### 👤 Usuarios (Users)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/users` | Listar todos los usuarios |
-| GET | `/api/users/:id` | Obtener detalles de un usuario |
-| POST | `/api/users` | Crear un nuevo usuario |
-| PUT | `/api/users/:id` | Actualizar información del usuario |
-| DELETE | `/api/users/:id` | Eliminar usuario (lógico) |
+#### 1. Crear usuario
+
+- URL: `POST /api/users`
+- Body:
+  - `name`: nombre del usuario
+  - `status`: opcional, `true` o `false`
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/users" -H "Content-Type: application/json" -d '{
+  "name": "Ana Martínez"
+}'
+```
+
+---
+
+#### 2. Actualizar usuario
+
+- URL: `PUT /api/users/:id`
+- Body: `name` y/o `status`
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/users/2" -H "Content-Type: application/json" -d '{
+  "name": "Ana M.",
+  "status": true
+}'
+```
+
+---
 
 ### 📍 Direcciones (Addresses)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/addresses` | Listar todas las direcciones |
-| GET | `/api/addresses/:id` | Obtener detalles de una dirección |
-| POST | `/api/addresses` | Crear una nueva dirección |
-| PUT | `/api/addresses/:id` | Actualizar dirección |
-| DELETE | `/api/addresses/:id` | Eliminar dirección (lógico) |
+#### 1. Crear dirección
+
+- URL: `POST /api/addresses`
+- Body:
+  - `idUser`: ID del usuario propietario
+  - `latitude`: latitud
+  - `longitude`: longitud
+  - `address`: dirección completa
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/addresses" -H "Content-Type: application/json" -d '{
+  "idUser": 2,
+  "latitude": 14.621,
+  "longitude": -90.526,
+  "address": "Zona 10, Ciudad de Guatemala"
+}'
+```
+
+---
+
+#### 2. Actualizar dirección
+
+- URL: `PUT /api/addresses/:id`
+- Body: `idUser`, `latitude`, `longitude`, `address`
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/addresses/5" -H "Content-Type: application/json" -d '{
+  "address": "Zona 11, Ciudad de Guatemala"
+}'
+```
+
+---
+
+#### 3. Eliminar dirección
+
+- URL: `DELETE /api/addresses/:id`
+
+Ejemplo:
+```bash
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/addresses/5"
+```
+
+---
 
 ### 💰 Precios (Prices)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/prices` | Listar todas las tarifas |
-| GET | `/api/prices/:id` | Obtener detalles de una tarifa |
-| POST | `/api/prices` | Crear una nueva tarifa |
-| PUT | `/api/prices/:id` | Actualizar tarifa |
-| DELETE | `/api/prices/:id` | Eliminar tarifa (lógico) |
+#### 1. Crear tarifa
 
-### 🏷️ Tipos de Estado de Repartidor (Courier Status Types)
+- URL: `POST /api/prices`
+- Body:
+  - `price`: valor numérico
+  - `criteria`: criterio que describe la tarifa
+  - `status`: opcional, `true` o `false`
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/courier-status-types` | Listar tipos de estado |
-| GET | `/api/courier-status-types/:id` | Obtener tipo de estado |
-| POST | `/api/courier-status-types` | Crear tipo de estado |
-| PUT | `/api/courier-status-types/:id` | Actualizar tipo de estado |
-| DELETE | `/api/courier-status-types/:id` | Eliminar tipo de estado (lógico) |
-
-### 📊 Estados de Repartidor (Courier Statuses)
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/courier-statuses` | Listar estados de repartidores |
-| GET | `/api/courier-statuses/:id` | Obtener estado de repartidor |
-| POST | `/api/courier-statuses` | Crear estado de repartidor |
-| PUT | `/api/courier-statuses/:id` | Actualizar estado |
-| DELETE | `/api/courier-statuses/:id` | Eliminar estado (lógico) |
-
----
-
-## Cómo Acceder a los Endpoints
-
-### Configuración de Acceso
-
-**URL Base**: `http://localhost:<PORT>/api` (desarrollo local)
-
-- Puerto por defecto: `10000`
-- Se puede configurar con `process.env.PORT`
-
-### Autenticación
-
-El servicio **no maneja autenticación directa**. El broker es responsable de:
-- Autenticar usuarios
-- Generar y validar tokens JWT
-- Pasar el token del cliente en las solicitudes
-
-### Headers Requeridos
-
-Para endpoints que requieren contexto de cliente:
-```
-x-customer-token: <token_del_cliente>
-```
-
-O como parámetro de query:
-```
-GET /api/packages/customers/me?customerToken=<token_del_cliente>
-```
-
-### Ejemplos de Solicitudes
-
-#### 1. Obtener Cotización
+Ejemplo:
 ```bash
-curl -X POST http://localhost:<PORT>/api/packages/quote \
-  -H "Content-Type: application/json" \
-  -d '{
-    "senderId": 1,
-    "receiverId": 2,
-    "packageDetails": {
-      "weight": 2.5,
-      "dimensions": "20x20x20"
-    },
-    "originAddress": {
-      "latitude": 14.6345,
-      "longitude": -91.5069
-    },
-    "destinationAddress": {
-      "latitude": 14.6349,
-      "longitude": -91.5073
-    }
-  }'
-```
-
-#### 2. Crear Envío
-```bash
-curl -X POST http://localhost:<PORT>/api/shipments \
-  -H "Content-Type: application/json" \
-  -d '{
-    "senderId": 1,
-    "receiverId": 2,
-    "deliveryInstructions": "Entregar en recepción",
-    "chargeType": "sender",
-    "total": 150.00
-  }'
-```
-
-#### 3. Confirmar Envío (Receptor)
-```bash
-curl -X PATCH http://localhost:<PORT>/api/shipments/1/confirm \
-  -H "x-customer-token: 2"
-```
-
-#### 4. Aceptar Envío (Repartidor)
-```bash
-curl -X PATCH http://localhost:<PORT>/api/shipments/1/accept \
-  -H "Content-Type: application/json" \
-  -d '{
-    "courierId": 1
-  }'
-```
-
-#### 5. Actualizar Estado del Envío
-```bash
-curl -X PATCH http://localhost:<PORT>/api/shipments/1/status \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "in_transit"
-  }'
-```
-
-#### 6. Obtener Paquetes del Cliente
-```bash
-curl -X GET "http://localhost:<PORT>/api/packages/customers/me" \
-  -H "x-customer-token: 1"
-```
-
-#### 7. Obtener Seguimiento
-```bash
-curl -X GET http://localhost:<PORT>/api/packages/1/tracking
-```
-
-#### 8. Cancelar Paquete
-```bash
-curl -X POST http://localhost:<PORT>/api/packages/1/cancel \
-  -H "Content-Type: application/json" \
-  -H "x-customer-token: 1"
+curl -X POST "https://pedidos-now-backend.onrender.com/api/prices" -H "Content-Type: application/json" -d '{
+  "price": 45.00,
+  "criteria": "Precio base por kg"
+}'
 ```
 
 ---
 
-## Estados del Envío
+#### 2. Actualizar tarifa
 
-El servicio maneja los siguientes estados de envío:
+- URL: `PUT /api/prices/:id`
+- Body: `price`, `criteria` y/o `status`
 
-| Estado | Descripción | Transiciones Válidas |
-|--------|-------------|----------------------|
-| `pending` | Esperando confirmación del receptor | → receiver_accepted |
-| `receiver_accepted` | Receptor confirmó el envío | → assigned |
-| `assigned` | Repartidor asignado | → in_transit |
-| `in_transit` | Paquete en camino | → delivered |
-| `delivered` | Paquete entregado | (final) |
-| `cancelled` | Cancelado | (final) |
-
----
-
-## Reglas de Negocio
-
-### Asignación de Repartidor
-- Solo se puede asignar cuando el envío está en estado `pending`
-- El repartidor debe existir en el sistema y ser válido
-
-### Transiciones de Estado
-- Las transiciones de estado están controladas y validadas
-- No se permite cambiar arbitrariamente entre estados
-- Cada transición registra un evento en el historial de seguimiento
-
-### Cancelación
-- Solo el remitente puede cancelar un envío
-- Solo es permitido mientras el envío esté en estado `pending`
-
-### Seguimiento
-- Cada cambio de estado genera un evento de tracking automáticamente
-- Los eventos se ordenan cronológicamente (más recientes primero)
-- Incluye ubicación GPS si el repartidor la proporciona
-
----
-
-## Estructura de Base de Datos
-
-### Tablas Principales
-
-- `users` - Usuarios del sistema (remitentes y receptores)
-- `couriers` - Repartidores registrados
-- `shipments` - Envíos de paquetes
-- `packages` - Detalles específicos de los paquetes
-- `shipment_tracking` - Historial de cambios de estado
-- `addresses` - Direcciones de entrega
-- `prices` - Tarifas de envío
-- `courier_statuses` - Estados actuales de repartidores
-- `courier_status_types` - Tipos de estados disponibles
-
----
-
-## 🚀 Instalación y Setup del Proyecto
-
-### Requisitos Previos
-
-- **Node.js** (v16 o superior)
-- **npm** o **yarn**
-- **PostgreSQL** (v12 o superior)
-- **Docker** (opcional, para desarrollo con contenedores)
-
-### Tutorial de Configuración Inicial
-
-#### Paso 1: Clonar o descargar el proyecto
-
+Ejemplo:
 ```bash
-cd /ruta/al/proyecto
-```
-
-#### Paso 2: Instalar dependencias
-
-```bash
-npm install
-```
-
-#### Paso 3: Configurar variables de entorno
-
-Crear archivo `.env` en la raíz del proyecto:
-
-```bash
-cp .env.example .env  # Si existe
-# O crear manualmente
-```
-
-Editar `.env` con los siguientes valores:
-
-```env
-# Entorno
-NODE_ENV=development
-
-# Servidor
-PORT=3001
-
-# Base de Datos PostgreSQL
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=paqueteria
-DB_USER=postgres
-DB_PASSWORD=tu_contraseña_aqui
-DB_DIALECT=postgres
-
-# Logs
-LOG_LEVEL=info
-```
-
-#### Paso 4: Crear la base de datos PostgreSQL
-
-```bash
-# Conectarse a PostgreSQL como superusuario
-psql -U postgres
-
-# Crear la base de datos
-CREATE DATABASE paqueteria;
-
-# Salir
-\q
-```
-
-#### Paso 5: Ejecutar las seeds para poblar datos iniciales
-
-Las seeds preparan la base de datos con datos de prueba necesarios para el desarrollo.
-
-**Opción 1: Ejecutar ambos seeds (Recomendado)**
-```bash
-npm run seed:all
-```
-
-**Opción 2: Ejecutar seeds por separado**
-```bash
-# Seed principal (limpia y crea estructura base)
-npm run seed
-
-# Seed de paquetería (agrega envíos y paquetes de prueba)
-npm run seed:package
-```
-
-**¿Qué hace cada seed?**
-
-- `npm run seed`: Limpia todas las tablas y crea:
-  - 4 usuarios de prueba
-  - 2 repartidores
-  - 3 tarifas base
-  - Tipos de estado de repartidor
-
-- `npm run seed:package`: Crea:
-  - 3 envíos en diferentes estados (pending, assigned, etc.)
-  - Paquetes asociados
-  - Eventos de tracking de ejemplo
-
-#### Paso 6: Iniciar el servidor
-
-**Modo Desarrollo (con hot reload):**
-```bash
-npm run dev
-```
-
-**Modo Producción:**
-```bash
-npm start
-```
-
-El servidor estará disponible en: `http://localhost:10000`
-
----
-
-### Tutorial Completo: Desde Cero hasta Pruebas
-
-```bash
-# 1. Navegar al proyecto
-cd /ruta/al/proyecto/services/paqueteria
-
-# 2. Instalar dependencias
-npm install
-
-# 3. Configurar .env (ver paso 3 arriba)
-nano .env
-
-# 4. Crear base de datos PostgreSQL
-psql -U postgres -c "CREATE DATABASE paqueteria;"
-
-# 5. Ejecutar seeds
-npm run seed:all
-
-# 6. Iniciar servidor en otra terminal
-npm run dev
-
-# 7. Verificar que funciona (en otra terminal)
-curl http://localhost:10000/
-
-# Respuesta esperada:
-# "Servicio de Paquetería funcionando"
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/prices/4" -H "Content-Type: application/json" -d '{
+  "price": 49.00,
+  "criteria": "Precio base por kg actualizado"
+}'
 ```
 
 ---
 
-## Configuración
+#### 3. Eliminar tarifa
 
-### Variables de Entorno
+- URL: `DELETE /api/prices/:id`
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `NODE_ENV` | Entorno de ejecución | `development` o `production` |
-| `PORT` | Puerto del servidor | `3001` |
-| `DB_HOST` | Host de PostgreSQL | `localhost` |
-| `DB_PORT` | Puerto de PostgreSQL | `5432` |
-| `DB_NAME` | Nombre de la BD | `paqueteria` |
-| `DB_USER` | Usuario de BD | `postgres` |
-| `DB_PASSWORD` | Contraseña de BD | `tu_contraseña` |
-| `DB_DIALECT` | Tipo de BD | `postgres` |
-
-### Docker
-
-Para ejecutar el servicio en contenedor con la BD integrada:
-
+Ejemplo:
 ```bash
-# Levantar contenedores (PostgreSQL + Node.js)
-docker-compose up -d
-
-# Ver logs del servicio
-docker-compose logs -f paqueteria
-
-# Detener contenedores
-docker-compose down
-
-# Ejecutar seeds dentro del contenedor
-docker-compose exec paqueteria npm run seed:all
-```
-
-**Archivo `docker-compose.yml` requerido:**
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: paqueteria
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  paqueteria:
-    build: .
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: paqueteria
-      DB_USER: postgres
-      DB_PASSWORD: password
-
-volumes:
-  postgres_data:
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/prices/4"
 ```
 
 ---
 
-## Scripts Disponibles
+### 🏷️ Tipos de estado de repartidor (Courier Status Types)
 
-| Script | Comando | Descripción |
-|--------|---------|-------------|
-| Desarrollo | `npm run dev` | Inicia servidor con hot reload (nodemon) |
-| Producción | `npm start` | Inicia servidor sin recargas |
-| Seed base | `npm run seed` | Ejecuta seed principal |
-| Seed paquetería | `npm run seed:package` | Ejecuta seed de paquetes |
-| Todos los seeds | `npm run seed:all` | Ejecuta ambos seeds en secuencia |
+#### 1. Crear tipo de estado
 
----
+- URL: `POST /api/courier-status-types`
+- Body:
+  - `name`: nombre del estado
+  - `description`: descripción del estado
 
-## Dependencias
-
-- **Express.js**: Framework web minimalista
-- **Sequelize**: ORM para NodeJS (base de datos)
-- **PostgreSQL**: Sistema de base de datos relacional
-- **CORS**: Middleware para solicitudes cross-origin
-- **dotenv**: Gestión de variables de entorno
-- **pg**: Driver de PostgreSQL para Node.js
-- **pg-hstore**: Soporte para tipos JSON en PostgreSQL
-
-### Dev Dependencies
-
-- **nodemon**: Monitor de cambios para desarrollo
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-status-types" -H "Content-Type: application/json" -d '{
+  "name": "En ruta",
+  "description": "El repartidor está en camino hacia la entrega"
+}'
+```
 
 ---
 
-## Troubleshooting
+#### 2. Actualizar tipo de estado
 
-### Error: "connect ECONNREFUSED 127.0.0.1:5432"
-- **Causa**: PostgreSQL no está corriendo
-- **Solución**: Iniciar PostgreSQL o usar Docker
+- URL: `PUT /api/courier-status-types/:id`
+- Body: `name` y/o `description`
 
-### Error: "database \"paqueteria\" does not exist"
-- **Causa**: La BD no ha sido creada
-- **Solución**: Ejecutar `psql -U postgres -c "CREATE DATABASE paqueteria;"`
-
-### Error: "Cannot find module"
-- **Causa**: Dependencias no instaladas
-- **Solución**: Ejecutar `npm install`
-
-### Seeds no ejecutan
-- **Causa**: Variables de entorno no configuradas correctamente
-- **Solución**: Verificar `.env` y que PostgreSQL esté disponible
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-status-types/2" -H "Content-Type: application/json" -d '{
+  "description": "El repartidor está en ruta hacia el cliente"
+}'
+```
 
 ---
 
-## Notas Importantes
+#### 3. Eliminar tipo de estado
 
-1. **Eliminación Lógica**: Todos los DELETE son eliminaciones lógicas (se marca el estado como inactivo)
-2. **Token del Cliente**: El broker proporciona el `x-customer-token` en las solicitudes
-3. **Validación de Transiciones**: El sistema no permite transiciones de estado inválidas
-4. **Tracking Automático**: Cada acción genera un evento en el historial automáticamente
-5. **Seeds en Desarrollo**: Usa `npm run seed:all` siempre que necesites resetear datos de prueba
+- URL: `DELETE /api/courier-status-types/:id`
+
+Ejemplo:
+```bash
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/courier-status-types/2"
+```
 
 ---
 
-## Soporte
+### 📊 Estados de repartidor (Courier Statuses)
 
-Para reportar issues o sugerencias, contactar al equipo de desarrollo.
+#### 1. Crear estado de repartidor
 
-**Última actualización**: Mayo 2026
+- URL: `POST /api/courier-statuses`
+- Body:
+  - `idCourier`: ID del repartidor
+  - `idStatus`: ID del tipo de estado
+
+Ejemplo:
+```bash
+curl -X POST "https://pedidos-now-backend.onrender.com/api/courier-statuses" -H "Content-Type: application/json" -d '{
+  "idCourier": 3,
+  "idStatus": 2
+}'
+```
+
+---
+
+#### 2. Actualizar estado de repartidor
+
+- URL: `PUT /api/courier-statuses/:id`
+- Body: `idCourier` y/o `idStatus`
+
+Ejemplo:
+```bash
+curl -X PUT "https://pedidos-now-backend.onrender.com/api/courier-statuses/1" -H "Content-Type: application/json" -d '{
+  "idStatus": 3
+}'
+```
+
+---
+
+#### 3. Eliminar estado de repartidor
+
+- URL: `DELETE /api/courier-statuses/:id`
+
+Ejemplo:
+```bash
+curl -X DELETE "https://pedidos-now-backend.onrender.com/api/courier-statuses/1"
+```
+
+---
+
+## Uso rápido
+
+- Ver todos los paquetes: `GET https://pedidos-now-backend.onrender.com/api/packages`
+- Ver todos los envíos: `GET https://pedidos-now-backend.onrender.com/api/shipments`
+- Ver repartidores disponibles: `GET https://pedidos-now-backend.onrender.com/api/couriers/available`
+
+Si necesitas que agregue un ejemplo para un campo específico o la respuesta completa de cada endpoint, lo añado en la siguiente versión.
