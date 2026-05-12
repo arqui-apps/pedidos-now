@@ -1,5 +1,6 @@
 const { sequelize, CategoriaOrden, Entrega, AsignacionEntrega, HistorialEstadoEntrega, Repartidor } = require('../../models');
 const notificacionesService = require('../../services/notificaciones.service');
+const administracionService = require('../../services/administracion.service');
 
 exports.obtenerFeedDisponibles = async (req, res) => {
     try {
@@ -58,15 +59,17 @@ exports.aceptarPedido = async (req, res) => {
             return res.status(409).json({ success: false, message: 'La entrega ya no esta disponible' });
         }
 
-        const repartidor = await Repartidor.findByPk(repartidorId, { transaction });
-        if (!repartidor) {
+        const repartidorAdministracion = await administracionService.obtenerPorId(repartidorId);
+        if (!administracionService.estaDisponible(repartidorAdministracion)) {
             await transaction.rollback();
-            return res.status(404).json({ success: false, message: 'Repartidor no encontrado' });
+            return res.status(409).json({ success: false, message: 'Repartidor no disponible en Administracion' });
         }
-        if (repartidor.estado !== 'disponible') {
-            await transaction.rollback();
-            return res.status(409).json({ success: false, message: 'Repartidor no disponible' });
-        }
+
+        const [repartidor] = await Repartidor.findOrCreate({
+            where: { id_repartidor: repartidorId },
+            defaults: { estado: 'disponible', ws_estado: 'conectado' },
+            transaction
+        });
 
         await AsignacionEntrega.create({
             entrega_id: entrega.id_entrega,
@@ -76,6 +79,7 @@ exports.aceptarPedido = async (req, res) => {
         }, { transaction });
         await entrega.update({ estado_entrega: 'asignada', cancelacion_auto_at: null }, { transaction });
         await repartidor.update({ estado: 'ocupado' }, { transaction });
+        await administracionService.marcarOcupado(repartidorId, entrega.id_entrega);
         await HistorialEstadoEntrega.create({
             entrega_id: entrega.id_entrega,
             estado_anterior: 'pendiente',

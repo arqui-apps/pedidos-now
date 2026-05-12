@@ -1,4 +1,5 @@
 const { Repartidor, HistorialUbicacionRepartidor } = require('../../models');
+const administracionService = require('../../services/administracion.service');
 
 exports.obtenerPerfil = async (req, res) => {
     try {
@@ -56,15 +57,15 @@ exports.obtenerMetricas = async (req, res) => {
 
 exports.listarDisponibles = async (req, res) => {
     try {
-        const repartidores = await Repartidor.findAll({
-            where: { estado: 'disponible', ws_estado: 'conectado' },
-            attributes: ['id_repartidor', 'estado', 'ultima_lat', 'ultima_lng', 'ultima_ubicacion_at', 'total_entregas', 'calificacion_promedio'],
-            order: [['ultima_ubicacion_at', 'DESC']]
-        });
-        res.json({ total: repartidores.length, repartidores });
+        const repartidores = await administracionService.listarDisponibles();
+        res.json({ success: true, total: repartidores.length, repartidores });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Error al listar repartidores' });
+        res.status(error.status || 500).json({
+            success: false,
+            error: 'Error al listar repartidores desde Administracion',
+            detalle: error.data || error.message
+        });
     }
 };
 

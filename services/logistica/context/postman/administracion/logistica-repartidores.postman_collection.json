@@ -1,0 +1,166 @@
+{
+  "info": {
+    "name": "Logistica - Administracion Repartidores",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3005" },
+    { "key": "courierId", "value": "1" },
+    { "key": "deliveryId", "value": "789" },
+    { "key": "module", "value": "logistica" }
+  ],
+  "item": [
+    {
+      "name": "Listar repartidores disponibles para Logistica",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/internal/couriers?available=true&module={{module}}"
+      },
+      "response": [
+        {
+          "name": "200 - Lista disponible",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/internal/couriers?available=true&module={{module}}"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "[\n  {\n    \"id\": 1,\n    \"courierId\": 1,\n    \"userId\": 5,\n    \"firstName\": \"Carlos\",\n    \"lastName\": \"Mendez\",\n    \"email\": \"carlos@example.com\",\n    \"phone\": \"5555-1234\",\n    \"cui\": \"1234567890101\",\n    \"active\": true,\n    \"accountStatus\": \"ACTIVE\",\n    \"operationalStatus\": \"AVAILABLE\",\n    \"estado_operativo\": \"AVAILABLE\",\n    \"activeModule\": null,\n    \"modulo_activo\": null,\n    \"activeDeliveryId\": null,\n    \"entrega_id\": null,\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"licensePlate\": \"M-123ABC\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Listar repartidores disponibles - contrato en espanol",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/internal/couriers?disponible=true&modulo={{module}}"
+      }
+    },
+    {
+      "name": "Consultar repartidor por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}"
+      },
+      "response": [
+        {
+          "name": "200 - Detalle repartidor",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"userId\": 5,\n  \"firstName\": \"Carlos\",\n  \"lastName\": \"Mendez\",\n  \"email\": \"carlos@example.com\",\n  \"phone\": \"5555-1234\",\n  \"cui\": \"1234567890101\",\n  \"active\": true,\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"AVAILABLE\",\n  \"estado_operativo\": \"AVAILABLE\",\n  \"activeModule\": null,\n  \"modulo_activo\": null,\n  \"activeDeliveryId\": null,\n  \"entrega_id\": null,\n  \"vehicleType\": \"MOTORCYCLE\",\n  \"licensePlate\": \"M-123ABC\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Marcar repartidor ocupado por Logistica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"{{module}}\",\n  \"entrega_id\": \"{{deliveryId}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+      },
+      "response": [
+        {
+          "name": "200 - Repartidor asignado",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"logistica\",\n  \"entrega_id\": 789\n}"
+            },
+            "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"userId\": 5,\n  \"firstName\": \"Carlos\",\n  \"lastName\": \"Mendez\",\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"OCCUPIED\",\n  \"estado_operativo\": \"OCCUPIED\",\n  \"activeModule\": \"logistica\",\n  \"modulo_activo\": \"logistica\",\n  \"activeDeliveryId\": \"789\",\n  \"entrega_id\": \"789\"\n}"
+        },
+        {
+          "name": "400 - Ya no disponible",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"logistica\",\n  \"entrega_id\": 789\n}"
+            },
+            "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"message\": \"El repartidor no esta disponible para asignacion.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Liberar repartidor a disponible",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"AVAILABLE\"\n}"
+        },
+        "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+      },
+      "response": [
+        {
+          "name": "200 - Repartidor liberado",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"AVAILABLE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"AVAILABLE\",\n  \"estado_operativo\": \"AVAILABLE\",\n  \"activeModule\": null,\n  \"modulo_activo\": null,\n  \"activeDeliveryId\": null,\n  \"entrega_id\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Marcar repartidor inactivo",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"INACTIVE\"\n}"
+        },
+        "url": "{{baseUrl}}/api/internal/couriers/{{courierId}}/status"
+      }
+    }
+  ]
+}

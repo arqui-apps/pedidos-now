@@ -1,6 +1,7 @@
 const { sequelize, CategoriaOrden, Entrega, AsignacionEntrega, HistorialEstadoEntrega, IncidenciaEntrega, Repartidor } = require('../../models');
 const restaurantesService = require('../../services/restaurantes.service');
 const notificacionesService = require('../../services/notificaciones.service');
+const administracionService = require('../../services/administracion.service');
 
 const ESTADOS_VALIDOS = ['pendiente', 'asignada', 'en_ruta', 'entregada', 'fallida', 'cancelada'];
 
@@ -215,6 +216,7 @@ exports.cambiarEstadoEntrega = async (req, res) => {
         if (['entregada', 'fallida', 'cancelada'].includes(estadoNuevo) && asignacionActiva) {
             await asignacionActiva.update({ activa: false, fecha_liberacion: new Date() }, { transaction });
             await Repartidor.update({ estado: 'disponible' }, { where: { id_repartidor: asignacionActiva.repartidor_id }, transaction });
+            await administracionService.liberar(asignacionActiva.repartidor_id);
         }
 
         await transaction.commit();

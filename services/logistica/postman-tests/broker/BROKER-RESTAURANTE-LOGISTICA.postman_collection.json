@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Broker - Restaurante Logistica",
+    "_postman_id": "broker-restaurante-logistica-08052026",
+    "description": "Coleccion para probar los flujos entre Restaurante, Broker y Logistica usando las URLs desplegadas. El broker enruta directo a las APIs internas, por ejemplo /api/restaurantes y /api/logistica.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "broker_url",
+      "value": "https://broker-services-production.up.railway.app",
+      "type": "string"
+    },
+    {
+      "key": "logistica_url",
+      "value": "https://pedidos-now-production-ac03.up.railway.app",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_url",
+      "value": "https://REEMPLAZAR-URL-RESTAURANTE",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_id",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "pedido_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "entrega_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "repartidor_id",
+      "value": "101",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Restaurante - Logistica",
+      "description": "Pruebas del flujo donde Restaurante genera o actualiza un pedido y Broker lo enruta hacia Logistica.",
+      "item": [
+        {
+          "name": "01 - Health Broker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{broker_url}}/health",
+              "host": ["{{broker_url}}"],
+              "path": ["health"]
+            },
+            "description": "Confirma que el broker desplegado responde antes de probar el flujo."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Crear Pedido en Restaurante via Broker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/restaurantes/{{restaurante_id}}/pedidos",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "restaurantes", "{{restaurante_id}}", "pedidos"]
+            },
+            "description": "Crea un pedido usando el broker como entrada directa a /api/restaurantes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": 100,\n  \"direccion_entrega\": \"Calle Falsa 123, Apto 4B\",\n  \"notas\": \"Pedido de prueba Restaurante -> Broker -> Logistica\",\n  \"descuento_aplicado\": 0,\n  \"items\": [\n    {\n      \"producto_id\": 1,\n      \"cantidad\": 2,\n      \"descuento\": 0\n    }\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Listar Categorias Logistica via Broker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/categorias?activa=true",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "categorias"],
+              "query": [
+                {
+                  "key": "activa",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Debe existir una categoria activa con codigo FOOD para crear entregas desde Restaurante. Si devuelve [], crear la categoria primero."
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Crear Categoria FOOD via Broker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/categorias",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "categorias"]
+            },
+            "description": "Ejecutar solo si el listado de categorias activas no incluye FOOD. Si ya existe, puede responder duplicado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"FOOD\",\n  \"nombre\": \"Comida\",\n  \"descripcion\": \"Pedidos de restaurantes\",\n  \"orden_display\": 1,\n  \"activa\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Crear Entrega Desde Pedido via Broker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "1"
+              },
+              {
+                "key": "x-user-role",
+                "value": "admin"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas", "restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}"]
+            },
+            "description": "Prueba directa del tramo Broker -> Logistica usando el pedido creado en Restaurante. Requiere que exista una categoria activa FOOD en Logistica.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoria_codigo\": \"FOOD\",\n  \"cliente_nombre\": \"Cliente Integracion\",\n  \"cliente_telefono\": \"5555-2222\",\n  \"destino_lat\": 14.84,\n  \"destino_lng\": -91.52\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Listar Entregas via Broker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas?page=1&limit=20",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Verifica que Logistica haya recibido o creado la entrega."
+          },
+          "response": []
+        },
+        {
+          "name": "07 - Obtener Detalle de Entrega via Broker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas/{{entrega_id}}/detalles",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas", "{{entrega_id}}", "detalles"]
+            },
+            "description": "Usa el id_entrega devuelto por Logistica para validar el detalle completo."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Logistica - Restaurante",
+      "description": "Pruebas del flujo donde Logistica cambia estados o consulta datos y Broker enruta hacia Restaurante.",
+      "item": [
+        {
+          "name": "01 - Health Logistica Directo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{logistica_url}}/health",
+              "host": ["{{logistica_url}}"],
+              "path": ["health"]
+            },
+            "description": "Prueba directa al despliegue de Logistica para descartar problemas del servicio antes de revisar Broker."
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Asignar Entrega via Broker",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{repartidor_id}}"
+              },
+              {
+                "key": "x-user-role",
+                "value": "repartidor"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas/{{entrega_id}}/estado",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas", "{{entrega_id}}", "estado"]
+            },
+            "description": "Primer paso obligatorio despues de crear la entrega. El flujo valido es pendiente -> asignada -> en_ruta -> entregada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_nuevo\": \"asignada\",\n  \"comentario\": \"Entrega asignada para prueba de flujo\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Marcar Entrega Recogida En Ruta via Broker",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{repartidor_id}}"
+              },
+              {
+                "key": "x-user-role",
+                "value": "repartidor"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas/{{entrega_id}}/recogida",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas", "{{entrega_id}}", "recogida"]
+            },
+            "description": "Este endpoint cambia internamente el estado a en_ruta. Solo funciona si la entrega ya esta en asignada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comentario\": \"Pedido recogido en restaurante\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Marcar Entrega Entregada via Broker",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-user-id",
+                "value": "{{repartidor_id}}"
+              },
+              {
+                "key": "x-user-role",
+                "value": "repartidor"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/logistica/entregas/{{entrega_id}}/entregada",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "logistica", "entregas", "{{entrega_id}}", "entregada"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comentario\": \"Pedido entregado al cliente\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Cambiar Estado Pedido en Restaurante via Broker",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{broker_url}}/api/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/estado",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "estado"]
+            },
+            "description": "Prueba directa del tramo Broker -> Restaurante para confirmar que el pedido puede reflejar el avance logistico.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_id\": 2,\n  \"motivo\": \"Estado actualizado desde Logistica por integracion\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Obtener Pedido en Restaurante via Broker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{broker_url}}/api/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}",
+              "host": ["{{broker_url}}"],
+              "path": ["api", "restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}"]
+            },
+            "description": "Valida en Restaurante que el pedido exista y que su estado sea el esperado."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

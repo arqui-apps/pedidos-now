@@ -17,5 +17,7 @@ module.exports = {
     DB_PORT: process.env.DB_PORT || 5432,
 
     // Integraciones externas
-    RESTAURANTES_API_URL: process.env.RESTAURANTES_API_URL || 'https://restaurantes.fly.dev/api'
+    RESTAURANTES_API_URL: process.env.RESTAURANTES_API_URL || 'https://restaurantes.fly.dev/api',
+    ADMINISTRACION_API_URL: process.env.ADMINISTRACION_API_URL || 'https://pedidosnow-administracion-production.up.railway.app',
+    LOGISTICA_MODULE_NAME: process.env.LOGISTICA_MODULE_NAME || 'logistica'
 };
