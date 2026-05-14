@@ -434,7 +434,8 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             session.id_usuario,
             50.0,
             "Reembolso por problema reportado en chat automatizado",
-            id_session
+            id_session,
+            actor.getSnapshot().context.order_code
         );
 
         await Compensation.create({
