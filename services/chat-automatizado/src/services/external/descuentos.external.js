@@ -1,47 +1,103 @@
 import { httpGet, httpPost } from "./httpHelper.js";
 
 const BASE_URL =
-    process.env.DESCUENTOS_SERVICE_URL || "http://localhost:3005";
+    process.env.DESCUENTOS_SERVICE_URL || "http://157.245.138.186:3001";
 
-async function createCompensationCoupon(id_usuario, amount, reason) {
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function extractOrderId(order_code) {
+    if (!order_code) return null;
+    const match = String(order_code).match(/(\d+)$/);
+    return match ? parseInt(match[1], 10) : null;
+}
+
+// ─── Crear cupón de compensación ─────────────────────────────────────────────
+
+/**
+ * Crea un cupón de compensación para el usuario desde el bot.
+ * POST /api/cupones
+ * @param {number} id_usuario - ID del cliente
+ * @param {number} amount - Monto del cupón
+ * @param {string} reason - Motivo de la compensación
+ * @param {string|null} order_code - Código del pedido afectado (ej: "PED-7")
+ */
+async function createCompensationCoupon(id_usuario, amount, reason, order_code = null) {
     const { success, data } = await httpPost(
-        `${BASE_URL}/coupons/compensation`,
+        `${BASE_URL}/api/cupones`,
         {
-            id_usuario,
-            amount,
-            reason,
-            expiration_days: 30,
-            coupon_type: "compensation",
+            tipo:                        "COMPENSACION",
+            cliente_id:                  id_usuario,
+            tipo_descuento:              "MONTO_FIJO",
+            valor_descuento:             amount,
+            monto_minimo_pedido:         null,
+            origen_solicitud:            "BOT_AUTOMATIZADO",
+            solicitado_por:              "bot_servicio_cliente",
+            pedido_afectado_id:          extractOrderId(order_code),
+            motivo_compensacion:         reason || "Compensación por problema con pedido",
+            confirmacion_pedido_fallido: true,
         },
         null
     );
 
     if (!success || !data) {
-        console.warn("[Descuentos] Generando cupón mock");
-        const mockCode = `COMP-${Date.now()}-${id_usuario}`;
+        console.warn("[Descuentos] Servicio no disponible, generando cupón mock");
+        const mockCode = `COMP-${id_usuario}-${Date.now()}`;
         return {
-            success: true,
-            cupon_code: mockCode,
+            success:         true,
+            cupon_code:      mockCode,
             amount,
             expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            is_mock: true,
+            is_mock:         true,
         };
     }
-    return data;
+
+    const cupon = data?.data || data;
+    return {
+        success:         true,
+        cupon_code:      cupon.codigo || cupon.code || cupon.cupon_code,
+        amount:          cupon.valor_descuento || amount,
+        expiration_date: cupon.fecha_expiracion || cupon.expiration_date ||
+                         new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        id_cupon:        cupon.id,
+        is_mock:         false,
+    };
 }
 
-async function validateCoupon(cupon_code) {
-    const { success, data } = await httpGet(
-        `${BASE_URL}/coupons/validate/${cupon_code}`,
+// ─── Validar cupón ────────────────────────────────────────────────────────────
+
+async function validateCoupon(codigo, monto_pedido = 0) {
+    const { success, data } = await httpPost(
+        `${BASE_URL}/api/cupones/validar`,
+        { codigo, monto_pedido },
         null
     );
+
     if (!success || !data) {
-        return {
-            valid: false,
-            message: "No se pudo validar el cupón en este momento",
-        };
+        return { valid: false, message: "No se pudo validar el cupón en este momento" };
     }
-    return data;
+
+    const result = data?.data || data;
+    return {
+        valid:   result.valido ?? result.valid ?? false,
+        message: result.mensaje || result.message || "Cupón validado",
+        data:    result,
+    };
 }
 
-export { createCompensationCoupon, validateCoupon };
+// ─── Cupones disponibles del cliente ─────────────────────────────────────────
+
+async function getClientCoupons(id_usuario) {
+    const { success, data } = await httpGet(
+        `${BASE_URL}/api/cupones/cliente/${id_usuario}/disponibles`,
+        []
+    );
+
+    if (!success) {
+        console.warn(`[Descuentos] No se pudieron obtener cupones del cliente ${id_usuario}`);
+        return [];
+    }
+
+    return data?.data || data || [];
+}
+
+export { createCompensationCoupon, validateCoupon, getClientCoupons };

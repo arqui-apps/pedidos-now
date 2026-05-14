@@ -17,6 +17,14 @@ import {
 
 import { requestRefund } from "./external/cobros.external.js";
 
+import {
+    getBanks,
+    getBankById,
+    getAccountByUserId,
+    processRefund,
+    validateUserAccount,
+} from "./external/bancario.external.js";
+
 export {
     // Auth
     getUserById,
@@ -31,4 +39,10 @@ export {
     validateCoupon,
     // Cobros
     requestRefund,
+    // Bancario
+    getBanks,
+    getBankById,
+    getAccountByUserId,
+    processRefund,
+    validateUserAccount,
 };

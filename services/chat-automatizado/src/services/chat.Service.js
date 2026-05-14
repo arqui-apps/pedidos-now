@@ -179,6 +179,7 @@ async function buildBotMessage(state, context, userType, extra = {}) {
                 `Código: ${extra.order?.order_code || context.order_code}\n` +
                 `Estado: ${extra.order?.status || "desconocido"}\n` +
                 `Origen: ${extra.order?.source || "N/A"}\n\n` +
+                `Negocio: ${extra.order?.business || "N/A"}\n` +
                 "1. Reportar problema con pedido\n" +
                 "0. Volver al menú"
             );
@@ -397,7 +398,8 @@ export async function sendMessage({ id_session, input, input_type = null }) {
         const coupon = await ext.createCompensationCoupon(
             session.id_usuario,
             25.0,
-            "Compensación por problema con pedido"
+            "Compensación por problema con pedido",
+            actor.getSnapshot().context.order_code
         );
 
         await Compensation.create({
@@ -432,7 +434,8 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             session.id_usuario,
             50.0,
             "Reembolso por problema reportado en chat automatizado",
-            id_session
+            id_session,
+            actor.getSnapshot().context.order_code
         );
 
         await Compensation.create({
