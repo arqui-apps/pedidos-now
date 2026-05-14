@@ -4,9 +4,9 @@
 
 **Base URL**: `https://pedidos-now-backend.onrender.com/`
 
-Todos los endpoints disponibles deben usarse con el prefijo `/api`.
+Todos los endpoints disponibles deben usarse con el prefijo `/api/paqueteria`.
 
-> Ejemplo: `https://pedidos-now-backend.onrender.com/api/packages`
+> Ejemplo: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages`
 
 ---
 
@@ -26,7 +26,7 @@ Todos los endpoints disponibles deben usarse con el prefijo `/api`.
 
 #### 1. Generar cotización de envío
 
-- URL: `POST /api/packages/quote`
+- URL: `POST /api/paqueteria/packages/quote`
 - Body:
   - `senderId`: ID del remitente
   - `receiverId`: ID del receptor
@@ -36,7 +36,7 @@ Todos los endpoints disponibles deben usarse con el prefijo `/api`.
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/quote`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/quote`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -75,7 +75,7 @@ Respuesta esperada:
 
 #### 2. Crear un paquete
 
-- URL: `POST /api/packages`
+- URL: `POST /api/paqueteria/packages`
 - Body:
   - `idShipment`: ID del envío existente al que pertenece el paquete
   - `description`: descripción del paquete
@@ -86,7 +86,7 @@ Respuesta esperada:
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/packages`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -104,12 +104,12 @@ Ejemplo (Postman):
 
 #### 3. Actualizar un paquete
 
-- URL: `PUT /api/packages/:id`
+- URL: `PUT /api/paqueteria/packages/:id`
 - Body: cualquiera de los campos del paquete
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/5`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/5`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -124,22 +124,22 @@ Ejemplo (Postman):
 
 #### 4. Eliminar un paquete
 
-- URL: `DELETE /api/packages/:id`
+- URL: `DELETE /api/paqueteria/packages/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/5`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/5`
 
 ---
 
 #### 5. Cancelar un paquete
 
-- URL: `POST /api/packages/:id/cancel`
+- URL: `POST /api/paqueteria/packages/:id/cancel`
 - Header: `x-customer-token: <senderId>`
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/5/cancel`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/5/cancel`
 - Headers:
   - `x-customer-token: 1`
 - Body: No body definido
@@ -150,11 +150,11 @@ Sólo el remitente puede cancelar un paquete y sólo cuando el envío está en e
 
 #### 6. Obtener historial de seguimiento
 
-- URL: `GET /api/packages/:id/tracking`
+- URL: `GET /api/paqueteria/packages/:id/tracking`
 
 Ejemplo (Postman):
 - Método: GET
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/5/tracking`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/5/tracking`
 
 Respuesta:
 - `packageId`
@@ -166,12 +166,12 @@ Respuesta:
 
 #### 7. Paquetes del cliente autenticado
 
-- URL: `GET /api/packages/customers/me`
+- URL: `GET /api/paqueteria/packages/customers/me`
 - Header: `x-customer-token: <cliente_id>` o query `?customerToken=<cliente_id>`
 
 Ejemplo (Postman):
 - Método: GET
-- URL: `https://pedidos-now-backend.onrender.com/api/packages/customers/me`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/packages/customers/me`
 - Headers:
   - `x-customer-token: 2`
 
@@ -181,7 +181,7 @@ Ejemplo (Postman):
 
 #### 1. Crear un envío
 
-- URL: `POST /api/shipments`
+- URL: `POST /api/paqueteria/shipments`
 - Body:
   - `senderId`: ID del remitente
   - `receiverId`: ID del receptor
@@ -192,7 +192,7 @@ Ejemplo (Postman):
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/shipments`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/shipments`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -213,12 +213,12 @@ El envío creado se inicia en estado `pending`.
 
 #### 2. Confirmar envío por el receptor
 
-- URL: `PATCH /api/shipments/:id/confirm`
+- URL: `PATCH /api/paqueteria/shipments/:id/confirm`
 - Header: `x-customer-token: <receiverId>`
 
 Ejemplo (Postman):
 - Método: PATCH
-- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/confirm`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/shipments/8/confirm`
 - Headers:
   - `x-customer-token: 2`
 - Body: No body definido
@@ -229,13 +229,13 @@ Esto cambia el estado de `pending` a `receiver_accepted`.
 
 #### 3. Aceptar y asignar repartidor
 
-- URL: `PATCH /api/shipments/:id/accept`
+- URL: `PATCH /api/paqueteria/shipments/:id/accept`
 - Body:
   - `courierId`: ID del repartidor que acepta el envío
 
 Ejemplo (Postman):
 - Método: PATCH
-- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/accept`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/shipments/8/accept`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -251,7 +251,7 @@ Requiere que el envío ya esté en estado `receiver_accepted`.
 
 #### 4. Actualizar estado del envío
 
-- URL: `PATCH /api/shipments/:id/status`
+- URL: `PATCH /api/paqueteria/shipments/:id/status`
 - Body:
   - `status`: nuevo estado válido
 
@@ -262,7 +262,7 @@ Transiciones válidas:
 
 Ejemplo (Postman):
 - Método: PATCH
-- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8/status`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/shipments/8/status`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -276,11 +276,11 @@ Ejemplo (Postman):
 
 #### 5. Eliminar un envío
 
-- URL: `DELETE /api/shipments/:id`
+- URL: `DELETE /api/paqueteria/shipments/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/shipments/8`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/shipments/8`
 
 ---
 
@@ -288,14 +288,14 @@ Ejemplo (Postman):
 
 #### 1. Crear repartidor
 
-- URL: `POST /api/couriers`
+- URL: `POST /api/paqueteria/couriers`
 - Body:
   - `name`: nombre del repartidor
   - `status`: opcional, `true` o `false`
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/couriers`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/couriers`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -309,12 +309,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar repartidor
 
-- URL: `PUT /api/couriers/:id`
+- URL: `PUT /api/paqueteria/couriers/:id`
 - Body: `name`, `status`, y/o campos de estado actuales.
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/couriers/3`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/couriers/3`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -329,12 +329,12 @@ Ejemplo (Postman):
 
 #### 3. Actualizar estado actual del repartidor
 
-- URL: `PUT /api/couriers/:id/status`
+- URL: `PUT /api/paqueteria/couriers/:id/status`
 - Body: `idStatus`, `id_status`, `statusName` o `status_name`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/couriers/3/status`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/couriers/3/status`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -350,11 +350,11 @@ También puedes usar `idStatus` si ya conoces el ID del tipo de estado.
 
 #### 4. Ver repartidores disponibles
 
-- URL: `GET /api/couriers/available`
+- URL: `GET /api/paqueteria/couriers/available`
 
 Ejemplo (Postman):
 - Método: GET
-- URL: `https://pedidos-now-backend.onrender.com/api/couriers/available`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/couriers/available`
 
 ---
 
@@ -362,14 +362,14 @@ Ejemplo (Postman):
 
 #### 1. Crear usuario
 
-- URL: `POST /api/users`
+- URL: `POST /api/paqueteria/users`
 - Body:
   - `name`: nombre del usuario
   - `status`: opcional, `true` o `false`
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/users`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/users`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -383,12 +383,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar usuario
 
-- URL: `PUT /api/users/:id`
+- URL: `PUT /api/paqueteria/users/:id`
 - Body: `name` y/o `status`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/users/2`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/users/2`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -405,7 +405,7 @@ Ejemplo (Postman):
 
 #### 1. Crear dirección
 
-- URL: `POST /api/addresses`
+- URL: `POST /api/paqueteria/addresses`
 - Body:
   - `idUser`: ID del usuario propietario
   - `latitude`: latitud
@@ -414,7 +414,7 @@ Ejemplo (Postman):
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/addresses`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/addresses`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -431,12 +431,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar dirección
 
-- URL: `PUT /api/addresses/:id`
+- URL: `PUT /api/paqueteria/addresses/:id`
 - Body: `idUser`, `latitude`, `longitude`, `address`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/addresses/5`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/addresses/5`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -450,11 +450,11 @@ Ejemplo (Postman):
 
 #### 3. Eliminar dirección
 
-- URL: `DELETE /api/addresses/:id`
+- URL: `DELETE /api/paqueteria/addresses/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/addresses/5`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/addresses/5`
 
 ---
 
@@ -462,7 +462,7 @@ Ejemplo (Postman):
 
 #### 1. Crear tarifa
 
-- URL: `POST /api/prices`
+- URL: `POST /api/paqueteria/prices`
 - Body:
   - `price`: valor numérico
   - `criteria`: criterio que describe la tarifa
@@ -470,7 +470,7 @@ Ejemplo (Postman):
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/prices`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/prices`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -485,12 +485,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar tarifa
 
-- URL: `PUT /api/prices/:id`
+- URL: `PUT /api/paqueteria/prices/:id`
 - Body: `price`, `criteria` y/o `status`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/prices/4`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/prices/4`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -505,11 +505,11 @@ Ejemplo (Postman):
 
 #### 3. Eliminar tarifa
 
-- URL: `DELETE /api/prices/:id`
+- URL: `DELETE /api/paqueteria/prices/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/prices/4`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/prices/4`
 
 ---
 
@@ -517,14 +517,14 @@ Ejemplo (Postman):
 
 #### 1. Crear tipo de estado
 
-- URL: `POST /api/courier-status-types`
+- URL: `POST /api/paqueteria/courier-status-types`
 - Body:
   - `name`: nombre del estado
   - `description`: descripción del estado
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-status-types`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -539,12 +539,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar tipo de estado
 
-- URL: `PUT /api/courier-status-types/:id`
+- URL: `PUT /api/paqueteria/courier-status-types/:id`
 - Body: `name` y/o `description`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types/2`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-status-types/2`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -558,11 +558,11 @@ Ejemplo (Postman):
 
 #### 3. Eliminar tipo de estado
 
-- URL: `DELETE /api/courier-status-types/:id`
+- URL: `DELETE /api/paqueteria/courier-status-types/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-status-types/2`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-status-types/2`
 
 ---
 
@@ -570,14 +570,14 @@ Ejemplo (Postman):
 
 #### 1. Crear estado de repartidor
 
-- URL: `POST /api/courier-statuses`
+- URL: `POST /api/paqueteria/courier-statuses`
 - Body:
   - `idCourier`: ID del repartidor
   - `idStatus`: ID del tipo de estado
 
 Ejemplo (Postman):
 - Método: POST
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-statuses`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -592,12 +592,12 @@ Ejemplo (Postman):
 
 #### 2. Actualizar estado de repartidor
 
-- URL: `PUT /api/courier-statuses/:id`
+- URL: `PUT /api/paqueteria/courier-statuses/:id`
 - Body: `idCourier` y/o `idStatus`
 
 Ejemplo (Postman):
 - Método: PUT
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses/1`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-statuses/1`
 - Headers:
   - `Content-Type: application/json`
 - Body (raw JSON):
@@ -611,18 +611,18 @@ Ejemplo (Postman):
 
 #### 3. Eliminar estado de repartidor
 
-- URL: `DELETE /api/courier-statuses/:id`
+- URL: `DELETE /api/paqueteria/courier-statuses/:id`
 
 Ejemplo (Postman):
 - Método: DELETE
-- URL: `https://pedidos-now-backend.onrender.com/api/courier-statuses/1`
+- URL: `https://pedidos-now-backend.onrender.com/api/paqueteria/courier-statuses/1`
 
 ---
 
 ## Uso rápido
 
-- Ver todos los paquetes: `GET https://pedidos-now-backend.onrender.com/api/packages`
-- Ver todos los envíos: `GET https://pedidos-now-backend.onrender.com/api/shipments`
-- Ver repartidores disponibles: `GET https://pedidos-now-backend.onrender.com/api/couriers/available`
+- Ver todos los paquetes: `GET https://pedidos-now-backend.onrender.com/api/paqueteria/packages`
+- Ver todos los envíos: `GET https://pedidos-now-backend.onrender.com/api/paqueteria/shipments`
+- Ver repartidores disponibles: `GET https://pedidos-now-backend.onrender.com/api/paqueteria/couriers/available`
 
 Si necesitas que agregue un ejemplo para un campo específico o la respuesta completa de cada endpoint, lo añado en la siguiente versión.
