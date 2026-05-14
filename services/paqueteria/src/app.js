@@ -13,6 +13,6 @@ app.get('/', (req, res) => {
 });
 
 // Rutas de API centralizadas
-app.use('/api', require('./routes'));
+app.use('/api/paqueteria', require('./routes'));
 
 module.exports = app;
