@@ -25,43 +25,19 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', async (req, res) => {
-  const checks = {};
+  let dbStatus = 'ok';
 
-  // DB check
   try {
     await pool.query('SELECT 1');
-    checks.database = { status: 'ok' };
   } catch (e) {
-    checks.database = { status: 'error', message: e.message };
+    dbStatus = 'error';
   }
 
-  // External services check (solo ping, no bloquea si fallan)
-  const services = {
-    auth:       process.env.AUTH_SERVICE_URL       || 'http://localhost:3001',
-    pedidos:    process.env.RESTAURANTS_SERVICE_URL || 'http://localhost:3002',
-    descuentos: process.env.DESCUENTOS_SERVICE_URL  || 'http://localhost:3005',
-    cobros:     process.env.COBROS_SERVICE_URL       || 'http://localhost:3006',
-  };
-
-  for (const [name, baseUrl] of Object.entries(services)) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
-      const resp = await fetch(`${baseUrl}/health`, { signal: controller.signal })
-        .catch(() => null);
-      clearTimeout(timeout);
-      checks[name] = { status: resp ? 'ok' : 'unavailable', url: baseUrl };
-    } catch {
-      checks[name] = { status: 'unavailable', url: baseUrl };
-    }
-  }
-
-  const allOk = checks.database?.status === 'ok';
-  res.status(allOk ? 200 : 503).json({
-    status: allOk ? 'ok' : 'degraded',
-    service: 'chat-automatizado',
-    timestamp: new Date().toISOString(),
-    checks,
+  const ok = dbStatus === 'ok';
+  res.status(ok ? 200 : 503).json({
+    status:    ok ? 'ok' : 'degraded',
+    service:   'chat-automatizado',
+    timestamp: new Date().toISOString()
   });
 });
 
