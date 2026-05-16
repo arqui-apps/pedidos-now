@@ -1,4 +1,5 @@
 import { httpGet, httpPost } from "./httpHelper.js";
+import logger from "../../config/logger.js";
 
 const RESTAURANTS_URL =
     process.env.RESTAURANTS_SERVICE_URL || "http://localhost:3002";
@@ -27,7 +28,7 @@ function buildMockOrder(order_code) {
     };
 }
 
-// ─── Helpers internos de restaurantes ────────────────────────────────────────
+// ─── Restaurantes ─────────────────────────────────────────────────────────────
 
 async function getRestaurantList() {
     const { success, data: respuesta } = await httpGet(
@@ -39,7 +40,7 @@ async function getRestaurantList() {
         : respuesta?.data || [];
 
     if (!success || !restaurantes.length) {
-        console.warn("[Pedidos] No se pudo obtener lista de restaurantes");
+        logger.warn("[Pedidos] No se pudo obtener lista de restaurantes");
         return [];
     }
     return restaurantes.filter((r) => r.activo !== false);
@@ -56,11 +57,10 @@ function normalizeRestaurantOrder(pedido, restauranteName = "Restaurante") {
         7: "cancelado",
     };
 
-    const items =
-        pedido.detalles?.map((d) => {
-            const nombre = d.producto?.nombre || d.combo?.nombre || "Producto";
-            return `${nombre} x${d.cantidad}`;
-        }) || [];
+    const items = pedido.detalles?.map((d) => {
+        const nombre = d.producto?.nombre || d.combo?.nombre || "Producto";
+        return `${nombre} x${d.cantidad}`;
+    }) || [];
 
     return {
         order_code:        `PED-${pedido.id}`,
@@ -76,42 +76,6 @@ function normalizeRestaurantOrder(pedido, restauranteName = "Restaurante") {
         source:            "restaurante",
     };
 }
-
-// ─── Helpers internos de paquetería ──────────────────────────────────────────
-
-/**
- * Normaliza la respuesta de paquetería al formato que espera el bot.
- * Estados: pending, assigned, in_transit, delivered, cancelled
- */
-function normalizePackageOrder(pkg) {
-    const shipment = pkg.idShipmentShipment || pkg.Shipment || {};
-
-    const estadoMap = {
-        pending:    "pendiente",
-        assigned:   "confirmado",
-        in_transit: "en_camino",
-        delivered:  "entregado",
-        cancelled:  "cancelado",
-    };
-
-    return {
-        order_code:        `PED-${pkg.idPackage}`,
-        id:                pkg.idPackage,
-        status:            estadoMap[shipment.shipmentStatus] || "pendiente",
-        business:          "Servicio de Paquetería",
-        items:             [pkg.description || "Paquete"],
-        total:             parseFloat(pkg.subtotal) || 0,
-        size:              pkg.size || null,
-        weight:            pkg.weight || null,
-        direccion_entrega: shipment.deliveryInstructions || "",
-        estimated_delivery: shipment.estimatedDeliveryTime
-            ? new Date(shipment.estimatedDeliveryTime).toLocaleDateString("es-GT")
-            : "Por confirmar",
-        source: "paqueteria",
-    };
-}
-
-// ─── Buscar pedido en restaurantes ───────────────────────────────────────────
 
 async function findOrderInRestaurants(order_id) {
     const restaurantes = await getRestaurantList();
@@ -138,30 +102,6 @@ async function findOrderInRestaurants(order_id) {
 
     return resultados.find((r) => r !== null) || null;
 }
-
-// ─── Buscar paquete en paquetería ─────────────────────────────────────────────
-
-/**
- * Busca un paquete por ID en la API de paquetería.
- * GET /api/packages/:id
- */
-async function findOrderInPaqueteria(order_id) {
-    const { success, data } = await httpGet(
-        `${PAQUETERIA_URL}/api/packages/${order_id}`,
-        null
-    );
-
-    if (!success || !data) return null;
-
-    // La API devuelve el paquete directamente o envuelto en data
-    const pkg = data?.data || data;
-
-    if (!pkg?.idPackage) return null;
-
-    return normalizePackageOrder(pkg);
-}
-
-// ─── Cancelar pedido en restaurante ──────────────────────────────────────────
 
 async function cancelOrderInRestaurants(order_id, reason) {
     const restaurantes = await getRestaurantList();
@@ -211,8 +151,6 @@ async function cancelOrderInRestaurants(order_id, reason) {
     return null;
 }
 
-// ─── Pedidos pendientes de un repartidor ─────────────────────────────────────
-
 async function getPendingFromRestaurants(id_repartidor) {
     const restaurantes = await getRestaurantList();
     if (!restaurantes.length) return [];
@@ -234,10 +172,50 @@ async function getPendingFromRestaurants(id_repartidor) {
     return resultados.flat();
 }
 
-/**
- * Busca envíos asignados a un repartidor en paquetería.
- * GET /api/shipments — filtramos por courier_id
- */
+// ─── Paquetería ───────────────────────────────────────────────────────────────
+
+function normalizePackageOrder(pkg) {
+    const shipment = pkg.idShipmentShipment || pkg.Shipment || {};
+
+    const estadoMap = {
+        pending:    "pendiente",
+        assigned:   "confirmado",
+        in_transit: "en_camino",
+        delivered:  "entregado",
+        cancelled:  "cancelado",
+    };
+
+    return {
+        order_code:        `PED-${pkg.idPackage}`,
+        id:                pkg.idPackage,
+        status:            estadoMap[shipment.shipmentStatus] || "pendiente",
+        business:          "Servicio de Paquetería",
+        items:             [pkg.description || "Paquete"],
+        total:             parseFloat(pkg.subtotal) || 0,
+        size:              pkg.size || null,
+        weight:            pkg.weight || null,
+        direccion_entrega: shipment.deliveryInstructions || "",
+        estimated_delivery: shipment.estimatedDeliveryTime
+            ? new Date(shipment.estimatedDeliveryTime).toLocaleDateString("es-GT")
+            : "Por confirmar",
+        source: "paqueteria",
+    };
+}
+
+async function findOrderInPaqueteria(order_id) {
+    const { success, data } = await httpGet(
+        `${PAQUETERIA_URL}/api/packages/${order_id}`,
+        null
+    );
+
+    if (!success || !data) return null;
+
+    const pkg = data?.data || data;
+    if (!pkg?.idPackage) return null;
+
+    return normalizePackageOrder(pkg);
+}
+
 async function getPendingFromPaqueteria(id_repartidor) {
     const { success, data } = await httpGet(
         `${PAQUETERIA_URL}/api/shipments`,
@@ -249,11 +227,7 @@ async function getPendingFromPaqueteria(id_repartidor) {
     const shipments = Array.isArray(data) ? data : data?.data || [];
 
     return shipments
-        .filter(
-            (s) =>
-                s.courierId === id_repartidor &&
-                s.shipmentStatus === "in_transit"
-        )
+        .filter((s) => s.courierId === id_repartidor && s.shipmentStatus === "in_transit")
         .map((s) => ({
             order_code: `PED-${s.idShipment}`,
             id:         s.idShipment,
@@ -283,14 +257,11 @@ async function getOrderByCode(order_code) {
     }
 
     // 3. Buscar en negocios
-    const negocios = await httpGet(
-        `${NEGOCIOS_URL}/orders/${order_code}`,
-        null
-    );
+    const negocios = await httpGet(`${NEGOCIOS_URL}/orders/${order_code}`, null);
     if (negocios.success && negocios.data)
         return { ...negocios.data, source: "negocio" };
 
-    console.warn(`[Pedidos] Ningún servicio encontró el pedido: ${order_code}`);
+    logger.warn({ order_code }, "[Pedidos] Ningún servicio encontró el pedido");
     return buildMockOrder(order_code);
 }
 

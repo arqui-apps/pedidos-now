@@ -13,9 +13,15 @@ import {
 import {
     createCompensationCoupon,
     validateCoupon,
+    getClientCoupons,
 } from "./external/descuentos.external.js";
 
-import { requestRefund } from "./external/cobros.external.js";
+import {
+    requestRefund,
+    findPaymentByOrder,
+    getCourierWallet,
+    cancelPayment,
+} from "./external/cobros.external.js";
 
 import {
     getBanks,
@@ -37,8 +43,12 @@ export {
     // Descuentos
     createCompensationCoupon,
     validateCoupon,
+    getClientCoupons,
     // Cobros
     requestRefund,
+    findPaymentByOrder,
+    getCourierWallet,
+    cancelPayment,
     // Bancario
     getBanks,
     getBankById,

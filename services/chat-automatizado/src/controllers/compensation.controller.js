@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { Compensation } from "../models/index.js";
 import { Op } from "sequelize";
 
@@ -42,7 +43,7 @@ export const getCompensations = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getCompensations error:", error);
+        logger.error({ err: error.message }, 'getCompensations error');
         return res.status(500).json({ message: "Error al obtener las compensaciones" });
     }
 };
@@ -64,7 +65,7 @@ export const getCompensationById = async (req, res) => {
             data: comp,
         });
     } catch (error) {
-        console.error("getCompensationById error:", error);
+        logger.error({ err: error.message }, 'getCompensationById error');
         return res.status(500).json({ message: "Error al obtener la compensación" });
     }
 };
@@ -118,7 +119,7 @@ export const validateCoupon = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("validateCoupon error:", error);
+        logger.error({ err: error.message }, 'validateCoupon error');
         return res.status(500).json({ message: "Error al validar el cupón" });
     }
 };

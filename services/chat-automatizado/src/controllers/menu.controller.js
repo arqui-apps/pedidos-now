@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { Menu, OptionChoice } from "../models/index.js";
 
 // GET /menu?user_type=cliente&state=MENU_PRINCIPAL_CLIENTE
@@ -35,7 +36,7 @@ export const getMenu = async (req, res) => {
             data: menus,
         });
     } catch (error) {
-        console.error("getMenu error:", error);
+        logger.error({ err: error.message }, 'getMenu error');
         return res.status(500).json({ message: "Error al obtener los menús" });
     }
 };

@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { Op } from "sequelize";
 import pool from "../config/database.js";
 
@@ -65,7 +66,7 @@ export const getInquiries = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getInquiries error:", error);
+        logger.error({ err: error.message }, 'getInquiries error');
         return res.status(500).json({ message: "Error al obtener las consultas" });
     }
 };
@@ -90,7 +91,7 @@ export const getInquiryById = async (req, res) => {
             data: rows[0],
         });
     } catch (error) {
-        console.error("getInquiryById error:", error);
+        logger.error({ err: error.message }, 'getInquiryById error');
         return res.status(500).json({ message: "Error al obtener la consulta" });
     }
 };

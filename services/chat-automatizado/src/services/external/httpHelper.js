@@ -1,25 +1,23 @@
 import axios from "axios";
+import logger from "../../config/logger.js";
 
 const DEFAULT_TIMEOUT = 5000;
 
 function logHttpError(method, url, error) {
     if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
-        console.warn(`[HTTP] Servicio no disponible (${method}): ${url}`);
+        logger.warn({ method, url }, "Servicio no disponible");
     } else if (error.code === "ETIMEDOUT" || error.code === "ECONNABORTED") {
-        console.warn(`[HTTP] Timeout (${method}): ${url}`);
+        logger.warn({ method, url }, "Timeout al conectar");
     } else if (error.response) {
-        console.warn(`[HTTP] Error ${error.response.status} (${method}): ${url}`);
+        logger.warn({ method, url, status: error.response.status }, `Error HTTP ${error.response.status}`);
     } else {
-        console.warn(`[HTTP] Error desconocido (${method}): ${url} — ${error.message}`);
+        logger.error({ method, url, err: error.message }, "Error desconocido");
     }
 }
 
 async function httpGet(url, fallback = null, headers = {}) {
     try {
-        const { data } = await axios.get(url, {
-            timeout: DEFAULT_TIMEOUT,
-            headers,
-        });
+        const { data } = await axios.get(url, { timeout: DEFAULT_TIMEOUT, headers });
         return { success: true, data };
     } catch (error) {
         logHttpError("GET", url, error);
@@ -55,10 +53,7 @@ async function httpPatch(url, body, fallback = null, headers = {}) {
 
 async function httpDelete(url, fallback = null, headers = {}) {
     try {
-        const { data } = await axios.delete(url, {
-            timeout: DEFAULT_TIMEOUT,
-            headers,
-        });
+        const { data } = await axios.delete(url, { timeout: DEFAULT_TIMEOUT, headers });
         return { success: true, data };
     } catch (error) {
         logHttpError("DELETE", url, error);

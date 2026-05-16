@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { EscalationPayload } from "../models/index.js";
 
 // GET /escalation
@@ -45,7 +46,7 @@ export const getEscalations = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getEscalations error:", error);
+        logger.error({ err: error.message }, 'getEscalations error');
         return res.status(500).json({ message: "Error al obtener las escalaciones" });
     }
 };
@@ -73,7 +74,7 @@ export const getEscalationById = async (req, res) => {
             data: payload,
         });
     } catch (error) {
-        console.error("getEscalationById error:", error);
+        logger.error({ err: error.message }, 'getEscalationById error');
         return res.status(500).json({ message: "Error al obtener la escalación" });
     }
 };
@@ -108,7 +109,7 @@ export const getEscalationBySession = async (req, res) => {
             data: payload,
         });
     } catch (error) {
-        console.error("getEscalationBySession error:", error);
+        logger.error({ err: error.message }, 'getEscalationBySession error');
         return res.status(500).json({ message: "Error al obtener la escalación" });
     }
 };
@@ -147,7 +148,7 @@ export const updateHandoffStatus = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("updateHandoffStatus error:", error);
+        logger.error({ err: error.message }, 'updateHandoffStatus error');
         return res.status(500).json({ message: "Error al actualizar el estado" });
     }
 };

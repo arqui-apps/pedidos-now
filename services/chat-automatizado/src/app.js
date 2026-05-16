@@ -1,4 +1,5 @@
 import express from 'express';
+import logger from './config/logger.js';
 import { setupSwagger } from './config/swagger.js';
 import cors from 'cors';
 import env from './config/env.js';
@@ -25,19 +26,43 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', async (req, res) => {
-  let dbStatus = 'ok';
+  const checks = {};
 
+  // DB check
   try {
     await pool.query('SELECT 1');
+    checks.database = { status: 'ok' };
   } catch (e) {
-    dbStatus = 'error';
+    checks.database = { status: 'error', message: e.message };
   }
 
-  const ok = dbStatus === 'ok';
-  res.status(ok ? 200 : 503).json({
-    status:    ok ? 'ok' : 'degraded',
-    service:   'chat-automatizado',
-    timestamp: new Date().toISOString()
+  // External services check (solo ping, no bloquea si fallan)
+  const services = {
+    auth:       process.env.AUTH_SERVICE_URL       || 'http://localhost:3001',
+    pedidos:    process.env.RESTAURANTS_SERVICE_URL || 'http://localhost:3002',
+    descuentos: process.env.DESCUENTOS_SERVICE_URL  || 'http://localhost:3005',
+    cobros:     process.env.COBROS_SERVICE_URL       || 'http://localhost:3006',
+  };
+
+  for (const [name, baseUrl] of Object.entries(services)) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000);
+      const resp = await fetch(`${baseUrl}/health`, { signal: controller.signal })
+        .catch(() => null);
+      clearTimeout(timeout);
+      checks[name] = { status: resp ? 'ok' : 'unavailable', url: baseUrl };
+    } catch {
+      checks[name] = { status: 'unavailable', url: baseUrl };
+    }
+  }
+
+  const allOk = checks.database?.status === 'ok';
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'ok' : 'degraded',
+    service: 'chat-automatizado',
+    timestamp: new Date().toISOString(),
+    checks,
   });
 });
 
@@ -59,13 +84,13 @@ setupSwagger(app);
 const startServer = async () => {
   try {
     await testDatabaseConnection();
-    console.log('Database connected');
+    logger.info('Database connected');
 
     app.listen(env.port, () => {
-      console.log(`Chatbot service running on port ${env.port}`);
+      logger.info({ port: env.port }, `Chatbot service running on port ${env.port}`);
     });
   } catch (error) {
-    console.error('Error starting server:', error.message);
+    logger.error({ err: error.message }, 'Error starting server');
   }
 };
 

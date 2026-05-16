@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import pool from '../config/database.js';
 
 const CATEGORY_TYPES = [
@@ -153,7 +154,7 @@ export const getFaqs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('getFaqs error:', error);
+    logger.error({ err: error.message }, 'getFaqs error');
     return res.status(500).json({
       message: 'Error interno del servidor al obtener las FAQs',
     });
@@ -194,7 +195,7 @@ export const getFaqById = async (req, res) => {
       data: rows[0],
     });
   } catch (error) {
-    console.error('getFaqById error:', error);
+    logger.error({ err: error.message }, 'getFaqById error');
     return res.status(500).json({
       message: 'Error interno del servidor al obtener la FAQ',
     });
@@ -256,7 +257,7 @@ export const createFaq = async (req, res) => {
       data: rows[0],
     });
   } catch (error) {
-    console.error('createFaq error:', error);
+    logger.error({ err: error.message }, 'createFaq error');
     return res.status(500).json({
       message: 'Error interno del servidor al crear la FAQ',
     });
@@ -370,7 +371,7 @@ export const updateFaq = async (req, res) => {
       data: rows[0],
     });
   } catch (error) {
-    console.error('updateFaq error:', error);
+    logger.error({ err: error.message }, 'updateFaq error');
     return res.status(500).json({
       message: 'Error interno del servidor al actualizar la FAQ',
     });
@@ -407,7 +408,7 @@ export const deleteFaq = async (req, res) => {
       message: 'FAQ desactivada correctamente',
     });
   } catch (error) {
-    console.error('deleteFaq error:', error);
+    logger.error({ err: error.message }, 'deleteFaq error');
     return res.status(500).json({
       message: 'Error interno del servidor',
     });

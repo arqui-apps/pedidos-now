@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { Mensaje, ChatSession } from "../models/index.js";
 
 // GET /message?id_session=X
@@ -34,7 +35,7 @@ export const getMessages = async (req, res) => {
             })),
         });
     } catch (error) {
-        console.error("getMessages error:", error);
+        logger.error({ err: error.message }, 'getMessages error');
         return res.status(500).json({ message: "Error al obtener los mensajes" });
     }
 };
