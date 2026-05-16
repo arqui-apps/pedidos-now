@@ -1,4 +1,5 @@
 import express from 'express';
+import { setupSwagger } from './config/swagger.js';
 import cors from 'cors';
 import env from './config/env.js';
 import { testDatabaseConnection, default as pool } from './config/database.js';
@@ -75,6 +76,9 @@ app.use('/support', supportRoutes);
 app.use('/escalation', escalationRoutes);
 
 app.use(errorHandler);
+
+// ── Swagger ───────────────────────────────────────────────────────────────────
+setupSwagger(app);
 
 const startServer = async () => {
   try {

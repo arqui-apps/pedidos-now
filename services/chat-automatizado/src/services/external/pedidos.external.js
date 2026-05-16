@@ -5,14 +5,10 @@ const RESTAURANTS_URL =
 const NEGOCIOS_URL =
     process.env.NEGOCIOS_SERVICE_URL || "http://localhost:3003";
 const PAQUETERIA_URL =
-    process.env.PAQUETERIA_SERVICE_URL || "http://localhost:3007";
+    process.env.PAQUETERIA_SERVICE_URL || "https://pedidos-now-backend.onrender.com";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Extrae el ID numérico de un código de pedido.
- * "PED-001" → 1 | "PED-42" → 42 | "42" → 42
- */
 function extractOrderId(order_code) {
     if (!order_code) return null;
     const match = String(order_code).match(/(\d+)$/);
@@ -33,10 +29,6 @@ function buildMockOrder(order_code) {
 
 // ─── Helpers internos de restaurantes ────────────────────────────────────────
 
-/**
- * Obtiene la lista de restaurantes activos desde la API.
- * La API devuelve { success: true, data: [...] }
- */
 async function getRestaurantList() {
     const { success, data: respuesta } = await httpGet(
         `${RESTAURANTS_URL}/restaurantes`,
@@ -53,11 +45,6 @@ async function getRestaurantList() {
     return restaurantes.filter((r) => r.activo !== false);
 }
 
-/**
- * Normaliza la respuesta de restaurantes al formato que espera el bot.
- * Estados: 1=Recibido, 2=Confirmado, 3=En Preparacion,
- *          4=Listo, 5=En Camino, 6=Entregado, 7=Cancelado
- */
 function normalizeRestaurantOrder(pedido, restauranteName = "Restaurante") {
     const estadoMap = {
         1: "pendiente",
@@ -71,33 +58,61 @@ function normalizeRestaurantOrder(pedido, restauranteName = "Restaurante") {
 
     const items =
         pedido.detalles?.map((d) => {
-            const nombre =
-                d.producto?.nombre || d.combo?.nombre || "Producto";
+            const nombre = d.producto?.nombre || d.combo?.nombre || "Producto";
             return `${nombre} x${d.cantidad}`;
         }) || [];
 
     return {
-        order_code: `PED-${pedido.id}`,
-        id: pedido.id,
-        restaurante_id: pedido.restaurante_id,
-        status: estadoMap[pedido.estado_id] || "desconocido",
-        business: restauranteName,
+        order_code:        `PED-${pedido.id}`,
+        id:                pedido.id,
+        restaurante_id:    pedido.restaurante_id,
+        status:            estadoMap[pedido.estado_id] || "desconocido",
+        business:          restauranteName,
         items,
-        total: parseFloat(pedido.total) || 0,
+        total:             parseFloat(pedido.total) || 0,
         direccion_entrega: pedido.direccion_entrega || "",
-        notas: pedido.notas || null,
+        notas:             pedido.notas || null,
         estimated_delivery: pedido.estado_id <= 4 ? "30 minutos" : null,
-        source: "restaurante",
+        source:            "restaurante",
     };
 }
 
-// ─── Buscar pedido en todos los restaurantes ──────────────────────────────────
+// ─── Helpers internos de paquetería ──────────────────────────────────────────
 
 /**
- * Busca un pedido por ID en todos los restaurantes en paralelo.
- * La API de restaurantes requiere: GET /restaurantes/:restaurante_id/pedidos/:id
- * No tiene búsqueda global por código, por eso consultamos todos.
+ * Normaliza la respuesta de paquetería al formato que espera el bot.
+ * Estados: pending, assigned, in_transit, delivered, cancelled
  */
+function normalizePackageOrder(pkg) {
+    const shipment = pkg.idShipmentShipment || pkg.Shipment || {};
+
+    const estadoMap = {
+        pending:    "pendiente",
+        assigned:   "confirmado",
+        in_transit: "en_camino",
+        delivered:  "entregado",
+        cancelled:  "cancelado",
+    };
+
+    return {
+        order_code:        `PED-${pkg.idPackage}`,
+        id:                pkg.idPackage,
+        status:            estadoMap[shipment.shipmentStatus] || "pendiente",
+        business:          "Servicio de Paquetería",
+        items:             [pkg.description || "Paquete"],
+        total:             parseFloat(pkg.subtotal) || 0,
+        size:              pkg.size || null,
+        weight:            pkg.weight || null,
+        direccion_entrega: shipment.deliveryInstructions || "",
+        estimated_delivery: shipment.estimatedDeliveryTime
+            ? new Date(shipment.estimatedDeliveryTime).toLocaleDateString("es-GT")
+            : "Por confirmar",
+        source: "paqueteria",
+    };
+}
+
+// ─── Buscar pedido en restaurantes ───────────────────────────────────────────
+
 async function findOrderInRestaurants(order_id) {
     const restaurantes = await getRestaurantList();
     if (!restaurantes.length) return null;
@@ -109,7 +124,6 @@ async function findOrderInRestaurants(order_id) {
                 null
             );
 
-            // La API devuelve { success: true, data: { id, ... } }
             const pedido =
                 respuestaPedido?.data?.data ||
                 respuestaPedido?.data ||
@@ -125,20 +139,35 @@ async function findOrderInRestaurants(order_id) {
     return resultados.find((r) => r !== null) || null;
 }
 
-// ─── Cancelar pedido en restaurante ──────────────────────────────────────────
+// ─── Buscar paquete en paquetería ─────────────────────────────────────────────
 
 /**
- * Busca en qué restaurante está el pedido y lo cancela.
- * Ruta: POST /restaurantes/:restaurante_id/pedidos/:pedido_id/cancelacion/cancelar
- * Body requerido: { cancelado_por, motivo }
- * cancelado_por: 'cliente' | 'restaurante' | 'repartidor' | 'sistema'
+ * Busca un paquete por ID en la API de paquetería.
+ * GET /api/packages/:id
  */
+async function findOrderInPaqueteria(order_id) {
+    const { success, data } = await httpGet(
+        `${PAQUETERIA_URL}/api/packages/${order_id}`,
+        null
+    );
+
+    if (!success || !data) return null;
+
+    // La API devuelve el paquete directamente o envuelto en data
+    const pkg = data?.data || data;
+
+    if (!pkg?.idPackage) return null;
+
+    return normalizePackageOrder(pkg);
+}
+
+// ─── Cancelar pedido en restaurante ──────────────────────────────────────────
+
 async function cancelOrderInRestaurants(order_id, reason) {
     const restaurantes = await getRestaurantList();
     if (!restaurantes.length) return null;
 
     for (const restaurante of restaurantes) {
-        // Verificar si el pedido existe en este restaurante
         const { success: exists, data: respuestaPedido } = await httpGet(
             `${RESTAURANTS_URL}/restaurantes/${restaurante.id}/pedidos/${order_id}`,
             null
@@ -151,25 +180,18 @@ async function cancelOrderInRestaurants(order_id, reason) {
 
         if (!exists || !pedido?.id) continue;
 
-        // Verificar que el pedido pueda cancelarse
         if (pedido.estado_id === 7) {
             return { cancelled: false, message: "El pedido ya fue cancelado" };
         }
         if (pedido.estado_id === 6) {
-            return {
-                cancelled: false,
-                message: "No se puede cancelar un pedido ya entregado",
-            };
+            return { cancelled: false, message: "No se puede cancelar un pedido ya entregado" };
         }
 
-        // Cancelar el pedido
         const { success: ok, data: resultado } = await httpPost(
             `${RESTAURANTS_URL}/restaurantes/${restaurante.id}/pedidos/${order_id}/cancelacion/cancelar`,
             {
                 cancelado_por: "cliente",
-                motivo:
-                    reason ||
-                    "Cancelado por el cliente a través del chat automatizado",
+                motivo: reason || "Cancelado por el cliente a través del chat automatizado",
             },
             null
         );
@@ -186,16 +208,11 @@ async function cancelOrderInRestaurants(order_id, reason) {
             };
         }
     }
-
     return null;
 }
 
 // ─── Pedidos pendientes de un repartidor ─────────────────────────────────────
 
-/**
- * Busca pedidos en estado "En Camino" (estado_id=5) del repartidor
- * en todos los restaurantes.
- */
 async function getPendingFromRestaurants(id_repartidor) {
     const restaurantes = await getRestaurantList();
     if (!restaurantes.length) return [];
@@ -217,18 +234,55 @@ async function getPendingFromRestaurants(id_repartidor) {
     return resultados.flat();
 }
 
+/**
+ * Busca envíos asignados a un repartidor en paquetería.
+ * GET /api/shipments — filtramos por courier_id
+ */
+async function getPendingFromPaqueteria(id_repartidor) {
+    const { success, data } = await httpGet(
+        `${PAQUETERIA_URL}/api/shipments`,
+        null
+    );
+
+    if (!success || !data) return [];
+
+    const shipments = Array.isArray(data) ? data : data?.data || [];
+
+    return shipments
+        .filter(
+            (s) =>
+                s.courierId === id_repartidor &&
+                s.shipmentStatus === "in_transit"
+        )
+        .map((s) => ({
+            order_code: `PED-${s.idShipment}`,
+            id:         s.idShipment,
+            status:     "en_camino",
+            business:   "Servicio de Paquetería",
+            address:    s.deliveryInstructions || "",
+            total:      parseFloat(s.total) || 0,
+            source:     "paqueteria",
+        }));
+}
+
 // ─── Funciones públicas ───────────────────────────────────────────────────────
 
 async function getOrderByCode(order_code) {
     const order_id = extractOrderId(order_code);
 
-    // 1. Buscar en restaurantes (si la URL está configurada)
+    // 1. Buscar en restaurantes
     if (order_id && RESTAURANTS_URL !== "http://localhost:3002") {
         const fromRestaurant = await findOrderInRestaurants(order_id);
         if (fromRestaurant) return fromRestaurant;
     }
 
-    // 2. Buscar en negocios
+    // 2. Buscar en paquetería
+    if (order_id) {
+        const fromPaqueteria = await findOrderInPaqueteria(order_id);
+        if (fromPaqueteria) return fromPaqueteria;
+    }
+
+    // 3. Buscar en negocios
     const negocios = await httpGet(
         `${NEGOCIOS_URL}/orders/${order_code}`,
         null
@@ -236,44 +290,31 @@ async function getOrderByCode(order_code) {
     if (negocios.success && negocios.data)
         return { ...negocios.data, source: "negocio" };
 
-    // 3. Buscar en paquetería
-    const paqueteria = await httpGet(
-        `${PAQUETERIA_URL}/packages/${order_id || order_code}`,
-        null
-    );
-    if (paqueteria.success && paqueteria.data)
-        return { ...paqueteria.data, source: "paqueteria" };
-
-    console.warn(
-        `[Pedidos] Ningún servicio encontró el pedido: ${order_code}`
-    );
+    console.warn(`[Pedidos] Ningún servicio encontró el pedido: ${order_code}`);
     return buildMockOrder(order_code);
 }
 
 async function getPendingOrdersByDelivery(id_repartidor) {
-    const [fromRestaurants, negocios] = await Promise.all([
+    const [fromRestaurants, fromPaqueteria, negocios] = await Promise.all([
         getPendingFromRestaurants(id_repartidor),
-        httpGet(
-            `${NEGOCIOS_URL}/orders/delivery/${id_repartidor}/pending`,
-            []
-        ),
+        getPendingFromPaqueteria(id_repartidor),
+        httpGet(`${NEGOCIOS_URL}/orders/delivery/${id_repartidor}/pending`, []),
     ]);
 
     const allOrders = [
         ...fromRestaurants,
+        ...fromPaqueteria,
         ...(negocios.data || []).map((o) => ({ ...o, source: "negocio" })),
     ];
 
     if (allOrders.length === 0) {
-        return [
-            {
-                order_code: "PED-MOCK-001",
-                status: "pendiente",
-                business: "Farmacia Ejemplo",
-                address: "4a Calle 5-55 Zona 1",
-                source: "mock",
-            },
-        ];
+        return [{
+            order_code: "PED-MOCK-001",
+            status:     "pendiente",
+            business:   "Farmacia Ejemplo",
+            address:    "4a Calle 5-55 Zona 1",
+            source:     "mock",
+        }];
     }
     return allOrders;
 }
@@ -293,8 +334,7 @@ async function cancelOrder(order_code, id_negocio, reason) {
         { id_negocio, reason },
         null
     );
-    if (negocioResult.success && negocioResult.data)
-        return negocioResult.data;
+    if (negocioResult.success && negocioResult.data) return negocioResult.data;
 
     return {
         cancelled: false,
