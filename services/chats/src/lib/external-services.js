@@ -273,12 +273,63 @@ export async function getBusinessOrderDeliveryByExternalCode(externalOrderCode) 
 // el body exacto que espera el servicio de descuentos.
 
 export async function createCompensationCoupon(payload = {}) {
+  const clienteId = Number(payload.cliente_id);
+
+  if (!Number.isInteger(clienteId) || clienteId <= 0) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'cliente_id debe ser un número entero positivo para crear cupón de compensación.',
+      400
+    );
+  }
+
+  const valorDescuento = Number(payload.valor_descuento || 20);
+
+  if (!Number.isFinite(valorDescuento) || valorDescuento <= 0) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'valor_descuento debe ser un número mayor a 0.',
+      400
+    );
+  }
+
+  const pedidoAfectadoId = Number(payload.pedido_afectado_id);
+
+  if (!Number.isInteger(pedidoAfectadoId) || pedidoAfectadoId <= 0) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'pedido_afectado_id debe ser un número entero positivo para crear cupón de compensación.',
+      400
+    );
+  }
+
+  const body = {
+    tipo: 'COMPENSACION',
+    cliente_id: clienteId,
+    tipo_descuento: payload.tipo_descuento || 'MONTO_FIJO',
+    valor_descuento: valorDescuento,
+    monto_minimo_pedido:
+      payload.monto_minimo_pedido === undefined
+        ? null
+        : payload.monto_minimo_pedido,
+    origen_solicitud: payload.origen_solicitud || 'CHAT_AGENTE',
+    solicitado_por: payload.solicitado_por || 'chat_servicio_cliente',
+    pedido_afectado_id: pedidoAfectadoId,
+    motivo_compensacion:
+      payload.motivo_compensacion ||
+      'Compensación generada desde chat de servicio al cliente.',
+    confirmacion_pedido_fallido:
+      payload.confirmacion_pedido_fallido === undefined
+        ? true
+        : Boolean(payload.confirmacion_pedido_fallido),
+  };
+
   const result = await requestJson({
     serviceName: 'Descuentos',
     baseUrl: process.env.DISCOUNTS_SERVICE_URL,
     path: '/api/cupones',
     method: 'POST',
-    body: payload,
+    body,
   });
 
   return getData(result);

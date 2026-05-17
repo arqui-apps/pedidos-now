@@ -1,5 +1,6 @@
 // src/lib/conversation-service.js
 import { query, execute, transaction } from './db';
+import { createCompensationCoupon } from './external-services';
 import {
   emitConversationAssigned,
   emitConversationCreated,
@@ -31,6 +32,52 @@ function normalizeOptionalString(value) {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
+}
+function toPositiveNumberOrNull(value) {
+  if (value === undefined || value === null || value === '') return null;
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function buildCouponPayloadFromConversation(conversation, payload = {}) {
+  const couponPayload = payload.coupon || {};
+
+  const clienteId =
+    toPositiveNumberOrNull(couponPayload.cliente_id) ||
+    toPositiveNumberOrNull(conversation.requester_ext_id);
+
+  const pedidoAfectadoId =
+    toPositiveNumberOrNull(couponPayload.pedido_afectado_id) ||
+    toPositiveNumberOrNull(conversation.case_reference);
+
+  return {
+    cliente_id: clienteId,
+    tipo_descuento: couponPayload.tipo_descuento || 'MONTO_FIJO',
+    valor_descuento: couponPayload.valor_descuento || 20,
+    monto_minimo_pedido:
+      couponPayload.monto_minimo_pedido === undefined
+        ? null
+        : couponPayload.monto_minimo_pedido,
+    origen_solicitud: 'CHAT_AGENTE',
+    solicitado_por:
+      normalizeOptionalString(payload.changed_by_ext_id) ||
+      'chat_servicio_cliente',
+    pedido_afectado_id: pedidoAfectadoId,
+    motivo_compensacion:
+      normalizeOptionalString(couponPayload.motivo_compensacion) ||
+      normalizeOptionalString(payload.reason) ||
+      'Compensación generada desde chat de servicio al cliente.',
+    confirmacion_pedido_fallido:
+      couponPayload.confirmacion_pedido_fallido === undefined
+        ? true
+        : Boolean(couponPayload.confirmacion_pedido_fallido),
+  };
 }
 
 function parsePositiveInt(value, defaultValue) {
@@ -1150,10 +1197,117 @@ export async function changeConversationStatus(conversationId, payload = {}) {
     return getConversationDetail(tx, id);
   });
 
+  let couponIntegration = null;
+
+  if (new_status === 'RESOLVED_COUPON') {
+    try {
+      const couponPayload = buildCouponPayloadFromConversation(result, payload);
+      const couponResult = await createCompensationCoupon(couponPayload);
+
+      couponIntegration = {
+        success: true,
+        service: 'DESCUENTOS',
+        action: 'CREATE_COMPENSATION_COUPON',
+        payload: couponPayload,
+        response: couponResult,
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'COUPON_CREATED',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'SUCCESS',
+            service: 'DESCUENTOS',
+            action: 'CREATE_COMPENSATION_COUPON',
+            payload: couponPayload,
+            response: couponResult,
+          }),
+        ]
+      );
+    } catch (error) {
+      couponIntegration = {
+        success: false,
+        service: 'DESCUENTOS',
+        action: 'CREATE_COMPENSATION_COUPON',
+        warning:
+          'La conversación fue cerrada como RESOLVED_COUPON, pero no se pudo crear el cupón automáticamente.',
+        error: {
+          code: error.code || 'COUPON_INTEGRATION_ERROR',
+          message: error.message,
+          details: error.details || null,
+        },
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'COUPON_CREATION_FAILED',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'FAILED',
+            service: 'DESCUENTOS',
+            action: 'CREATE_COMPENSATION_COUPON',
+            error: {
+              code: error.code || 'COUPON_INTEGRATION_ERROR',
+              message: error.message,
+              details: error.details || null,
+            },
+          }),
+        ]
+      );
+    }
+  }
+
+  if (couponIntegration) {
+    result.external_integrations = {
+      ...(result.external_integrations || {}),
+      coupon: couponIntegration,
+    };
+  }
+
   emitConversationStatusChanged(result, {
     new_status,
     changed_by_ext_id,
     reason,
+    coupon_integration: couponIntegration,
   });
 
   emitConversationUpdated(result);
