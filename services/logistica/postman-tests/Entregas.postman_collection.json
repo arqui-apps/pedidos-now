@@ -72,6 +72,18 @@
 							"disabled": true
 						},
 						{
+							"key": "origen_id",
+							"value": "",
+							"description": "Filtrar por ID de origen (pedido)",
+							"disabled": true
+						},
+						{
+							"key": "tipo_origen",
+							"value": "",
+							"description": "Filtrar por tipo de origen (pedido, cotizacion, manual)",
+							"disabled": true
+						},
+						{
 							"key": "activa",
 							"value": "true",
 							"description": "Filtrar por entregas activas (true/false)",
@@ -79,7 +91,7 @@
 						}
 					]
 				},
-				"description": "Obtiene lista de entregas con filtros y paginación.\n\n**Query params opcionales:**\n- page: Número de página (default: 1)\n- limit: Resultados por página (default: 50)\n- estado_entrega: pendiente | asignada | en_ruta | entregada | fallida | cancelada\n- empresa_id: ID de la empresa\n- sucursal_id: ID de la sucursal\n- cliente_id: ID del cliente\n- activa: true | false\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"pagination\": {\n    \"total\": 100,\n    \"page\": 1,\n    \"limit\": 50,\n    \"totalPages\": 2\n  }\n}\n```\n\n**Incluye:**\n- Asignaciones activas\n- Incidencias relacionadas"
+				"description": "Obtiene lista de entregas con filtros y paginación.\n\n**Query params opcionales:**\n- page: Número de página (default: 1)\n- limit: Resultados por página (default: 50)\n- estado_entrega: pendiente | asignada | en_ruta | entregada | fallida | cancelada\n- empresa_id: ID de la empresa\n- sucursal_id: ID de la sucursal\n- cliente_id: ID del cliente\n- origen_id: ID de origen (pedido)\n- tipo_origen: pedido | cotizacion | manual\n- activa: true | false\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"pagination\": {\n    \"total\": 100,\n    \"page\": 1,\n    \"limit\": 50,\n    \"totalPages\": 2\n  }\n}\n```\n\n**Incluye:**\n- Asignaciones activas\n- Incidencias relacionadas"
 			},
 			"response": []
 		},
@@ -94,6 +106,27 @@
 					"path": ["api", "logistica", "entregas", "1"]
 				},
 				"description": "Obtiene detalle completo de una entrega por su ID.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id_entrega\": 1,\n    \"tipo_origen\": \"pedido\",\n    \"origen_id\": 1001,\n    \"estado_entrega\": \"asignada\",\n    \"asignaciones\": [...],\n    \"historial\": [...],\n    \"incidencias\": [...]\n  }\n}\n```\n\n**Incluye:**\n- Todas las asignaciones (historial)\n- Historial de estados\n- Incidencias relacionadas\n\n**Errores:**\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Buscar Entregas por Origen",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/origen/1001?tipo_origen=pedido",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "origen", "1001"],
+					"query": [
+						{
+							"key": "tipo_origen",
+							"value": "pedido",
+							"description": "Filtrar por tipo de origen (opcional)"
+						}
+					]
+				},
+				"description": "Busca todas las entregas asociadas a un ID de origen (pedido).\n\n**Parámetros de ruta:**\n- origen_id: ID del pedido/origen\n\n**Query params opcionales:**\n- tipo_origen: Filtrar por tipo (pedido, cotizacion, manual)\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_entrega\": 1,\n      \"tipo_origen\": \"pedido\",\n      \"origen_id\": 1001,\n      \"estado_entrega\": \"pendiente\",\n      ...\n    }\n  ]\n}\n```\n\n**Errores:**\n- 500: Error del servidor"
 			},
 			"response": []
 		},

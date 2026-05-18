@@ -1,0 +1,288 @@
+{
+  "info": {
+    "_postman_id": "logistica-master-routes-only-001",
+    "name": "Logistica - MASTER Routes Only",
+    "description": "Coleccion master generada unicamente con las rutas declaradas en services/logistica/src/routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Feed",
+      "item": [
+        {
+          "name": "GET /api/logistica/feed/disponibles",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/feed/disponibles" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/feed/:id/preview",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/feed/{{pedido_id}}/preview" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/feed/:id/aceptar",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/feed/{{pedido_id}}/aceptar" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Entregas",
+      "item": [
+        {
+          "name": "POST /api/logistica/entregas",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"tipo_origen\": \"pedido\",\n  \"origen_id\": {{pedido_id}},\n  \"empresa_id\": {{empresa_id}},\n  \"sucursal_id\": {{sucursal_id}},\n  \"cliente_id\": {{cliente_id}},\n  \"direccion_entrega\": \"Direccion de prueba\",\n  \"referencia_direccion\": \"Referencia de prueba\",\n  \"instrucciones_entrega\": \"Llamar al llegar\",\n  \"monto_cobrar\": 100.00\n}" }, "url": "{{base_url}}/api/logistica/entregas" },
+          "response": []
+        },
+        {
+          "name": "POST /api/logistica/entregas/restaurantes/:restaurante_id/pedidos/:pedido_id",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/entregas/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/entregas",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/entregas?page=1&limit=50" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/entregas/:id/estado",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado_entrega\": \"en_ruta\",\n  \"comentario\": \"Cambio de estado desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/estado" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/entregas/:id/cancelar",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Cancelacion de prueba\"\n}" }, "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/cancelar" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/entregas/:id/recogida",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/recogida" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/entregas/:id/entregada",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/entregada" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/entregas/:id/historial",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/historial" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/entregas/:id/detalles",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}/detalles" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/entregas/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}" },
+          "response": []
+        },
+        {
+          "name": "PUT /api/logistica/entregas/:id",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"direccion_entrega\": \"Direccion actualizada\",\n  \"referencia_direccion\": \"Referencia actualizada\",\n  \"instrucciones_entrega\": \"Instrucciones actualizadas\"\n}" }, "url": "{{base_url}}/api/logistica/entregas/{{entrega_id}}" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Asignaciones",
+      "item": [
+        {
+          "name": "POST /api/logistica/asignaciones",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"entrega_id\": {{entrega_id}},\n  \"repartidor_id\": {{repartidor_id}}\n}" }, "url": "{{base_url}}/api/logistica/asignaciones" },
+          "response": []
+        },
+        {
+          "name": "PUT /api/logistica/asignaciones/entrega/:id",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"repartidor_id\": {{repartidor_id}},\n  \"comentario\": \"Reasignacion desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/asignaciones/entrega/{{entrega_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/asignaciones/entrega/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/asignaciones/entrega/{{entrega_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/asignaciones/entrega/:id/historial",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/asignaciones/entrega/{{entrega_id}}/historial" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/asignaciones/repartidor/:repartidor_id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/asignaciones/repartidor/{{repartidor_id}}" },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/logistica/asignaciones/entrega/:id",
+          "request": { "method": "DELETE", "header": [], "url": "{{base_url}}/api/logistica/asignaciones/entrega/{{entrega_id}}" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Incidencias",
+      "item": [
+        {
+          "name": "POST /api/logistica/incidencias",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"entrega_id\": {{entrega_id}},\n  \"repartidor_id\": {{repartidor_id}},\n  \"tipo_incidencia\": \"otro\",\n  \"descripcion\": \"Incidencia de prueba\"\n}" }, "url": "{{base_url}}/api/logistica/incidencias" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/incidencias",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/incidencias?page=1&limit=50" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/incidencias/stats/estadisticas",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/incidencias/stats/estadisticas" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/incidencias/entrega/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/incidencias/entrega/{{entrega_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/incidencias/repartidor/:repartidor_id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/incidencias/repartidor/{{repartidor_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/incidencias/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/incidencias/{{incidencia_id}}" },
+          "response": []
+        },
+        {
+          "name": "PUT /api/logistica/incidencias/:id",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"tipo_incidencia\": \"otro\",\n  \"descripcion\": \"Incidencia actualizada\"\n}" }, "url": "{{base_url}}/api/logistica/incidencias/{{incidencia_id}}" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/incidencias/:id/resolver",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"comentario_resolucion\": \"Resuelta desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/incidencias/{{incidencia_id}}/resolver" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/incidencias/:id/reabrir",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Reapertura desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/incidencias/{{incidencia_id}}/reabrir" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Estadisticas",
+      "item": [
+        {
+          "name": "GET /api/logistica/estadisticas/generales",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/estadisticas/generales?empresa_id={{empresa_id}}" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/estadisticas/periodo",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/estadisticas/periodo?empresa_id={{empresa_id}}&fecha_inicio=2026-01-01&fecha_fin=2026-01-31" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/estadisticas/repartidores",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/estadisticas/repartidores?empresa_id={{empresa_id}}&fecha_inicio=2026-01-01&fecha_fin=2026-01-31" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Repartidores",
+      "item": [
+        {
+          "name": "GET /api/logistica/repartidores/disponibles",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/repartidores/disponibles" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/repartidores/me",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/repartidores/me" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/repartidores/me/metricas",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/repartidores/me/metricas" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/repartidores/me/ubicacion",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"latitud\": 14.6349,\n  \"longitud\": -90.5069\n}" }, "url": "{{base_url}}/api/logistica/repartidores/me/ubicacion" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/repartidores/me/estado",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"estado\": \"disponible\"\n}" }, "url": "{{base_url}}/api/logistica/repartidores/me/estado" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "GET /api/logistica/categorias",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/categorias" },
+          "response": []
+        },
+        {
+          "name": "POST /api/logistica/categorias",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Categoria de prueba\",\n  \"descripcion\": \"Creada desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/categorias" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/categorias/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/categorias/{{categoria_id}}" },
+          "response": []
+        },
+        {
+          "name": "PUT /api/logistica/categorias/:id",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Categoria actualizada\",\n  \"descripcion\": \"Actualizada desde Postman\"\n}" }, "url": "{{base_url}}/api/logistica/categorias/{{categoria_id}}" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/categorias/:id/toggle",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/categorias/{{categoria_id}}/toggle" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notificaciones",
+      "item": [
+        {
+          "name": "GET /api/logistica/notificaciones",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/notificaciones" },
+          "response": []
+        },
+        {
+          "name": "GET /api/logistica/notificaciones/:id",
+          "request": { "method": "GET", "header": [], "url": "{{base_url}}/api/logistica/notificaciones/{{notificacion_id}}" },
+          "response": []
+        },
+        {
+          "name": "PATCH /api/logistica/notificaciones/:id/reintentar",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{base_url}}/api/logistica/notificaciones/{{notificacion_id}}/reintentar" },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "empresa_id", "value": "1" },
+    { "key": "sucursal_id", "value": "1" },
+    { "key": "cliente_id", "value": "1" },
+    { "key": "restaurante_id", "value": "1" },
+    { "key": "pedido_id", "value": "1" },
+    { "key": "entrega_id", "value": "1" },
+    { "key": "repartidor_id", "value": "1" },
+    { "key": "incidencia_id", "value": "1" },
+    { "key": "categoria_id", "value": "1" },
+    { "key": "notificacion_id", "value": "1" }
+  ]
+}

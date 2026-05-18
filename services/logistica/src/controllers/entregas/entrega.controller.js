@@ -102,13 +102,15 @@ exports.crearEntregaDesdeRestaurante = async (req, res) => {
 
 exports.obtenerEntregas = async (req, res) => {
     try {
-        const { estado_entrega, empresa_id, sucursal_id, cliente_id, activa, page = 1, limit = 50 } = req.query;
+        const { estado_entrega, empresa_id, sucursal_id, cliente_id, origen_id, tipo_origen, activa, page = 1, limit = 50 } = req.query;
         const where = {};
 
         if (estado_entrega) where.estado_entrega = estado_entrega;
         if (empresa_id) where.empresa_id = empresa_id;
         if (sucursal_id) where.sucursal_id = sucursal_id;
         if (cliente_id) where.cliente_id = cliente_id;
+        if (origen_id) where.origen_id = origen_id;
+        if (tipo_origen) where.tipo_origen = tipo_origen;
         if (activa !== undefined) where.activa = activa === 'true';
 
         const parsedLimit = parseInt(limit, 10);
@@ -265,6 +267,29 @@ exports.marcarRecogida = async (req, res) => {
 exports.marcarEntregada = async (req, res) => {
     req.body.estado_nuevo = 'entregada';
     return exports.cambiarEstadoEntrega(req, res);
+};
+
+exports.obtenerEntregasPorOrigen = async (req, res) => {
+    try {
+        const { origen_id } = req.params;
+        const { tipo_origen } = req.query;
+
+        const where = { origen_id };
+        if (tipo_origen) where.tipo_origen = tipo_origen;
+
+        const entregas = await Entrega.findAll({
+            where,
+            include: [
+                { model: CategoriaOrden, as: 'categoria' },
+                { model: AsignacionEntrega, as: 'asignaciones', where: { activa: true }, required: false }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        return res.json({ success: true, data: entregas });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Error al obtener entregas por origen', error: error.message });
+    }
 };
 
 exports.obtenerDetallesCompletos = exports.obtenerEntregaPorId;

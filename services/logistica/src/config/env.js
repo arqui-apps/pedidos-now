@@ -15,6 +15,7 @@ module.exports = {
     DB_PASSWORD: process.env.DB_PASSWORD || 'admin123',
     DB_HOST: process.env.DB_HOST || 'localhost',
     DB_PORT: process.env.DB_PORT || 5432,
+    DB_SSL: process.env.DB_SSL === 'true',
 
     // Integraciones externas
     RESTAURANTES_API_URL: process.env.RESTAURANTES_API_URL || 'https://restaurantes.fly.dev/api',

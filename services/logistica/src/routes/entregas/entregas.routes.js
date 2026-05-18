@@ -29,6 +29,9 @@ router.get('/:id/historial', entregasController.obtenerHistorialEntrega);
 // GET /api/logistica/entregas/:id/detalles - Obtener detalle completo
 router.get('/:id/detalles', entregasController.obtenerDetallesCompletos);
 
+// GET /api/logistica/entregas/origen/:origen_id - Buscar entregas por ID de origen (pedido)
+router.get('/origen/:origen_id', entregasController.obtenerEntregasPorOrigen);
+
 // GET /api/logistica/entregas/:id - Obtener entrega por ID
 router.get('/:id', entregasController.obtenerEntregaPorId);
 

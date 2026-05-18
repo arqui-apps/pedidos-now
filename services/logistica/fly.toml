@@ -1,0 +1,32 @@
+app = "modulo-logistica"
+primary_region = "dfw"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3005"
+  LOGISTICA_MODULE_NAME = "logistica"
+  RESTAURANTES_API_URL = "https://restaurantes.fly.dev/api"
+  ADMINISTRACION_API_URL = "https://pedidosnow-administracion-production.up.railway.app"
+
+[http_service]
+  internal_port = 3005
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

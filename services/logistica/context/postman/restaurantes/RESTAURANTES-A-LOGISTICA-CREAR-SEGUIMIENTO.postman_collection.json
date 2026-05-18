@@ -1,0 +1,345 @@
+{
+  "info": {
+    "name": "Restaurantes a Logistica - Crear Entrega y Seguimiento",
+    "description": "Coleccion para que Restaurantes envie a Logistica un pedido ya ordenado/cobrado y Logistica cree la entrega, la publique en feed y permita seguimiento. Restaurantes debe llamar Crear entrega directa cuando ya tiene el payload logistico completo. La variante Crear desde Restaurante requiere que Logistica pueda consultar el payload en Restaurantes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "logisticaBaseUrl",
+      "value": "https://modulo-logistica.fly.dev"
+    },
+    {
+      "key": "restaurantesBaseUrl",
+      "value": "https://restaurantes.fly.dev/api"
+    },
+    {
+      "key": "restauranteId",
+      "value": "1"
+    },
+    {
+      "key": "pedidoId",
+      "value": "1001"
+    },
+    {
+      "key": "entregaId",
+      "value": "1"
+    },
+    {
+      "key": "courierId",
+      "value": "1"
+    },
+    {
+      "key": "categoriaCodigo",
+      "value": "FOOD"
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Health Logistica",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/health"
+      },
+      "response": [
+        {
+          "name": "200 - Healthy",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{logisticaBaseUrl}}/health"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"status\": \"healthy\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "1 - Validar categorias en Logistica",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/categorias?activa=true"
+      }
+    },
+    {
+      "name": "2 - Crear categoria FOOD si no existe",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"codigo\": \"FOOD\",\n  \"nombre\": \"Comida\",\n  \"descripcion\": \"Restaurantes y comida rapida\",\n  \"icono\": \"utensils\",\n  \"color_hex\": \"#FF6B35\",\n  \"orden_display\": 1\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/categorias"
+      }
+    },
+    {
+      "name": "3 - Crear entrega directa desde pedido ya cobrado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body && body.data && body.data.id_entrega) {",
+              "  pm.collectionVariables.set('entregaId', body.data.id_entrega);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_origen\": \"pedido\",\n  \"orden_id\": \"{{pedidoId}}\",\n  \"empresa_id\": \"{{restauranteId}}\",\n  \"sucursal_id\": null,\n  \"cliente_id\": 500,\n  \"categoria_codigo\": \"{{categoriaCodigo}}\",\n  \"metodo_pago\": \"CASH\",\n  \"tarifa_ofrecida\": 25.00,\n  \"monto_cobrar\": 150.00,\n  \"distancia_estimada_km\": 4.2,\n  \"negocio_nombre\": \"Restaurante El Buen Sabor\",\n  \"negocio_telefono\": \"5555-1111\",\n  \"negocio_direccion\": \"Zona 3, Quetzaltenango\",\n  \"origen_coordenadas\": {\n    \"lat\": 14.8355,\n    \"lng\": -91.5275\n  },\n  \"cliente_nombre\": \"Cliente Demo\",\n  \"cliente_telefono\": \"5555-2222\",\n  \"direccion_entrega\": \"Zona 1, Quetzaltenango\",\n  \"referencia_direccion\": \"Porton azul frente al parque\",\n  \"instrucciones_entrega\": \"Llamar al llegar\",\n  \"destino_coordenadas\": {\n    \"lat\": 14.8400,\n    \"lng\": -91.5200\n  },\n  \"detalles_orden\": [\n    \"1x Hamburguesa\",\n    \"1x Bebida\"\n  ],\n  \"fecha_entrega_estimada\": null\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas"
+      },
+      "response": [
+        {
+          "name": "201 - Entrega creada",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{logisticaBaseUrl}}/api/logistica/entregas"
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"message\": \"Entrega creada exitosamente\",\n  \"data\": {\n    \"id_entrega\": \"1\",\n    \"tipo_origen\": \"pedido\",\n    \"origen_id\": \"1001\",\n    \"empresa_id\": \"1\",\n    \"estado_entrega\": \"pendiente\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "4 - Crear entrega desde Restaurante usando payload logistico remoto",
+      "description": "Usar este endpoint solo si Restaurantes ya expone GET /api/restaurantes/:restauranteId/pedidos/:pedidoId/logistica y Logistica tiene configurada RESTAURANTES_API_URL.",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body && body.data && body.data.id_entrega) {",
+              "  pm.collectionVariables.set('entregaId', body.data.id_entrega);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/restaurantes/{{restauranteId}}/pedidos/{{pedidoId}}"
+      }
+    },
+    {
+      "name": "5 - Consultar feed de pedidos disponibles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/feed/disponibles"
+      }
+    },
+    {
+      "name": "6 - Preview publico para UI Repartidores",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/feed/{{entregaId}}/preview"
+      }
+    },
+    {
+      "name": "7 - Consultar entrega desde Restaurante",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/{{entregaId}}"
+      }
+    },
+    {
+      "name": "8 - Consultar historial de seguimiento",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/{{entregaId}}/historial"
+      }
+    },
+    {
+      "name": "9 - Consultar notificaciones enviadas a Restaurante",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{logisticaBaseUrl}}/api/logistica/notificaciones?entrega_id={{entregaId}}"
+      }
+    },
+    {
+      "name": "10 - Simulacion UI Repartidor - aceptar pedido",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-user-id",
+            "value": "{{courierId}}"
+          },
+          {
+            "key": "x-user-role",
+            "value": "repartidor"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"repartidor_id\": \"{{courierId}}\",\n  \"comentario\": \"Pedido aceptado por repartidor desde UI\"\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/feed/{{entregaId}}/aceptar"
+      }
+    },
+    {
+      "name": "11 - Simulacion UI Repartidor - marcar recogida",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-user-id",
+            "value": "{{courierId}}"
+          },
+          {
+            "key": "x-user-role",
+            "value": "repartidor"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"comentario\": \"Pedido recogido en restaurante\"\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/{{entregaId}}/recogida"
+      }
+    },
+    {
+      "name": "12 - Simulacion UI Repartidor - marcar entregada",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-user-id",
+            "value": "{{courierId}}"
+          },
+          {
+            "key": "x-user-role",
+            "value": "repartidor"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"comentario\": \"Pedido entregado al cliente\"\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/{{entregaId}}/entregada"
+      }
+    },
+    {
+      "name": "13 - Cancelar entrega desde Restaurante/Admin",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"comentario\": \"Cancelacion solicitada por restaurante\"\n}"
+        },
+        "url": "{{logisticaBaseUrl}}/api/logistica/entregas/{{entregaId}}/cancelar"
+      }
+    },
+    {
+      "name": "Contrato que Restaurante debe exponer - payload logistico",
+      "description": "Este endpoint vive en Restaurantes. Logistica lo usa si se llama Crear entrega desde Restaurante usando payload remoto.",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{restaurantesBaseUrl}}/restaurantes/{{restauranteId}}/pedidos/{{pedidoId}}/logistica"
+      },
+      "response": [
+        {
+          "name": "200 - Payload logistico esperado",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{restaurantesBaseUrl}}/restaurantes/{{restauranteId}}/pedidos/{{pedidoId}}/logistica"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"success\": true,\n  \"data\": {\n    \"orden_id\": 1001,\n    \"tipo_origen\": \"pedido\",\n    \"empresa_id\": 1,\n    \"sucursal_id\": null,\n    \"cliente_id\": 500,\n    \"categoria_codigo\": \"FOOD\",\n    \"metodo_pago\": \"CASH\",\n    \"tarifa_ofrecida\": 25.00,\n    \"monto_cobrar\": 150.00,\n    \"distancia_estimada_km\": 4.2,\n    \"negocio_nombre\": \"Restaurante El Buen Sabor\",\n    \"negocio_telefono\": \"5555-1111\",\n    \"negocio_direccion\": \"Zona 3, Quetzaltenango\",\n    \"origen_coordenadas\": { \"lat\": 14.8355, \"lng\": -91.5275 },\n    \"cliente_nombre\": \"Cliente Demo\",\n    \"cliente_telefono\": \"5555-2222\",\n    \"direccion_entrega\": \"Zona 1, Quetzaltenango\",\n    \"referencia_direccion\": \"Porton azul frente al parque\",\n    \"instrucciones_entrega\": \"Llamar al llegar\",\n    \"destino_coordenadas\": { \"lat\": 14.84, \"lng\": -91.52 },\n    \"detalles_orden\": [\"1x Hamburguesa\", \"1x Bebida\"],\n    \"fecha_entrega_estimada\": null\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Contrato que Restaurante debe exponer - recibir estado logistico",
+      "description": "Logistica notifica a Restaurantes cuando cambia el estado de la entrega. Este contrato permite actualizar el pedido original.",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_id\": 5,\n  \"motivo\": \"PICKED_UP\",\n  \"metadata\": {\n    \"entrega_id\": \"{{entregaId}}\",\n    \"estado_logistica\": \"en_ruta\",\n    \"repartidor_id\": \"{{courierId}}\",\n    \"comentario\": \"Pedido recogido\",\n    \"timestamp\": \"2026-05-13T00:00:00.000Z\"\n  }\n}"
+        },
+        "url": "{{restaurantesBaseUrl}}/restaurantes/{{restauranteId}}/pedidos/{{pedidoId}}/estado"
+      }
+    }
+  ]
+}

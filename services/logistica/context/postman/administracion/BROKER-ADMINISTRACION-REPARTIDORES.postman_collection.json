@@ -1,0 +1,267 @@
+{
+  "info": {
+    "name": "Broker - Administracion Repartidores para Logistica",
+    "description": "Coleccion para que Broker mapee los contratos que Logistica necesita de Administracion. Actualmente apunta directo a Administracion; cuando Broker este listo, cambiar brokerBaseUrl por la URL del Broker y ajustar el path si aplica.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "brokerBaseUrl",
+      "value": "https://pedidosnow-administracion-production.up.railway.app"
+    },
+    {
+      "key": "adminBaseUrl",
+      "value": "https://pedidosnow-administracion-production.up.railway.app"
+    },
+    {
+      "key": "module",
+      "value": "logistica"
+    },
+    {
+      "key": "courierId",
+      "value": "1"
+    },
+    {
+      "key": "deliveryId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Administracion",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{brokerBaseUrl}}/health"
+      },
+      "response": [
+        {
+          "name": "200 - OK",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{brokerBaseUrl}}/health"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"status\": \"ok\",\n  \"service\": \"administracion\",\n  \"version\": \"V1\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Broker debe listar todos los repartidores",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{brokerBaseUrl}}/api/internal/couriers"
+      }
+    },
+    {
+      "name": "Broker debe listar repartidores disponibles para Logistica",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{brokerBaseUrl}}/api/internal/couriers?available=true&module={{module}}"
+      },
+      "response": [
+        {
+          "name": "200 - Repartidores disponibles",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{brokerBaseUrl}}/api/internal/couriers?available=true&module={{module}}"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "[\n  {\n    \"id\": 1,\n    \"courierId\": 1,\n    \"userId\": 1,\n    \"firstName\": \"Carlos\",\n    \"lastName\": \"Mendez\",\n    \"email\": \"courier@example.com\",\n    \"phone\": \"5555-1234\",\n    \"active\": true,\n    \"accountStatus\": \"ACTIVE\",\n    \"operationalStatus\": \"AVAILABLE\",\n    \"estado_operativo\": \"AVAILABLE\",\n    \"activeModule\": null,\n    \"modulo_activo\": null,\n    \"activeDeliveryId\": null,\n    \"entrega_id\": null,\n    \"vehicleType\": \"MOTORCYCLE\",\n    \"licensePlate\": \"M-123ABC\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Broker debe soportar contrato en espanol para disponibles",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{brokerBaseUrl}}/api/internal/couriers?disponible=true&modulo={{module}}"
+      }
+    },
+    {
+      "name": "Broker debe consultar repartidor por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}"
+      },
+      "response": [
+        {
+          "name": "200 - Detalle repartidor",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"userId\": 1,\n  \"firstName\": \"Carlos\",\n  \"lastName\": \"Mendez\",\n  \"active\": true,\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"AVAILABLE\",\n  \"estado_operativo\": \"AVAILABLE\",\n  \"activeModule\": null,\n  \"modulo_activo\": null,\n  \"activeDeliveryId\": null,\n  \"entrega_id\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Preparar repartidor disponible",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"AVAILABLE\"\n}"
+        },
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+      }
+    },
+    {
+      "name": "Broker debe marcar repartidor ocupado por Logistica",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"{{module}}\",\n  \"entrega_id\": \"{{deliveryId}}\"\n}"
+        },
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+      },
+      "response": [
+        {
+          "name": "200 - Repartidor ocupado",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"logistica\",\n  \"entrega_id\": \"1\"\n}"
+            },
+            "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"OCCUPIED\",\n  \"estado_operativo\": \"OCCUPIED\",\n  \"activeModule\": \"logistica\",\n  \"modulo_activo\": \"logistica\",\n  \"activeDeliveryId\": \"1\",\n  \"entrega_id\": \"1\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Broker debe rechazar ocupado si ya no esta disponible",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"{{module}}\",\n  \"entrega_id\": \"{{deliveryId}}\"\n}"
+        },
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+      },
+      "response": [
+        {
+          "name": "400 - No disponible",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"OCCUPIED\",\n  \"modulo_activo\": \"logistica\",\n  \"entrega_id\": \"1\"\n}"
+            },
+            "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"message\": \"El repartidor no esta disponible para asignacion.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Broker debe liberar repartidor a disponible",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"AVAILABLE\"\n}"
+        },
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+      },
+      "response": [
+        {
+          "name": "200 - Repartidor disponible",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_operativo\": \"AVAILABLE\"\n}"
+            },
+            "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "body": "{\n  \"id\": 1,\n  \"courierId\": 1,\n  \"accountStatus\": \"ACTIVE\",\n  \"operationalStatus\": \"AVAILABLE\",\n  \"estado_operativo\": \"AVAILABLE\",\n  \"activeModule\": null,\n  \"modulo_activo\": null,\n  \"activeDeliveryId\": null,\n  \"entrega_id\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Broker debe marcar repartidor inactivo",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_operativo\": \"INACTIVE\"\n}"
+        },
+        "url": "{{brokerBaseUrl}}/api/internal/couriers/{{courierId}}/status"
+      }
+    }
+  ]
+}
