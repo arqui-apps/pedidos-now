@@ -186,7 +186,8 @@ async function buildBotMessage(state, context, userType, extra = {}) {
         }
 
         return (
-            "No se encontró información para el pedido ingresado.\n" +
+            "No se encontró ningún pedido con el código ingresado.\n" +
+            "Verifica que el código sea correcto e intenta de nuevo.\n" +
             "0. Volver al menú"
         );
     }

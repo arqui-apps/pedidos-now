@@ -18,17 +18,7 @@ function extractOrderId(order_code) {
     return match ? parseInt(match[1], 10) : null;
 }
 
-function buildMockOrder(order_code) {
-    return {
-        order_code,
-        status: "en_camino",
-        business: "Restaurante Ejemplo",
-        items: ["Hamburguesa x1", "Refresco x2"],
-        total: 85.5,
-        estimated_delivery: "20 minutos",
-        source: "mock",
-    };
-}
+
 
 // ─── Restaurantes ─────────────────────────────────────────────────────────────
 
@@ -317,28 +307,23 @@ function normalizeLogisticaOrder(entrega) {
  * TODO: cambiar a GET /api/logistica/entregas?origen_id={order_id} cuando esté disponible
  */
 async function findOrderInLogistica(order_id) {
-    // Intentar primero con filtro directo (cuando Logística lo implemente)
-    const { success: okDirect, data: directData } = await httpGet(
-        `${LOGISTICA_URL}/api/logistica/entregas?origen_id=${order_id}&limit=1`,
-        null
-    );
-
-    if (okDirect && directData?.data?.length) {
-        const entrega = directData.data.find(e => String(e.origen_id) === String(order_id));
-        if (entrega) return normalizeLogisticaOrder(entrega);
-    }
-
-    // Fallback: traer todas y filtrar localmente
+    // Endpoint directo por origen_id
     const { success, data } = await httpGet(
-        `${LOGISTICA_URL}/api/logistica/entregas?page=1&limit=100`,
+        `${LOGISTICA_URL}/api/logistica/entregas/origen/${order_id}?tipo_origen=pedido`,
         null
     );
 
-    if (!success || !data?.data?.length) return null;
+    if (!success || !data?.data) return null;
 
-    const entrega = data.data.find(e => String(e.origen_id) === String(order_id));
+    // Puede devolver array o un solo objeto
+    const entregas = Array.isArray(data.data) ? data.data : [data.data];
+    if (!entregas.length) return null;
+
+    // Tomar la entrega más reciente activa
+    const entrega = entregas.find(e => e.activa) || entregas[0];
     if (!entrega) return null;
 
+    logger.info({ order_id, entrega_id: entrega.id_entrega, estado: entrega.estado_entrega }, "[Logistica] Entrega encontrada");
     return normalizeLogisticaOrder(entrega);
 }
 
@@ -365,6 +350,44 @@ async function getPendingFromLogistica(id_repartidor) {
         total:             parseFloat(a.monto_cobrar) || 0,
         source:            "logistica",
     }));
+}
+
+/**
+ * Cancela una entrega en Logística.
+ * Primero busca el id_entrega por origen_id, luego cancela.
+ * PATCH /api/logistica/entregas/:id_entrega/cancelar
+ */
+async function cancelOrderInLogistica(order_id, reason) {
+    // 1. Buscar la entrega
+    const { success, data } = await httpGet(
+        `${LOGISTICA_URL}/api/logistica/entregas/origen/${order_id}?tipo_origen=pedido`,
+        null
+    );
+
+    if (!success || !data?.data) return null;
+
+    const entregas = Array.isArray(data.data) ? data.data : [data.data];
+    const entrega = entregas.find(e => e.activa) || entregas[0];
+    if (!entrega?.id_entrega) return null;
+
+    // 2. Cancelar la entrega
+    const { success: ok, data: resultado } = await httpPost(
+        `${LOGISTICA_URL}/api/logistica/entregas/${entrega.id_entrega}/cancelar`,
+        { comentario: reason || "Cancelado por el cliente a través del chat automatizado" },
+        null
+    );
+
+    if (!ok || !resultado) {
+        logger.warn({ entrega_id: entrega.id_entrega }, "[Logistica] No se pudo cancelar la entrega");
+        return null;
+    }
+
+    logger.info({ entrega_id: entrega.id_entrega }, "[Logistica] Entrega cancelada exitosamente");
+    return {
+        cancelled: true,
+        message:   "Entrega cancelada exitosamente",
+        data:      resultado?.data || resultado,
+    };
 }
 
 /**
@@ -465,30 +488,17 @@ async function getPendingFromPaqueteria(id_repartidor) {
 async function getOrderByCode(order_code) {
     const order_id = extractOrderId(order_code);
 
-    // 1. Buscar en Logística primero — fuente central de verdad
-    if (order_id) {
-        const fromLogistica = await findOrderInLogistica(order_id);
-        if (fromLogistica) return fromLogistica;
+    if (!order_id) {
+        logger.warn({ order_code }, "[Pedidos] Código de pedido inválido");
+        return buildMockOrder(order_code);
     }
 
-    // 2. Fallback: buscar en restaurantes directamente
-    if (order_id && RESTAURANTS_URL !== "http://localhost:3002") {
-        const fromRestaurant = await findOrderInRestaurants(order_id);
-        if (fromRestaurant) return fromRestaurant;
-    }
+    // Logística es la única fuente de verdad para pedidos
+    const fromLogistica = await findOrderInLogistica(order_id);
+    if (fromLogistica) return fromLogistica;
 
-    // 3. Fallback: buscar en negocios directamente
-    const fromNegocios = await findOrderInNegocios(order_code);
-    if (fromNegocios) return fromNegocios;
-
-    // 4. Fallback: buscar en paquetería directamente
-    if (order_id) {
-        const fromPaqueteria = await findOrderInPaqueteria(order_id);
-        if (fromPaqueteria) return fromPaqueteria;
-    }
-
-    logger.warn({ order_code }, "[Pedidos] Ningún servicio encontró el pedido");
-    return buildMockOrder(order_code);
+    logger.warn({ order_code }, "[Pedidos] Pedido no encontrado en Logística");
+    return null;
 }
 
 async function getPendingOrdersByDelivery(id_repartidor) {
@@ -509,28 +519,32 @@ async function getPendingOrdersByDelivery(id_repartidor) {
         }
     }
 
-    if (allOrders.length === 0) {
-        return [{
-            order_code: "PED-MOCK-001",
-            status:     "pendiente",
-            business:   "Farmacia Ejemplo",
-            address:    "4a Calle 5-55 Zona 1",
-            source:     "mock",
-        }];
-    }
     return allOrders;
 }
 
 async function cancelOrder(order_code, id_negocio, reason) {
     const order_id = extractOrderId(order_code);
 
-    // 1. Intentar cancelar en restaurantes
+    // 1. Cancelar en Logística (cancela la entrega)
+    if (order_id) {
+        const logisticaResult = await cancelOrderInLogistica(order_id, reason);
+        if (logisticaResult) {
+            // También cancelar en el origen (restaurante/negocio)
+            if (RESTAURANTS_URL !== "http://localhost:3002") {
+                await cancelOrderInRestaurants(order_id, reason).catch(() => {});
+            }
+            await cancelOrderInNegocios(order_code, reason).catch(() => {});
+            return logisticaResult;
+        }
+    }
+
+    // 2. Fallback: cancelar directo en restaurantes
     if (order_id && RESTAURANTS_URL !== "http://localhost:3002") {
         const result = await cancelOrderInRestaurants(order_id, reason);
         if (result) return result;
     }
 
-    // 2. Intentar cancelar en negocios
+    // 3. Fallback: cancelar en negocios
     const negocioResult = await cancelOrderInNegocios(order_code, reason);
     if (negocioResult) return negocioResult;
 
@@ -540,4 +554,4 @@ async function cancelOrder(order_code, id_negocio, reason) {
     };
 }
 
-export { getOrderByCode, getPendingOrdersByDelivery, cancelOrder };
+export { getOrderByCode, getPendingOrdersByDelivery, cancelOrder, createIncidencia };
