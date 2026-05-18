@@ -8,6 +8,7 @@ import {
     getOrderByCode,
     getPendingOrdersByDelivery,
     cancelOrder,
+    createIncidencia,
 } from "./external/pedidos.external.js";
 
 import {
@@ -36,10 +37,11 @@ export {
     getUserById,
     getDeliveryById,
     getBusinessById,
-    // Pedidos
+    // Pedidos / Logística
     getOrderByCode,
     getPendingOrdersByDelivery,
     cancelOrder,
+    createIncidencia,
     // Descuentos
     createCompensationCoupon,
     validateCoupon,

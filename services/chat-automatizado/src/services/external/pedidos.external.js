@@ -7,6 +7,8 @@ const NEGOCIOS_URL =
     process.env.NEGOCIOS_SERVICE_URL || "http://localhost:3003";
 const PAQUETERIA_URL =
     process.env.PAQUETERIA_SERVICE_URL || "https://pedidos-now-backend.onrender.com";
+const LOGISTICA_URL =
+    process.env.LOGISTICA_SERVICE_URL || "https://modulo-logistica.fly.dev";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,23 +79,44 @@ function normalizeRestaurantOrder(pedido, restauranteName = "Restaurante") {
     };
 }
 
+// Cache en memoria: { order_id -> restaurante_id }
+const orderRestaurantCache = new Map();
+
 async function findOrderInRestaurants(order_id) {
     const restaurantes = await getRestaurantList();
     if (!restaurantes.length) return null;
 
+    // 1. Si ya sabemos en qué restaurante está, ir directo
+    if (orderRestaurantCache.has(order_id)) {
+        const cachedId = orderRestaurantCache.get(order_id);
+        const restaurante = restaurantes.find(r => r.id === cachedId);
+
+        if (restaurante) {
+            const { success: ok, data: respuestaPedido } = await httpGet(
+                `${RESTAURANTS_URL}/restaurantes/${restaurante.id}/pedidos/${order_id}`,
+                null
+            );
+            const pedido = respuestaPedido?.data?.data || respuestaPedido?.data || respuestaPedido;
+            if (ok && pedido?.id) {
+                return normalizeRestaurantOrder(pedido, restaurante.nombre);
+            }
+            // Si falla, limpiar caché y buscar en todos
+            orderRestaurantCache.delete(order_id);
+        }
+    }
+
+    // 2. Buscar en todos en paralelo
     const resultados = await Promise.all(
         restaurantes.map(async (restaurante) => {
             const { success: ok, data: respuestaPedido } = await httpGet(
                 `${RESTAURANTS_URL}/restaurantes/${restaurante.id}/pedidos/${order_id}`,
                 null
             );
-
-            const pedido =
-                respuestaPedido?.data?.data ||
-                respuestaPedido?.data ||
-                respuestaPedido;
-
+            const pedido = respuestaPedido?.data?.data || respuestaPedido?.data || respuestaPedido;
             if (ok && pedido?.id) {
+                // Guardar en caché para la próxima búsqueda
+                orderRestaurantCache.set(order_id, restaurante.id);
+                logger.info({ order_id, restaurante_id: restaurante.id }, "[Pedidos] Pedido encontrado y cacheado");
                 return normalizeRestaurantOrder(pedido, restaurante.nombre);
             }
             return null;
@@ -172,6 +195,204 @@ async function getPendingFromRestaurants(id_repartidor) {
     return resultados.flat();
 }
 
+// ─── Negocios ─────────────────────────────────────────────────────────────────
+
+/**
+ * Normaliza la respuesta de Negocios al formato que espera el bot.
+ * Estados: pending_validation, confirmed, preparing, ready_for_pickup,
+ *          delivered, cancelled, cancelled_by_business
+ */
+function normalizeBusinessOrder(order) {
+    const estadoMap = {
+        pending_validation:    "pendiente",
+        confirmed:             "confirmado",
+        preparing:             "en_preparacion",
+        ready_for_pickup:      "listo",
+        delivered:             "entregado",
+        cancelled:             "cancelado",
+        cancelled_by_business: "cancelado",
+    };
+
+    const items = order.details?.map((d) => {
+        return `${d.productNameSnapshot} x${d.quantity}`;
+    }) || [];
+
+    return {
+        order_code:        order.externalOrderCode || `PED-${order.businessOrderId}`,
+        id:                order.businessOrderId,
+        status:            estadoMap[order.orderStatus] || "desconocido",
+        business:          `Negocio #${order.businessId}`,
+        items,
+        total:             parseFloat(order.totalPaidAmountSnapshot) || 0,
+        direccion_entrega: "",
+        notas:             order.cancellationReason || null,
+        estimated_delivery: null,
+        source:            "negocio",
+    };
+}
+
+/**
+ * Busca un pedido de negocio por código externo.
+ * GET /api/internal/business-orders/{externalOrderCode}
+ * El externalOrderCode puede ser el mismo order_code del usuario (ej: PED-7)
+ */
+async function findOrderInNegocios(order_code) {
+    const { success, data } = await httpGet(
+        `${NEGOCIOS_URL}/api/internal/business-orders/${order_code}`,
+        null
+    );
+
+    if (!success || !data) return null;
+
+    const order = data?.data || data;
+    if (!order?.businessOrderId) return null;
+
+    return normalizeBusinessOrder(order);
+}
+
+/**
+ * Cancela un pedido de negocio.
+ * POST /api/internal/business-orders/cancel
+ */
+async function cancelOrderInNegocios(order_code, reason) {
+    const { success, data } = await httpPost(
+        `${NEGOCIOS_URL}/api/internal/business-orders/cancel`,
+        {
+            externalOrderCode: order_code,
+            cancelledBy:       "customer",
+            cancellationReason: reason || "Cancelado por el cliente a través del chat automatizado",
+        },
+        null
+    );
+
+    if (!success || !data) return null;
+
+    return {
+        cancelled: true,
+        message:   "Pedido de negocio cancelado exitosamente",
+        data:      data?.data || data,
+    };
+}
+
+// ─── Logística ───────────────────────────────────────────────────────────────
+
+/**
+ * Normaliza la respuesta de Logística al formato que espera el bot.
+ * Estados: pendiente, asignada, en_ruta, entregada, cancelada, no_entregada
+ */
+function normalizeLogisticaOrder(entrega) {
+    const estadoMap = {
+        pendiente:     "pendiente",
+        asignada:      "confirmado",
+        en_ruta:       "en_camino",
+        entregada:     "entregado",
+        cancelada:     "cancelado",
+        no_entregada:  "no_entregado",
+    };
+
+    const repartidor = entrega.asignaciones?.find(a => a.activa)?.repartidor_id || null;
+
+    return {
+        order_code:        `PED-${entrega.origen_id}`,
+        id:                entrega.origen_id,
+        entrega_id:        entrega.id_entrega,
+        status:            estadoMap[entrega.estado_entrega] || "desconocido",
+        business:          entrega.negocio_nombre || "Negocio",
+        items:             entrega.detalles_orden || [],
+        total:             parseFloat(entrega.monto_cobrar) || 0,
+        direccion_entrega: entrega.direccion_entrega || "",
+        referencia:        entrega.referencia_direccion || null,
+        instrucciones:     entrega.instrucciones_entrega || null,
+        repartidor_id:     repartidor,
+        tipo_origen:       entrega.tipo_origen || "pedido",
+        fecha_estimada:    entrega.fecha_entrega_estimada || null,
+        source:            "logistica",
+    };
+}
+
+/**
+ * Busca el pedido en Logística por origen_id.
+ * Mientras el equipo de Logística agrega el filtro ?origen_id=X,
+ * traemos todas las entregas y filtramos del lado nuestro.
+ * TODO: cambiar a GET /api/logistica/entregas?origen_id={order_id} cuando esté disponible
+ */
+async function findOrderInLogistica(order_id) {
+    // Intentar primero con filtro directo (cuando Logística lo implemente)
+    const { success: okDirect, data: directData } = await httpGet(
+        `${LOGISTICA_URL}/api/logistica/entregas?origen_id=${order_id}&limit=1`,
+        null
+    );
+
+    if (okDirect && directData?.data?.length) {
+        const entrega = directData.data.find(e => String(e.origen_id) === String(order_id));
+        if (entrega) return normalizeLogisticaOrder(entrega);
+    }
+
+    // Fallback: traer todas y filtrar localmente
+    const { success, data } = await httpGet(
+        `${LOGISTICA_URL}/api/logistica/entregas?page=1&limit=100`,
+        null
+    );
+
+    if (!success || !data?.data?.length) return null;
+
+    const entrega = data.data.find(e => String(e.origen_id) === String(order_id));
+    if (!entrega) return null;
+
+    return normalizeLogisticaOrder(entrega);
+}
+
+/**
+ * Busca entregas activas de un repartidor en Logística.
+ * GET /api/logistica/asignaciones/repartidor/:id?activa=true
+ */
+async function getPendingFromLogistica(id_repartidor) {
+    const { success, data } = await httpGet(
+        `${LOGISTICA_URL}/api/logistica/asignaciones/repartidor/${id_repartidor}?activa=true`,
+        null
+    );
+
+    if (!success || !data?.data) return [];
+
+    const asignaciones = Array.isArray(data.data) ? data.data : [data.data];
+
+    return asignaciones.map(a => ({
+        order_code:        `PED-${a.origen_id || a.entrega_id}`,
+        id:                a.entrega_id,
+        status:            "en_camino",
+        business:          a.negocio_nombre || "Negocio",
+        address:           a.direccion_entrega || "",
+        total:             parseFloat(a.monto_cobrar) || 0,
+        source:            "logistica",
+    }));
+}
+
+/**
+ * Crea una incidencia en Logística cuando el repartidor reporta un problema.
+ * POST /api/logistica/incidencias
+ * tipo_incidencia: cliente_ausente, direccion_incorrecta, accidente, otro
+ */
+async function createIncidencia(entrega_id, repartidor_id, tipo_incidencia, descripcion) {
+    const { success, data } = await httpPost(
+        `${LOGISTICA_URL}/api/logistica/incidencias`,
+        {
+            entrega_id,
+            repartidor_id,
+            tipo_incidencia,
+            descripcion: descripcion || "Incidencia reportada desde chat automatizado",
+        },
+        null
+    );
+
+    if (!success || !data) {
+        logger.warn({ entrega_id, tipo_incidencia }, "[Logistica] No se pudo crear incidencia");
+        return null;
+    }
+
+    logger.info({ entrega_id, tipo_incidencia }, "[Logistica] Incidencia creada exitosamente");
+    return data?.data || data;
+}
+
 // ─── Paquetería ───────────────────────────────────────────────────────────────
 
 function normalizePackageOrder(pkg) {
@@ -244,39 +465,49 @@ async function getPendingFromPaqueteria(id_repartidor) {
 async function getOrderByCode(order_code) {
     const order_id = extractOrderId(order_code);
 
-    // 1. Buscar en restaurantes
+    // 1. Buscar en Logística primero — fuente central de verdad
+    if (order_id) {
+        const fromLogistica = await findOrderInLogistica(order_id);
+        if (fromLogistica) return fromLogistica;
+    }
+
+    // 2. Fallback: buscar en restaurantes directamente
     if (order_id && RESTAURANTS_URL !== "http://localhost:3002") {
         const fromRestaurant = await findOrderInRestaurants(order_id);
         if (fromRestaurant) return fromRestaurant;
     }
 
-    // 2. Buscar en paquetería
+    // 3. Fallback: buscar en negocios directamente
+    const fromNegocios = await findOrderInNegocios(order_code);
+    if (fromNegocios) return fromNegocios;
+
+    // 4. Fallback: buscar en paquetería directamente
     if (order_id) {
         const fromPaqueteria = await findOrderInPaqueteria(order_id);
         if (fromPaqueteria) return fromPaqueteria;
     }
-
-    // 3. Buscar en negocios
-    const negocios = await httpGet(`${NEGOCIOS_URL}/orders/${order_code}`, null);
-    if (negocios.success && negocios.data)
-        return { ...negocios.data, source: "negocio" };
 
     logger.warn({ order_code }, "[Pedidos] Ningún servicio encontró el pedido");
     return buildMockOrder(order_code);
 }
 
 async function getPendingOrdersByDelivery(id_repartidor) {
-    const [fromRestaurants, fromPaqueteria, negocios] = await Promise.all([
+    // Logística es la fuente principal para pedidos activos del repartidor
+    const [fromLogistica, fromRestaurants] = await Promise.all([
+        getPendingFromLogistica(id_repartidor),
         getPendingFromRestaurants(id_repartidor),
-        getPendingFromPaqueteria(id_repartidor),
-        httpGet(`${NEGOCIOS_URL}/orders/delivery/${id_repartidor}/pending`, []),
     ]);
 
-    const allOrders = [
-        ...fromRestaurants,
-        ...fromPaqueteria,
-        ...(negocios.data || []).map((o) => ({ ...o, source: "negocio" })),
-    ];
+    // Combinar y deduplicar por order_code
+    const seen = new Set();
+    const allOrders = [];
+
+    for (const order of [...fromLogistica, ...fromRestaurants]) {
+        if (!seen.has(order.order_code)) {
+            seen.add(order.order_code);
+            allOrders.push(order);
+        }
+    }
 
     if (allOrders.length === 0) {
         return [{
@@ -300,12 +531,8 @@ async function cancelOrder(order_code, id_negocio, reason) {
     }
 
     // 2. Intentar cancelar en negocios
-    const negocioResult = await httpPost(
-        `${NEGOCIOS_URL}/orders/${order_code}/cancel`,
-        { id_negocio, reason },
-        null
-    );
-    if (negocioResult.success && negocioResult.data) return negocioResult.data;
+    const negocioResult = await cancelOrderInNegocios(order_code, reason);
+    if (negocioResult) return negocioResult;
 
     return {
         cancelled: false,
