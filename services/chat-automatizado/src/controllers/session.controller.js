@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import * as chatService from "../services/chat.Service.js";
 import { ChatSession } from "../models/index.js";
 
@@ -29,7 +30,7 @@ export const startSession = async (req, res) => {
             data: result,
         });
     } catch (error) {
-        console.error("startSession error:", error);
+        logger.error({ err: error.message }, 'startSession error');
         return res.status(500).json({
             message: error.message || "Error al iniciar la sesión",
         });
@@ -58,7 +59,7 @@ export const sendMessage = async (req, res) => {
             data: result,
         });
     } catch (error) {
-        console.error("sendMessage error:", error);
+        logger.error({ err: error.message }, 'sendMessage error');
         if (
             error.message === "Sesión no encontrada" ||
             error.message === "La sesión ya no está activa"
@@ -99,7 +100,7 @@ export const getSession = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getSession error:", error);
+        logger.error({ err: error.message }, 'getSession error');
         return res.status(500).json({ message: "Error al obtener la sesión" });
     }
 };
@@ -135,7 +136,7 @@ export const getSessionHistory = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getSessionHistory error:", error);
+        logger.error({ err: error.message }, 'getSessionHistory error');
         return res.status(500).json({ message: "Error al obtener el historial" });
     }
 };
@@ -168,7 +169,7 @@ export const closeSession = async (req, res) => {
             data: { id_session, resolution: "cerrado_sin_resolver" },
         });
     } catch (error) {
-        console.error("closeSession error:", error);
+        logger.error({ err: error.message }, 'closeSession error');
         return res.status(500).json({ message: "Error al cerrar la sesión" });
     }
 };

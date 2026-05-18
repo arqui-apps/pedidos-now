@@ -9,6 +9,7 @@ import {
     SupportRequest,
 } from "../models/index.js";
 import pool from "../config/database.js";
+import logger from "../config/logger.js";
 import { buildEscalationPayload } from "./escalation.service.js";
 
 
@@ -89,7 +90,6 @@ function getPersistedSnapshot(actor) {
     if (typeof actor.getPersistedSnapshot === "function") {
         return actor.getPersistedSnapshot();
     }
-
     return actor.getSnapshot();
 }
 
@@ -102,7 +102,7 @@ function normalizePersistedSnapshot(rawSnapshot) {
         try {
             snapshot = JSON.parse(snapshot);
         } catch (error) {
-            console.warn("No se pudo parsear chat_context:", error);
+            logger.warn({ err: error.message }, "[Chat] No se pudo parsear chat_context");
             return null;
         }
     }
@@ -186,7 +186,8 @@ async function buildBotMessage(state, context, userType, extra = {}) {
         }
 
         return (
-            "No se encontró información para el pedido ingresado.\n" +
+            "No se encontró ningún pedido con el código ingresado.\n" +
+            "Verifica que el código sea correcto e intenta de nuevo.\n" +
             "0. Volver al menú"
         );
     }
@@ -265,10 +266,7 @@ export async function startSession({ id_usuario, user_type }) {
     }
 
     const actor = createActor(chatMachine, {
-        input: {
-            id_usuario,
-            user_type,
-        },
+        input: { id_usuario, user_type },
     });
 
     actor.start();
@@ -296,6 +294,8 @@ export async function startSession({ id_usuario, user_type }) {
 
     await saveMessage(session.id_session, "bot", botMessage);
 
+    logger.info({ id_session: session.id_session, id_usuario, user_type }, "[Chat] Sesión iniciada");
+
     return {
         resumed: false,
         id_session: session.id_session,
@@ -322,49 +322,30 @@ export async function sendMessage({ id_session, input, input_type = null }) {
         user_type: session.user_type,
     };
 
-    console.log("typeof session.chat_context:", typeof session.chat_context);
-    console.log("session.chat_context:", session.chat_context);
-    console.log("session.current_state:", session.current_state);
-    console.log("session.user_type:", session.user_type);
-    console.log("session.id_usuario:", session.id_usuario);
+    logger.debug({ id_session, state: session.current_state, user_type: session.user_type }, "[Chat] Procesando mensaje");
 
     let actor;
 
     try {
         actor = restoredSnapshot
-            ? createActor(chatMachine, {
-                snapshot: restoredSnapshot,
-            })
-            : createActor(chatMachine, {
-                input: actorInput,
-            });
+            ? createActor(chatMachine, { snapshot: restoredSnapshot })
+            : createActor(chatMachine, { input: actorInput });
 
         actor.start();
     } catch (error) {
-        console.warn(
-            `Snapshot inválido para la sesión ${id_session}, iniciando actor desde cero`,
-            error
-        );
-
-        actor = createActor(chatMachine, {
-            input: actorInput,
-        });
+        logger.warn({ id_session, err: error.message }, "[Chat] Snapshot inválido, iniciando desde cero");
+        actor = createActor(chatMachine, { input: actorInput });
         actor.start();
     }
 
-
     const beforeState = String(actor.getSnapshot().value);
-    const humanSender =
-        HUMAN_SENDER_BY_USER_TYPE[session.user_type] || "cliente";
+    const humanSender = HUMAN_SENDER_BY_USER_TYPE[session.user_type] || "cliente";
 
     await saveMessage(id_session, humanSender, normalizedInput);
 
     const eventType = resolveEventType(beforeState, input_type);
 
-    actor.send({
-        type: eventType,
-        input: normalizedInput,
-    });
+    actor.send({ type: eventType, input: normalizedInput });
 
     let currentState = String(actor.getSnapshot().value);
     let resolution = null;
@@ -376,12 +357,8 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             actor.getSnapshot().context.order_code
         );
 
-        extra = {
-            orderFound: !!order,
-            order,
-        };
+        extra = { orderFound: !!order, order };
 
-        // Guardar registro de la consulta en order_inquiry
         await pool.query(
             `INSERT INTO order_inquiry (id_session, inquiry_type, input_value, result_found, is_active)
              VALUES (?, 'pedido', ?, ?, 1)`,
@@ -414,10 +391,7 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             is_active: 1,
         });
 
-        extra = {
-            cupon_code: coupon.cupon_code,
-            amount: 25.0,
-        };
+        extra = { cupon_code: coupon.cupon_code, amount: 25.0 };
 
         botMessage = await buildBotMessage(
             currentState,
@@ -446,16 +420,11 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             expiration_date: null,
             reason: "Reembolso por problema reportado en chat automatizado",
             compensation_type: "reembolso",
-            compensation_status: refund.processed
-                ? "procesado"
-                : "pendiente",
+            compensation_status: refund.processed ? "procesado" : "pendiente",
             is_active: 1,
         });
 
-        extra = {
-            processed: refund.processed,
-            amount: 50.0,
-        };
+        extra = { processed: refund.processed, amount: 50.0 };
 
         botMessage = await buildBotMessage(
             currentState,
@@ -466,9 +435,7 @@ export async function sendMessage({ id_session, input, input_type = null }) {
 
         actor.send({ type: "RESOLVED" });
         currentState = String(actor.getSnapshot().value);
-        resolution = refund.processed
-            ? "resuelto_con_reembolso"
-            : "resuelto_con_reembolso";
+        resolution = "resuelto_con_reembolso";
     } else if (currentState === "SOPORTE_CARRETERA") {
         const support = await SupportRequest.create({
             id_delivery: session.id_usuario,
@@ -480,9 +447,7 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             is_active: 1,
         });
 
-        extra = {
-            id_support_request: support.id_support_request,
-        };
+        extra = { id_support_request: support.id_support_request };
 
         botMessage = await buildBotMessage(
             currentState,
@@ -501,14 +466,13 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             session.user_type
         );
 
-        // Cuando el negocio confirma cancelación del pedido
         if (currentState === "RESUELTO" && beforeState === "CANCELAR_PEDIDO_NEGOCIO_CONFIRMAR") {
             const orderCode = actor.getSnapshot().context.order_code;
             if (orderCode) {
                 try {
                     await ext.cancelOrder(orderCode, session.id_usuario, "Cancelado por negocio desde chat automatizado");
                 } catch (cancelErr) {
-                    console.warn("[Chat] No se pudo cancelar el pedido en servicio externo:", cancelErr.message);
+                    logger.warn({ err: cancelErr.message, orderCode }, "[Chat] No se pudo cancelar el pedido");
                 }
             }
             resolution = "resuelto";
@@ -516,8 +480,6 @@ export async function sendMessage({ id_session, input, input_type = null }) {
 
         if (currentState === "ESCALAR_AGENTE") {
             resolution = "escalado_a_agente";
-
-            // Construir y persistir el payload de transferencia al agente
             try {
                 const machineCtx = actor.getSnapshot().context;
                 extra.escalationPayload = await buildEscalationPayload({
@@ -527,7 +489,7 @@ export async function sendMessage({ id_session, input, input_type = null }) {
                     machineContext: machineCtx,
                 });
             } catch (escErr) {
-                console.warn("[Escalation] No se pudo guardar el payload:", escErr.message);
+                logger.warn({ err: escErr.message }, "[Escalation] No se pudo guardar el payload");
             }
         }
 
@@ -550,6 +512,8 @@ export async function sendMessage({ id_session, input, input_type = null }) {
     });
 
     await saveMessage(id_session, "bot", botMessage);
+
+    logger.info({ id_session, from: beforeState, to: finalState, is_final: final }, "[Chat] Mensaje procesado");
 
     return {
         id_session,

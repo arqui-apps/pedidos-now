@@ -1,4 +1,6 @@
 import express from 'express';
+import logger from './config/logger.js';
+import { setupSwagger } from './config/swagger.js';
 import cors from 'cors';
 import env from './config/env.js';
 import { testDatabaseConnection, default as pool } from './config/database.js';
@@ -76,16 +78,19 @@ app.use('/escalation', escalationRoutes);
 
 app.use(errorHandler);
 
+// ── Swagger ───────────────────────────────────────────────────────────────────
+setupSwagger(app);
+
 const startServer = async () => {
   try {
     await testDatabaseConnection();
-    console.log('Database connected');
+    logger.info('Database connected');
 
     app.listen(env.port, () => {
-      console.log(`Chatbot service running on port ${env.port}`);
+      logger.info({ port: env.port }, `Chatbot service running on port ${env.port}`);
     });
   } catch (error) {
-    console.error('Error starting server:', error.message);
+    logger.error({ err: error.message }, 'Error starting server');
   }
 };
 

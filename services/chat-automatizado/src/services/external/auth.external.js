@@ -1,4 +1,5 @@
 import { httpGet } from "./httpHelper.js";
+import logger from "../../config/logger.js";
 
 const BASE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 
@@ -13,7 +14,7 @@ async function getUserById(id_usuario) {
             is_active: true,
         }
     );
-    if (!success) console.warn(`[Auth] Usando mock para usuario ${id_usuario}`);
+    if (!success) logger.warn({ id_usuario }, "[Auth] Usando mock para usuario");
     return data;
 }
 
@@ -22,8 +23,7 @@ async function getDeliveryById(id_repartidor) {
         `${BASE_URL}/users/delivery/${id_repartidor}`,
         { id_usuario: id_repartidor, nombre: "Repartidor", is_active: true }
     );
-    if (!success)
-        console.warn(`[Auth] Usando mock para repartidor ${id_repartidor}`);
+    if (!success) logger.warn({ id_repartidor }, "[Auth] Usando mock para repartidor");
     return data;
 }
 
@@ -37,8 +37,7 @@ async function getBusinessById(id_negocio) {
             is_active: true,
         }
     );
-    if (!success)
-        console.warn(`[Auth] Usando mock para negocio ${id_negocio}`);
+    if (!success) logger.warn({ id_negocio }, "[Auth] Usando mock para negocio");
     return data;
 }
 

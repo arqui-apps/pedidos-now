@@ -1,3 +1,4 @@
+import logger from '../config/logger.js';
 import { SupportRequest } from "../models/index.js";
 
 // GET /support
@@ -38,7 +39,7 @@ export const getSupportRequests = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("getSupportRequests error:", error);
+        logger.error({ err: error.message }, 'getSupportRequests error');
         return res.status(500).json({ message: "Error al obtener las solicitudes de soporte" });
     }
 };
@@ -60,7 +61,7 @@ export const getSupportRequestById = async (req, res) => {
             data: support,
         });
     } catch (error) {
-        console.error("getSupportRequestById error:", error);
+        logger.error({ err: error.message }, 'getSupportRequestById error');
         return res.status(500).json({ message: "Error al obtener la solicitud de soporte" });
     }
 };
@@ -94,7 +95,7 @@ export const updateSupportStatus = async (req, res) => {
             data: support,
         });
     } catch (error) {
-        console.error("updateSupportStatus error:", error);
+        logger.error({ err: error.message }, 'updateSupportStatus error');
         return res.status(500).json({ message: "Error al actualizar el estado" });
     }
 };

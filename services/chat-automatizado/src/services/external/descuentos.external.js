@@ -1,9 +1,8 @@
 import { httpGet, httpPost } from "./httpHelper.js";
+import logger from "../../config/logger.js";
 
 const BASE_URL =
     process.env.DESCUENTOS_SERVICE_URL || "http://157.245.138.186:3001";
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
 
 function extractOrderId(order_code) {
     if (!order_code) return null;
@@ -11,16 +10,6 @@ function extractOrderId(order_code) {
     return match ? parseInt(match[1], 10) : null;
 }
 
-// ─── Crear cupón de compensación ─────────────────────────────────────────────
-
-/**
- * Crea un cupón de compensación para el usuario desde el bot.
- * POST /api/cupones
- * @param {number} id_usuario - ID del cliente
- * @param {number} amount - Monto del cupón
- * @param {string} reason - Motivo de la compensación
- * @param {string|null} order_code - Código del pedido afectado (ej: "PED-7")
- */
 async function createCompensationCoupon(id_usuario, amount, reason, order_code = null) {
     const { success, data } = await httpPost(
         `${BASE_URL}/api/cupones`,
@@ -40,7 +29,7 @@ async function createCompensationCoupon(id_usuario, amount, reason, order_code =
     );
 
     if (!success || !data) {
-        console.warn("[Descuentos] Servicio no disponible, generando cupón mock");
+        logger.warn({ id_usuario, amount }, "[Descuentos] Servicio no disponible, generando cupón mock");
         const mockCode = `COMP-${id_usuario}-${Date.now()}`;
         return {
             success:         true,
@@ -52,6 +41,7 @@ async function createCompensationCoupon(id_usuario, amount, reason, order_code =
     }
 
     const cupon = data?.data || data;
+    logger.info({ id_usuario, cupon_code: cupon.codigo }, "[Descuentos] Cupón generado exitosamente");
     return {
         success:         true,
         cupon_code:      cupon.codigo || cupon.code || cupon.cupon_code,
@@ -63,8 +53,6 @@ async function createCompensationCoupon(id_usuario, amount, reason, order_code =
     };
 }
 
-// ─── Validar cupón ────────────────────────────────────────────────────────────
-
 async function validateCoupon(codigo, monto_pedido = 0) {
     const { success, data } = await httpPost(
         `${BASE_URL}/api/cupones/validar`,
@@ -73,6 +61,7 @@ async function validateCoupon(codigo, monto_pedido = 0) {
     );
 
     if (!success || !data) {
+        logger.warn({ codigo }, "[Descuentos] No se pudo validar el cupón");
         return { valid: false, message: "No se pudo validar el cupón en este momento" };
     }
 
@@ -84,8 +73,6 @@ async function validateCoupon(codigo, monto_pedido = 0) {
     };
 }
 
-// ─── Cupones disponibles del cliente ─────────────────────────────────────────
-
 async function getClientCoupons(id_usuario) {
     const { success, data } = await httpGet(
         `${BASE_URL}/api/cupones/cliente/${id_usuario}/disponibles`,
@@ -93,7 +80,7 @@ async function getClientCoupons(id_usuario) {
     );
 
     if (!success) {
-        console.warn(`[Descuentos] No se pudieron obtener cupones del cliente ${id_usuario}`);
+        logger.warn({ id_usuario }, "[Descuentos] No se pudieron obtener cupones del cliente");
         return [];
     }
 
