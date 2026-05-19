@@ -8,6 +8,8 @@ import {
   getPaqueteriaCourierById,
   getPaqueteriaPackageById,
   getPaqueteriaShipmentById,
+  getRestaurantById,
+  getRestaurantOrderLogistics,
 } from '../../../../../lib/external-services';
 
 function createErrorResponse(error) {
@@ -31,7 +33,6 @@ async function getConversationId(params) {
   }
 
   const trimmed = conversationId.trim();
-
   return trimmed.length ? trimmed : null;
 }
 
@@ -57,6 +58,61 @@ async function safeExternalCall(source, fn) {
       },
     };
   }
+}
+
+function parseRestaurantReference(caseReference) {
+  if (!caseReference || typeof caseReference !== 'string') {
+    return {
+      restauranteId: null,
+      pedidoId: null,
+    };
+  }
+
+  const trimmed = caseReference.trim();
+
+  // Formato recomendado:
+  // "1:25" => restauranteId=1, pedidoId=25
+  if (trimmed.includes(':')) {
+    const [restauranteId, pedidoId] = trimmed.split(':').map((part) => part.trim());
+
+    return {
+      restauranteId: restauranteId || null,
+      pedidoId: pedidoId || null,
+    };
+  }
+
+  // Formato alternativo JSON:
+  // {"restaurante_id":"1","pedido_id":"25"}
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+
+      return {
+        restauranteId:
+          parsed.restaurante_id ||
+          parsed.restauranteId ||
+          parsed.restaurant_id ||
+          parsed.restaurantId ||
+          null,
+        pedidoId:
+          parsed.pedido_id ||
+          parsed.pedidoId ||
+          parsed.order_id ||
+          parsed.orderId ||
+          null,
+      };
+    } catch {
+      return {
+        restauranteId: null,
+        pedidoId: null,
+      };
+    }
+  }
+
+  return {
+    restauranteId: null,
+    pedidoId: null,
+  };
 }
 
 export async function GET(request, { params }) {
@@ -128,6 +184,7 @@ export async function GET(request, { params }) {
     }
 
     if (caseType === 'ORDER') {
+      // Negocios / supermercados / farmacias
       externalContext.push(
         await safeExternalCall('BUSINESS_ORDER', () =>
           getBusinessOrderByExternalCode(caseReference)
@@ -139,6 +196,35 @@ export async function GET(request, { params }) {
           getBusinessOrderDeliveryByExternalCode(caseReference)
         )
       );
+
+      // Restaurantes
+      const { restauranteId, pedidoId } =
+        parseRestaurantReference(caseReference);
+
+      if (restauranteId && pedidoId) {
+        externalContext.push(
+          await safeExternalCall('RESTAURANTE', () =>
+            getRestaurantById(restauranteId)
+          )
+        );
+
+        externalContext.push(
+          await safeExternalCall('RESTAURANTE_ORDER_LOGISTICS', () =>
+            getRestaurantOrderLogistics(restauranteId, pedidoId)
+          )
+        );
+      } else {
+        externalContext.push({
+          source: 'RESTAURANTE_ORDER_LOGISTICS',
+          success: false,
+          data: null,
+          error: {
+            code: 'INVALID_RESTAURANT_REFERENCE',
+            message:
+              'Para consultar Restaurantes, case_reference debe tener formato restaurante_id:pedido_id. Ejemplo: 1:25.',
+          },
+        });
+      }
     }
 
     if (caseType === 'BUSINESS_CASE') {

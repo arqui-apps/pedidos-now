@@ -410,3 +410,52 @@ export async function refundPayment(paymentId, payload = {}) {
 
   return getData(result);
 }
+// ===============================
+// RESTAURANTES
+// ===============================
+
+export async function getRestaurantById(restauranteId) {
+  if (!restauranteId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'restauranteId es obligatorio para consultar restaurante.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Restaurantes',
+    baseUrl: process.env.RESTAURANTES_SERVICE_URL,
+    path: `/restaurantes/${encodeURIComponent(restauranteId)}`,
+  });
+
+  return getData(result);
+}
+
+export async function getRestaurantOrderLogistics(restauranteId, pedidoId) {
+  if (!restauranteId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'restauranteId es obligatorio para consultar pedido de restaurante.',
+      400
+    );
+  }
+
+  if (!pedidoId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'pedidoId es obligatorio para consultar pedido de restaurante.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Restaurantes',
+    baseUrl: process.env.RESTAURANTES_SERVICE_URL,
+    path: `/restaurantes/${encodeURIComponent(
+      restauranteId
+    )}/pedidos/${encodeURIComponent(pedidoId)}/logistica`,
+  });
+
+  return getData(result);
+}
