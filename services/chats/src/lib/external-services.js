@@ -115,10 +115,8 @@ async function requestJson({
 function getData(payload) {
   if (!payload) return null;
 
-  // Muchos servicios responden { data: ... }
   if (payload.data !== undefined) return payload.data;
 
-  // Cobros suele responder { result: ... }
   if (payload.result !== undefined) return payload.result;
 
   return payload;
@@ -197,12 +195,7 @@ export async function updateChatbotEscalationStatus(escalationId, handoffStatus)
 // ===============================
 // PAQUETERÍA
 // ===============================
-// IMPORTANTE:
-// PAQUETERIA_SERVICE_URL debe ser:
-// https://pedidos-now-backend.onrender.com
-//
-// No colocar /api/paqueteria en la variable,
-// porque ya se agrega en cada path.
+// PAQUETERIA_SERVICE_URL=https://pedidos-now-backend.onrender.com
 
 export async function getPaqueteriaUserById(userId) {
   if (!userId) {
@@ -297,9 +290,7 @@ export async function getPaqueteriaPackageTracking(packageId) {
 // ===============================
 // NEGOCIOS / BUSINESS
 // ===============================
-// IMPORTANTE:
-// BUSINESS_SERVICE_URL debe ser:
-// https://proyectoarqui.onrender.com/api
+// BUSINESS_SERVICE_URL=https://proyectoarqui.onrender.com/api
 
 export async function getBusinessById(businessId) {
   if (!businessId) {
@@ -357,15 +348,32 @@ export async function getBusinessOrderDeliveryByExternalCode(externalOrderCode) 
   return getData(result);
 }
 
+export async function getBusinessOrderDeliveryByLogisticsCode(
+  externalLogisticsOrderCode
+) {
+  if (!externalLogisticsOrderCode) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'externalLogisticsOrderCode es obligatorio para consultar delivery de negocio por orden logística.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Negocios',
+    baseUrl: process.env.BUSINESS_SERVICE_URL,
+    path: `/internal/business-orders/delivery/by-logistics-order/${encodeURIComponent(
+      externalLogisticsOrderCode
+    )}`,
+  });
+
+  return getData(result);
+}
+
 // ===============================
 // DESCUENTOS / PROMOCIONES
 // ===============================
-// IMPORTANTE:
-// DISCOUNTS_SERVICE_URL debe ser:
-// http://157.245.138.186:3001
-//
-// No usar:
-// http://157.245.138.186:3001/api/promociones
+// DISCOUNTS_SERVICE_URL=http://157.245.138.186:3001
 
 export async function createCompensationCoupon(payload = {}) {
   const clienteId = Number(payload.cliente_id);
@@ -433,9 +441,7 @@ export async function createCompensationCoupon(payload = {}) {
 // ===============================
 // COBROS / PAYMENTS
 // ===============================
-// IMPORTANTE:
-// COBROS_SERVICE_URL debe ser:
-// https://cobros-api.fly.dev
+// COBROS_SERVICE_URL=https://cobros-api.fly.dev
 
 export async function getPaymentsByOrderId(orderId) {
   if (!orderId) {
@@ -513,9 +519,7 @@ export async function refundPayment(paymentId, payload = {}) {
 // ===============================
 // RESTAURANTES
 // ===============================
-// IMPORTANTE:
-// RESTAURANTES_SERVICE_URL debe ser:
-// https://restaurantes.fly.dev/api
+// RESTAURANTES_SERVICE_URL=https://restaurantes.fly.dev/api
 
 export async function getRestaurantById(restauranteId) {
   if (!restauranteId) {

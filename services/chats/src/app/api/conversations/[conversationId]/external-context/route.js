@@ -5,6 +5,7 @@ import {
   getBusinessById,
   getBusinessOrderByExternalCode,
   getBusinessOrderDeliveryByExternalCode,
+  getBusinessOrderDeliveryByLogisticsCode,
   getPaqueteriaCourierById,
   getPaqueteriaPackageById,
   getPaqueteriaPackageTracking,
@@ -72,9 +73,7 @@ function parseRestaurantReference(caseReference) {
 
   const trimmed = caseReference.trim();
 
-  // Formato recomendado:
-  // "1:25" => restauranteId=1, pedidoId=25
-  if (trimmed.includes(':')) {
+  if (trimmed.includes(':') && !trimmed.startsWith('logistics:')) {
     const [restauranteId, pedidoId] = trimmed
       .split(':')
       .map((part) => part.trim());
@@ -86,8 +85,6 @@ function parseRestaurantReference(caseReference) {
     };
   }
 
-  // Formato alternativo JSON:
-  // {"restaurante_id":"1","pedido_id":"25"}
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
       const parsed = JSON.parse(trimmed);
@@ -125,6 +122,18 @@ function parseRestaurantReference(caseReference) {
     pedidoId: null,
     isRestaurantReference: false,
   };
+}
+
+function parseLogisticsReference(caseReference) {
+  if (!caseReference || typeof caseReference !== 'string') return null;
+
+  const trimmed = caseReference.trim();
+
+  if (!trimmed.toLowerCase().startsWith('logistics:')) return null;
+
+  const logisticsCode = trimmed.replace(/^logistics:/i, '').trim();
+
+  return logisticsCode || null;
 }
 
 export async function GET(request, { params }) {
@@ -202,12 +211,18 @@ export async function GET(request, { params }) {
     }
 
     if (caseType === 'ORDER') {
+      const logisticsCode = parseLogisticsReference(caseReference);
+
       const { restauranteId, pedidoId, isRestaurantReference } =
         parseRestaurantReference(caseReference);
 
-      // Si case_reference viene como "restaurante_id:pedido_id",
-      // asumimos que es pedido de restaurante y NO consultamos Business.
-      if (isRestaurantReference) {
+      if (logisticsCode) {
+        externalContext.push(
+          await safeExternalCall('BUSINESS_ORDER_DELIVERY_BY_LOGISTICS', () =>
+            getBusinessOrderDeliveryByLogisticsCode(logisticsCode)
+          )
+        );
+      } else if (isRestaurantReference) {
         externalContext.push(
           await safeExternalCall('RESTAURANTE', () =>
             getRestaurantById(restauranteId)
@@ -220,7 +235,6 @@ export async function GET(request, { params }) {
           )
         );
       } else {
-        // Negocios / supermercados / farmacias
         externalContext.push(
           await safeExternalCall('BUSINESS_ORDER', () =>
             getBusinessOrderByExternalCode(caseReference)
