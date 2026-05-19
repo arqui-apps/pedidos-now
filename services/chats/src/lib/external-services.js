@@ -19,7 +19,7 @@ function buildUrl(baseUrl, path) {
   if (!cleanBase) {
     throw createAppError(
       'EXTERNAL_SERVICE_URL_MISSING',
-      `No está configurada la URL base para el servicio externo.`,
+      'No está configurada la URL base para el servicio externo.',
       500
     );
   }
@@ -114,7 +114,14 @@ async function requestJson({
 
 function getData(payload) {
   if (!payload) return null;
-  return payload.data || payload;
+
+  // Muchos servicios responden { data: ... }
+  if (payload.data !== undefined) return payload.data;
+
+  // Cobros suele responder { result: ... }
+  if (payload.result !== undefined) return payload.result;
+
+  return payload;
 }
 
 // ===============================
@@ -190,42 +197,98 @@ export async function updateChatbotEscalationStatus(escalationId, handoffStatus)
 // ===============================
 // PAQUETERÍA
 // ===============================
+// IMPORTANTE:
+// PAQUETERIA_SERVICE_URL debe ser:
+// https://pedidos-now-backend.onrender.com
+//
+// No colocar /api/paqueteria en la variable,
+// porque ya se agrega en cada path.
 
 export async function getPaqueteriaUserById(userId) {
+  if (!userId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'userId es obligatorio para consultar usuario de paquetería.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Paquetería',
     baseUrl: process.env.PAQUETERIA_SERVICE_URL,
-    path: `/api/users/${encodeURIComponent(userId)}`,
+    path: `/api/paqueteria/users/${encodeURIComponent(userId)}`,
   });
 
   return getData(result);
 }
 
 export async function getPaqueteriaCourierById(courierId) {
+  if (!courierId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'courierId es obligatorio para consultar repartidor de paquetería.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Paquetería',
     baseUrl: process.env.PAQUETERIA_SERVICE_URL,
-    path: `/api/couriers/${encodeURIComponent(courierId)}`,
+    path: `/api/paqueteria/couriers/${encodeURIComponent(courierId)}`,
   });
 
   return getData(result);
 }
 
 export async function getPaqueteriaShipmentById(shipmentId) {
+  if (!shipmentId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'shipmentId es obligatorio para consultar envío de paquetería.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Paquetería',
     baseUrl: process.env.PAQUETERIA_SERVICE_URL,
-    path: `/api/shipments/${encodeURIComponent(shipmentId)}`,
+    path: `/api/paqueteria/shipments/${encodeURIComponent(shipmentId)}`,
   });
 
   return getData(result);
 }
 
 export async function getPaqueteriaPackageById(packageId) {
+  if (!packageId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'packageId es obligatorio para consultar paquete de paquetería.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Paquetería',
     baseUrl: process.env.PAQUETERIA_SERVICE_URL,
-    path: `/api/packages/${encodeURIComponent(packageId)}`,
+    path: `/api/paqueteria/packages/${encodeURIComponent(packageId)}`,
+  });
+
+  return getData(result);
+}
+
+export async function getPaqueteriaPackageTracking(packageId) {
+  if (!packageId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'packageId es obligatorio para consultar tracking de paquete.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Paquetería',
+    baseUrl: process.env.PAQUETERIA_SERVICE_URL,
+    path: `/api/paqueteria/packages/${encodeURIComponent(packageId)}/tracking`,
   });
 
   return getData(result);
@@ -234,8 +297,19 @@ export async function getPaqueteriaPackageById(packageId) {
 // ===============================
 // NEGOCIOS / BUSINESS
 // ===============================
+// IMPORTANTE:
+// BUSINESS_SERVICE_URL debe ser:
+// https://proyectoarqui.onrender.com/api
 
 export async function getBusinessById(businessId) {
+  if (!businessId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'businessId es obligatorio para consultar negocio.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Negocios',
     baseUrl: process.env.BUSINESS_SERVICE_URL,
@@ -246,6 +320,14 @@ export async function getBusinessById(businessId) {
 }
 
 export async function getBusinessOrderByExternalCode(externalOrderCode) {
+  if (!externalOrderCode) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'externalOrderCode es obligatorio para consultar orden de negocio.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Negocios',
     baseUrl: process.env.BUSINESS_SERVICE_URL,
@@ -256,10 +338,20 @@ export async function getBusinessOrderByExternalCode(externalOrderCode) {
 }
 
 export async function getBusinessOrderDeliveryByExternalCode(externalOrderCode) {
+  if (!externalOrderCode) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'externalOrderCode es obligatorio para consultar delivery de negocio.',
+      400
+    );
+  }
+
   const result = await requestJson({
     serviceName: 'Negocios',
     baseUrl: process.env.BUSINESS_SERVICE_URL,
-    path: `/internal/business-orders/${encodeURIComponent(externalOrderCode)}/delivery`,
+    path: `/internal/business-orders/${encodeURIComponent(
+      externalOrderCode
+    )}/delivery`,
   });
 
   return getData(result);
@@ -268,9 +360,12 @@ export async function getBusinessOrderDeliveryByExternalCode(externalOrderCode) 
 // ===============================
 // DESCUENTOS / PROMOCIONES
 // ===============================
-// Nota: esta función queda preparada.
-// Antes de conectarla al cierre RESOLVED_COUPON, conviene confirmar
-// el body exacto que espera el servicio de descuentos.
+// IMPORTANTE:
+// DISCOUNTS_SERVICE_URL debe ser:
+// http://157.245.138.186:3001
+//
+// No usar:
+// http://157.245.138.186:3001/api/promociones
 
 export async function createCompensationCoupon(payload = {}) {
   const clienteId = Number(payload.cliente_id);
@@ -334,9 +429,13 @@ export async function createCompensationCoupon(payload = {}) {
 
   return getData(result);
 }
+
 // ===============================
 // COBROS / PAYMENTS
 // ===============================
+// IMPORTANTE:
+// COBROS_SERVICE_URL debe ser:
+// https://cobros-api.fly.dev
 
 export async function getPaymentsByOrderId(orderId) {
   if (!orderId) {
@@ -410,9 +509,13 @@ export async function refundPayment(paymentId, payload = {}) {
 
   return getData(result);
 }
+
 // ===============================
 // RESTAURANTES
 // ===============================
+// IMPORTANTE:
+// RESTAURANTES_SERVICE_URL debe ser:
+// https://restaurantes.fly.dev/api
 
 export async function getRestaurantById(restauranteId) {
   if (!restauranteId) {

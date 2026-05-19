@@ -7,6 +7,7 @@ import {
   getBusinessOrderDeliveryByExternalCode,
   getPaqueteriaCourierById,
   getPaqueteriaPackageById,
+  getPaqueteriaPackageTracking,
   getPaqueteriaShipmentById,
   getRestaurantById,
   getRestaurantOrderLogistics,
@@ -65,6 +66,7 @@ function parseRestaurantReference(caseReference) {
     return {
       restauranteId: null,
       pedidoId: null,
+      isRestaurantReference: false,
     };
   }
 
@@ -73,11 +75,14 @@ function parseRestaurantReference(caseReference) {
   // Formato recomendado:
   // "1:25" => restauranteId=1, pedidoId=25
   if (trimmed.includes(':')) {
-    const [restauranteId, pedidoId] = trimmed.split(':').map((part) => part.trim());
+    const [restauranteId, pedidoId] = trimmed
+      .split(':')
+      .map((part) => part.trim());
 
     return {
       restauranteId: restauranteId || null,
       pedidoId: pedidoId || null,
+      isRestaurantReference: Boolean(restauranteId && pedidoId),
     };
   }
 
@@ -87,24 +92,30 @@ function parseRestaurantReference(caseReference) {
     try {
       const parsed = JSON.parse(trimmed);
 
+      const restauranteId =
+        parsed.restaurante_id ||
+        parsed.restauranteId ||
+        parsed.restaurant_id ||
+        parsed.restaurantId ||
+        null;
+
+      const pedidoId =
+        parsed.pedido_id ||
+        parsed.pedidoId ||
+        parsed.order_id ||
+        parsed.orderId ||
+        null;
+
       return {
-        restauranteId:
-          parsed.restaurante_id ||
-          parsed.restauranteId ||
-          parsed.restaurant_id ||
-          parsed.restaurantId ||
-          null,
-        pedidoId:
-          parsed.pedido_id ||
-          parsed.pedidoId ||
-          parsed.order_id ||
-          parsed.orderId ||
-          null,
+        restauranteId,
+        pedidoId,
+        isRestaurantReference: Boolean(restauranteId && pedidoId),
       };
     } catch {
       return {
         restauranteId: null,
         pedidoId: null,
+        isRestaurantReference: false,
       };
     }
   }
@@ -112,6 +123,7 @@ function parseRestaurantReference(caseReference) {
   return {
     restauranteId: null,
     pedidoId: null,
+    isRestaurantReference: false,
   };
 }
 
@@ -174,6 +186,12 @@ export async function GET(request, { params }) {
         )
       );
 
+      externalContext.push(
+        await safeExternalCall('PAQUETERIA_PACKAGE_TRACKING', () =>
+          getPaqueteriaPackageTracking(caseReference)
+        )
+      );
+
       if (requesterType === 'COURIER') {
         externalContext.push(
           await safeExternalCall('PAQUETERIA_COURIER', () =>
@@ -184,24 +202,12 @@ export async function GET(request, { params }) {
     }
 
     if (caseType === 'ORDER') {
-      // Negocios / supermercados / farmacias
-      externalContext.push(
-        await safeExternalCall('BUSINESS_ORDER', () =>
-          getBusinessOrderByExternalCode(caseReference)
-        )
-      );
-
-      externalContext.push(
-        await safeExternalCall('BUSINESS_ORDER_DELIVERY', () =>
-          getBusinessOrderDeliveryByExternalCode(caseReference)
-        )
-      );
-
-      // Restaurantes
-      const { restauranteId, pedidoId } =
+      const { restauranteId, pedidoId, isRestaurantReference } =
         parseRestaurantReference(caseReference);
 
-      if (restauranteId && pedidoId) {
+      // Si case_reference viene como "restaurante_id:pedido_id",
+      // asumimos que es pedido de restaurante y NO consultamos Business.
+      if (isRestaurantReference) {
         externalContext.push(
           await safeExternalCall('RESTAURANTE', () =>
             getRestaurantById(restauranteId)
@@ -214,6 +220,19 @@ export async function GET(request, { params }) {
           )
         );
       } else {
+        // Negocios / supermercados / farmacias
+        externalContext.push(
+          await safeExternalCall('BUSINESS_ORDER', () =>
+            getBusinessOrderByExternalCode(caseReference)
+          )
+        );
+
+        externalContext.push(
+          await safeExternalCall('BUSINESS_ORDER_DELIVERY', () =>
+            getBusinessOrderDeliveryByExternalCode(caseReference)
+          )
+        );
+
         externalContext.push({
           source: 'RESTAURANTE_ORDER_LOGISTICS',
           success: false,
