@@ -334,3 +334,79 @@ export async function createCompensationCoupon(payload = {}) {
 
   return getData(result);
 }
+// ===============================
+// COBROS / PAYMENTS
+// ===============================
+
+export async function getPaymentsByOrderId(orderId) {
+  if (!orderId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'orderId es obligatorio para consultar cobros.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Cobros',
+    baseUrl: process.env.COBROS_SERVICE_URL,
+    path: `/api/payments?orderId=${encodeURIComponent(orderId)}`,
+  });
+
+  return getData(result);
+}
+
+export async function getPaymentById(paymentId) {
+  if (!paymentId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'paymentId es obligatorio para consultar cobro.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Cobros',
+    baseUrl: process.env.COBROS_SERVICE_URL,
+    path: `/api/payments/${encodeURIComponent(paymentId)}`,
+  });
+
+  return getData(result);
+}
+
+export async function refundPayment(paymentId, payload = {}) {
+  if (!paymentId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'paymentId es obligatorio para solicitar reembolso.',
+      400
+    );
+  }
+
+  const amount = Number(payload.amount);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'amount debe ser un número mayor a 0 para solicitar reembolso.',
+      400
+    );
+  }
+
+  const body = {
+    amount,
+    reason:
+      payload.reason ||
+      'Reembolso aprobado desde chat de servicio al cliente.',
+  };
+
+  const result = await requestJson({
+    serviceName: 'Cobros',
+    baseUrl: process.env.COBROS_SERVICE_URL,
+    path: `/api/payments/${encodeURIComponent(paymentId)}/refund`,
+    method: 'POST',
+    body,
+  });
+
+  return getData(result);
+}

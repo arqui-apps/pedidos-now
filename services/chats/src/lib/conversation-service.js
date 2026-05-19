@@ -1,6 +1,9 @@
 // src/lib/conversation-service.js
 import { query, execute, transaction } from './db';
-import { createCompensationCoupon } from './external-services';
+import {
+  createCompensationCoupon,
+  refundPayment,
+} from './external-services';
 import {
   emitConversationAssigned,
   emitConversationCreated,
@@ -33,6 +36,7 @@ function normalizeOptionalString(value) {
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
+
 function toPositiveNumberOrNull(value) {
   if (value === undefined || value === null || value === '') return null;
 
@@ -77,6 +81,26 @@ function buildCouponPayloadFromConversation(conversation, payload = {}) {
       couponPayload.confirmacion_pedido_fallido === undefined
         ? true
         : Boolean(couponPayload.confirmacion_pedido_fallido),
+  };
+}
+
+function buildRefundPayloadFromConversation(conversation, payload = {}) {
+  const refundPayload = payload.refund || {};
+
+  const paymentId =
+    normalizeOptionalString(refundPayload.payment_id) ||
+    normalizeOptionalString(payload.payment_id) ||
+    normalizeOptionalString(conversation.case_reference);
+
+  const amount = toPositiveNumberOrNull(refundPayload.amount || payload.amount);
+
+  return {
+    payment_id: paymentId,
+    amount,
+    reason:
+      normalizeOptionalString(refundPayload.reason) ||
+      normalizeOptionalString(payload.reason) ||
+      'Reembolso aprobado desde chat de servicio al cliente.',
   };
 }
 
@@ -1303,11 +1327,122 @@ export async function changeConversationStatus(conversationId, payload = {}) {
     };
   }
 
+  let refundIntegration = null;
+
+  if (new_status === 'RESOLVED_REFUND') {
+    try {
+      const refundPayload = buildRefundPayloadFromConversation(result, payload);
+
+      const refundResult = await refundPayment(refundPayload.payment_id, {
+        amount: refundPayload.amount,
+        reason: refundPayload.reason,
+      });
+
+      refundIntegration = {
+        success: true,
+        service: 'COBROS',
+        action: 'REFUND_PAYMENT',
+        payload: refundPayload,
+        response: refundResult,
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'REFUND_CREATED',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'SUCCESS',
+            service: 'COBROS',
+            action: 'REFUND_PAYMENT',
+            payload: refundPayload,
+            response: refundResult,
+          }),
+        ]
+      );
+    } catch (error) {
+      refundIntegration = {
+        success: false,
+        service: 'COBROS',
+        action: 'REFUND_PAYMENT',
+        warning:
+          'La conversación fue cerrada como RESOLVED_REFUND, pero no se pudo solicitar el reembolso automáticamente.',
+        error: {
+          code: error.code || 'REFUND_INTEGRATION_ERROR',
+          message: error.message,
+          details: error.details || null,
+        },
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'REFUND_CREATION_FAILED',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'FAILED',
+            service: 'COBROS',
+            action: 'REFUND_PAYMENT',
+            error: {
+              code: error.code || 'REFUND_INTEGRATION_ERROR',
+              message: error.message,
+              details: error.details || null,
+            },
+          }),
+        ]
+      );
+    }
+  }
+
+  if (refundIntegration) {
+    result.external_integrations = {
+      ...(result.external_integrations || {}),
+      refund: refundIntegration,
+    };
+  }
+
   emitConversationStatusChanged(result, {
     new_status,
     changed_by_ext_id,
     reason,
     coupon_integration: couponIntegration,
+    refund_integration: refundIntegration,
   });
 
   emitConversationUpdated(result);
