@@ -33,7 +33,7 @@ const procesarCobro = async (data) => {
 
         const response =
         await cobrosCaller.post(
-            '/payments',
+            '/cobros/payments',
             payload
         );
 
@@ -66,7 +66,7 @@ const procesarCobro = async (data) => {
 
 const obtenerCobros = async (filtros = {}) => {
     try {
-        const response = await cobrosCaller.get('/payments', { params: filtros });
+        const response = await cobrosCaller.get('/cobros/payments', { params: filtros });
         return response.data;
     } catch (error) {
         throw new Error(`Error obteniendo cobros: ${error.message}`);
@@ -75,7 +75,7 @@ const obtenerCobros = async (filtros = {}) => {
 
 const obtenerCobroPorId = async (id) => {
     try {
-        const response = await cobrosCaller.get(`/payments/${id}`);
+        const response = await cobrosCaller.get(`/cobros/payments/${id}`);
         return response.data;
     } catch (error) {
         throw new Error(`Error obteniendo cobro: ${error.message}`);
@@ -84,8 +84,8 @@ const obtenerCobroPorId = async (id) => {
 
 const cancelarCobro = async (id, motivo) => {
     try {
-        const response = await cobrosCaller.post(
-            `/payments/${id}/cancel`,
+        const response = await cobrosCaller.patch(
+            `/cobros/payments/${id}/cancel`,
             { motivo }
         );
         return response.data;
