@@ -75,8 +75,7 @@ const procesarResolucionEntrante = async (payload) => {
 // Marca una resolución como procesada, vinculando el reembolso
 // o compensación que el agente admin creó por los endpoints existentes
 const procesarResolucion = async (id, { reembolso_id, compensacion_id, notas }) => {
-    const resolucion = await repo.listarResoluciones({});
-    const registro = resolucion.find(r => r.id === Number(id));
+    const registro = await repo.buscarResolucionPorId(id);
 
     if (!registro) {
         const err = new Error('Resolución no encontrada');
