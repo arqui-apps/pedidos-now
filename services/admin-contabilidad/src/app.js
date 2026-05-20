@@ -33,6 +33,9 @@ const promocionesRoutes = require('./routes/promociones.routes');
 const promocionesReportesRoutes = require('./routes/promocionesReportes.routes');
 const cuponesRoutes = require('./routes/cupones.routes');
 
+// Admin-conta Albert — Integración Chats
+const chatIntegracionRoutes = require('./routes/chat.integracion.routes');
+
 const initDB = require('./database/init');
 
 const app = express();
@@ -122,6 +125,9 @@ app.use('/api/reportes-negocios', reportesNegociosRoutes);
 app.use(promocionesRoutes);
 app.use(promocionesReportesRoutes);
 app.use(cuponesRoutes);
+
+// Admin-conta Albert — Integración Chats
+app.use('/api/chats', chatIntegracionRoutes);
 
 // Health check
 /**
