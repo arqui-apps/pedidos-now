@@ -437,11 +437,25 @@ export async function createCompensationCoupon(payload = {}) {
 
   return getData(result);
 }
-
 // ===============================
 // COBROS / PAYMENTS
 // ===============================
-// COBROS_SERVICE_URL=https://cobros-api.fly.dev
+// IMPORTANTE:
+// COBROS_SERVICE_URL debe ser:
+// https://cobros-api.fly.dev
+//
+// Las rutas reales de Cobros están bajo:
+// /api/cobros
+
+export async function getCobrosHealth() {
+  const result = await requestJson({
+    serviceName: 'Cobros',
+    baseUrl: process.env.COBROS_SERVICE_URL,
+    path: '/api/cobros/health',
+  });
+
+  return getData(result);
+}
 
 export async function getPaymentsByOrderId(orderId) {
   if (!orderId) {
@@ -455,7 +469,7 @@ export async function getPaymentsByOrderId(orderId) {
   const result = await requestJson({
     serviceName: 'Cobros',
     baseUrl: process.env.COBROS_SERVICE_URL,
-    path: `/api/payments?orderId=${encodeURIComponent(orderId)}`,
+    path: `/api/cobros/payments?orderId=${encodeURIComponent(orderId)}`,
   });
 
   return getData(result);
@@ -473,7 +487,7 @@ export async function getPaymentById(paymentId) {
   const result = await requestJson({
     serviceName: 'Cobros',
     baseUrl: process.env.COBROS_SERVICE_URL,
-    path: `/api/payments/${encodeURIComponent(paymentId)}`,
+    path: `/api/cobros/payments/${encodeURIComponent(paymentId)}`,
   });
 
   return getData(result);
@@ -508,7 +522,7 @@ export async function refundPayment(paymentId, payload = {}) {
   const result = await requestJson({
     serviceName: 'Cobros',
     baseUrl: process.env.COBROS_SERVICE_URL,
-    path: `/api/payments/${encodeURIComponent(paymentId)}/refund`,
+    path: `/api/cobros/payments/${encodeURIComponent(paymentId)}/refund`,
     method: 'POST',
     body,
   });
