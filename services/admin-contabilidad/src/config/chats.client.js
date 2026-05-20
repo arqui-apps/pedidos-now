@@ -1,7 +1,9 @@
 const axios = require('axios');
 
+const CHATS_PREFIX = process.env.CHATS_PREFIX !== undefined ? process.env.CHATS_PREFIX : '/chats';
+
 const BASE_URL = () =>
-    `${process.env.BROKER_URL || 'http://localhost:5000'}${process.env.CHATS_PREFIX || '/chats'}`;
+    `${process.env.BROKER_URL || 'http://localhost:5000'}${CHATS_PREFIX}`;
 
 function buildClient(token) {
     return axios.create({

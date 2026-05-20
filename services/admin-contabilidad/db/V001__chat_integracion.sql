@@ -30,10 +30,7 @@ CREATE TABLE IF NOT EXISTS chat_resolucion_financiera (
     creado_en          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT uq_conversation_id  UNIQUE (conversation_id),
-    CONSTRAINT fk_crf_movimiento   FOREIGN KEY (movimiento_id)   REFERENCES movimiento_financiero(id) ON DELETE SET NULL,
-    CONSTRAINT fk_crf_reembolso    FOREIGN KEY (reembolso_id)    REFERENCES reembolso_cliente(id)     ON DELETE SET NULL,
-    CONSTRAINT fk_crf_compensacion FOREIGN KEY (compensacion_id) REFERENCES compensacion_entidad(id)  ON DELETE SET NULL
+    CONSTRAINT uq_conversation_id UNIQUE (conversation_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_crf_estado          ON chat_resolucion_financiera(estado);
@@ -57,9 +54,7 @@ CREATE TABLE IF NOT EXISTS chat_estadistica_periodo (
     monto_reembolsado        NUMERIC(18,2)   NOT NULL DEFAULT 0,
     monto_compensado         NUMERIC(18,2)   NOT NULL DEFAULT 0,
     reporte_id               BIGINT,
-    generado_en              TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_cep_reporte FOREIGN KEY (reporte_id) REFERENCES reporte_generado(id) ON DELETE SET NULL
+    generado_en              TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_cep_periodo ON chat_estadistica_periodo(periodo_inicio, periodo_fin);
