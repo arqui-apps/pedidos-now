@@ -1,38 +1,72 @@
-const repository = require('../repositories/pagos_agentes.repository');
-const movRepo = require('../repositories/movimiento.repository')
+const pagosRepo = require('../repositories/pagos_agentes.repository');
+const movRepo = require('../repositories/movimiento.repository');
+const { sequelize } = require('../config/db');
 
-const getAll = async () => {
-    return await repository.getAll();
+// ========== CREAR PAGO ==========
+
+const crearPago = async (data) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        if (!data.agente_id || !data.salario) {
+            throw new Error('agente_id y salario son requeridos');
+        }
+
+        if (data.salario <= 0) {
+            throw new Error('Salario debe ser mayor a 0');
+        }
+
+        // Verificar fondos disponibles
+        const saldoAnterior = await movRepo.obtenerSaldoActual(1, transaction);
+
+        if (saldoAnterior < data.salario) {
+            throw new Error('Fondos insuficientes para pagar');
+        }
+
+        // Crear pago (registra como egreso en movimiento_financiero)
+        const pago = await pagosRepo.crearPago(data, transaction);
+
+        await transaction.commit();
+
+        return {
+            ok: true,
+            pago
+        };
+
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
 };
 
-const obtenerTotalPagos = async () => {
-    return await repository.getTotalPagosAgentes();
-}
+// ========== OBTENER PAGOS ==========
 
-const pagarAgente = async (data) => {
-    const cuenta_id = 1;
+const obtenerPagos = async (filtros = {}) => {
+    return await pagosRepo.obtenerPagos(filtros);
+};
 
-    //registrar pago
-    const pagoId = await repository.crearPagoAgente(data);
+// ========== OBTENER PAGO POR ID ==========
 
-    //registrar egreso financiero
-    const movimientoId = await movRepo.crearEgreso({
-        cuenta_id,
-        subtipo: 'salario',
-        referencia_id: data.agente_id,
-        monto: data.salario,
-        descripcion: 'Pago de salario'
-    });
-    await movRepo.restarSaldo(cuenta_id, data.salario);
-    return {
-        ok: true,
-        pago_id: pagoId,
-        movimiento_id: movimientoId
-    };
+const obtenerPagoPorId = async (id) => {
+    return await pagosRepo.obtenerPagoPorId(id);
+};
+
+// ========== OBTENER TOTAL PAGOS ==========
+
+const obtenerTotalPagos = async (filtros = {}) => {
+    return await pagosRepo.obtenerTotalPagos(filtros);
+};
+
+// ========== OBTENER PAGOS POR AGENTE ==========
+
+const obtenerPagosPorAgente = async (agente_id) => {
+    return await pagosRepo.obtenerPagosPorAgente(agente_id);
 };
 
 module.exports = {
-    getAll, 
+    crearPago,
+    obtenerPagos,
+    obtenerPagoPorId,
     obtenerTotalPagos,
-    pagarAgente
-}
+    obtenerPagosPorAgente
+};

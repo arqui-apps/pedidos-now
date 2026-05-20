@@ -1,0 +1,14 @@
+ALTER TABLE cobro
+ADD COLUMN IF NOT EXISTS estado_reconciliacion VARCHAR(50) DEFAULT 'pendiente';
+
+ALTER TABLE cobro
+ADD COLUMN IF NOT EXISTS payment_id_cobros TEXT;
+
+ALTER TABLE cobro
+ADD COLUMN IF NOT EXISTS transaction_id_banco TEXT;
+
+ALTER TABLE cobro
+ADD COLUMN IF NOT EXISTS ultimo_error_externo TEXT;
+
+ALTER TABLE cobro
+ADD COLUMN IF NOT EXISTS reconciliado BOOLEAN DEFAULT FALSE;

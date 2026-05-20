@@ -1,34 +1,35 @@
 require('dotenv').config();
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
 async function run() {
-    const pool = mysql.createPool({
-        host:     process.env.DB_HOST     || 'localhost',
-        user:     process.env.DB_USER     || 'root',
-        password: process.env.DB_PASSWORD || '',
-        database: process.env.DB_NAME     || 'db_admin_contabilidad',
-        port:     process.env.DB_PORT     || 3306,
-        multipleStatements: true,
+    const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
     });
 
-    const conn = await pool.getConnection();
+    const client = await pool.connect();
 
     try {
-        await conn.query(`
+        // Crear tabla de migraciones si no existe
+        await client.query(`
             CREATE TABLE IF NOT EXISTS migrations (
-                id           INT AUTO_INCREMENT PRIMARY KEY,
-                nombre       VARCHAR(255) NOT NULL UNIQUE,
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(255) NOT NULL UNIQUE,
                 ejecutada_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
-        const [ejecutadas] = await conn.query('SELECT nombre FROM migrations');
-        const yaEjecutadas = new Set(ejecutadas.map(r => r.nombre));
+        // Obtener migraciones ya ejecutadas
+        const resultado = await client.query('SELECT nombre FROM migrations');
+        const yaEjecutadas = new Set(resultado.rows.map(r => r.nombre));
 
+        // Leer archivos de migraciones
         const archivos = fs.readdirSync(MIGRATIONS_DIR)
             .filter(f => f.endsWith('.sql'))
             .sort();
@@ -42,35 +43,38 @@ async function run() {
 
         console.log(`📦 ${pendientes.length} migración(es) pendiente(s):\n`);
 
+        // Ejecutar cada migración pendiente
         for (const archivo of pendientes) {
             const rutaCompleta = path.join(MIGRATIONS_DIR, archivo);
             const sql = fs.readFileSync(rutaCompleta, 'utf8');
 
             process.stdout.write(`  ➜ ${archivo} ... `);
 
-            await conn.beginTransaction();
             try {
-                await conn.query(sql);
-                await conn.query('INSERT INTO migrations (nombre) VALUES (?)', [archivo]);
-                await conn.commit();
+                // Usar transacción
+                await client.query('BEGIN');
+                await client.query(sql);
+                await client.query('INSERT INTO migrations (nombre) VALUES ($1)', [archivo]);
+                await client.query('COMMIT');
                 console.log('OK');
             } catch (err) {
-                await conn.rollback();
+                await client.query('ROLLBACK');
                 console.log('ERROR');
                 console.error(`\n❌ Falló: ${archivo}`);
                 console.error(`   ${err.message}\n`);
-                process.exit(1);
+                throw err; // Detener si hay error
             }
         }
 
-        console.log('\n✅ Migraciones aplicadas correctamente.');
+        console.log('\n✅ Todas las migraciones ejecutadas correctamente.');
+
     } finally {
-        conn.release();
+        client.release();
         await pool.end();
     }
 }
 
 run().catch(err => {
-    console.error('Error inesperado en el runner de migraciones:', err.message);
+    console.error('Error en migraciones:', err.message);
     process.exit(1);
 });

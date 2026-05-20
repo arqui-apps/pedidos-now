@@ -72,6 +72,7 @@ const initDB = async () => {
         creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `);
+    
     console.log('Base de datos lista en Neon');
 
   } catch (error) {

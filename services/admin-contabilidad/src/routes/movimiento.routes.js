@@ -1,19 +1,88 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controller/movimiento.controller');
-const {validarMonto} = require('../middleware/validar');
 
-// Rutas públicas
-router.get('/', controller.getAllMovimientos);
-router.get('/:id', controller.getMovimientoById);
+const movimientoController =
+    require('../controllers/movimiento.controller');
 
-// Rutas protegidas
-router.post('/', validarToken, controller.crearMovimiento);
-router.put('/:id', validarToken, controller.updateMovimiento);
-router.delete('/:id', validarToken, controller.deleteMovimiento);
+const {
+    verificarToken
+} = require('../middleware/auth.middleware');
 
+/**
+ * @swagger
+ * /api/movimientos/test:
+ *   get:
+ *     summary: Probar que las rutas de movimientos funcionan
+ *     tags: [Movimientos]
+ *     responses:
+ *       200:
+ *         description: Ruta de prueba funcionando
+ */
 router.get('/test', (req, res) => {
-    res.send('Movimiento OK');
-})
+    res.json({
+        ok: true,
+        message: 'Movimiento OK'
+    });
+});
+
+// Aplicar auth global
+router.use(verificarToken);
+
+/**
+ * @swagger
+ * /api/movimientos:
+ *   get:
+ *     summary: Obtener todos los movimientos financieros
+ *     tags: [Movimientos]
+ */
+router.get(
+    '/',
+    movimientoController.obtenerMovimientos
+);
+
+/**
+ * @swagger
+ * /api/movimientos/{id}:
+ *   get:
+ *     summary: Obtener movimiento financiero por ID
+ *     tags: [Movimientos]
+ */
+router.get(
+    '/:id',
+    movimientoController.getMovimientoById
+);
+
+// ===== CRUD GENERAL =====
+router.post(
+    '/',
+    movimientoController.crearMovimiento
+);
+
+router.put(
+    '/:id',
+    movimientoController.updateMovimiento
+);
+
+router.delete(
+    '/:id',
+    movimientoController.deleteMovimiento
+);
+
+// ===== TUS ENDPOINTS ORIGINALES =====
+
+router.get(
+    '/saldo/:cuenta_id',
+    movimientoController.obtenerSaldo
+);
+
+router.get(
+    '/periodo',
+    movimientoController.obtenerMovimientosPorPeriodo
+);
+
+router.get(
+    '/estadisticas',
+    movimientoController.obtenerEstadisticas
+);
 
 module.exports = router;

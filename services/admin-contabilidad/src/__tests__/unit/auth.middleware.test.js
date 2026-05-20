@@ -1,5 +1,5 @@
 
-const { validarToken } = require('../../middleware/auth');
+const { verificarToken } = require('../../middleware/auth');
 const jwt = require('jsonwebtoken');
 
 jest.mock('jsonwebtoken');
@@ -21,12 +21,12 @@ describe('Auth Middleware', () => {
     jest.clearAllMocks();
   });
 
-  describe('validarToken', () => {
+  describe('verificarToken', () => {
     it('debe pasar al siguiente middleware si token es válido', (done) => {
       const decoded = { id: 1, email: 'user@example.com' };
       jwt.verify.mockReturnValue(decoded);
 
-      validarToken(req, res, next);
+      verificarToken(req, res, next);
 
       expect(next).toHaveBeenCalled();
       expect(req.user).toEqual(decoded);
@@ -36,7 +36,7 @@ describe('Auth Middleware', () => {
     it('debe rechazar si no hay token', (done) => {
       req.headers.authorization = undefined;
 
-      validarToken(req, res, next);
+      verificarToken(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
@@ -49,7 +49,7 @@ describe('Auth Middleware', () => {
     it('debe rechazar si token tiene formato incorrecto', (done) => {
       req.headers.authorization = 'InvalidFormat';
 
-      validarToken(req, res, next);
+      verificarToken(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
@@ -64,7 +64,7 @@ describe('Auth Middleware', () => {
         throw new Error('Token inválido');
       });
 
-      validarToken(req, res, next);
+      verificarToken(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({

@@ -1,30 +1,71 @@
-// Admin-contabilidad Kenneth
-// Admin-contabilidad Emmanuel 
-
-const { Pool } = require('pg');
 require('dotenv').config();
 
+const { Pool } = require('pg');
+const { Sequelize } = require('sequelize');
+
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('Falta DATABASE_URL en variables de entorno');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-module.exports = pool;
-
-const { Sequelize } = require('sequelize');
-
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
+  connectionString,
   {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
-    logging: false
+    logging: false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    ssl: true,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
   }
 );
 
-module.exports = { pool, sequelize };
+const normalizeQuery = (sql, params = []) => {
+  let index = 0;
+
+  const normalizedSql = sql
+    .replace(/IFNULL/gi, 'COALESCE')
+    .replace(/CURDATE\(\)/gi, 'CURRENT_DATE')
+    .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP')
+    .replace(/\?/g, () => `$${++index}`);
+
+  return {
+    sql: normalizedSql,
+    params
+  };
+};
+
+const query = async (sql, params = []) => {
+  const normalized = normalizeQuery(sql, params);
+  const result = await pool.query(normalized.sql, normalized.params);
+
+  result[Symbol.iterator] = function* () {
+    yield result.rows;
+    yield result;
+  };
+
+  return result;
+};
+
+module.exports = {
+  pool,
+  sequelize,
+  query
+};

@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const { sequelize } = require('../config/db');
 
 router.get('/test-db', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT NOW() as now');
+        const result = await sequelize.query('SELECT NOW() as now');
         res.json({
             ok: true,
-            db_time: rows[0].now
+            db_time: result[0][0].now
         });
     } catch (error) {
         console.error(error);

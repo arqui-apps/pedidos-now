@@ -1,6 +1,4 @@
-// Admin-contabilidad Emmanuel
-
-const db = require('../config/db');
+const { sequelize } = require('../config/db');
 
 const crearPedidoContabilidad = async ({
   entidad_comercial_id,
@@ -12,9 +10,9 @@ const crearPedidoContabilidad = async ({
   comision,
   total,
   estado
-}) => {
-  const query = `
-    INSERT INTO pedido_contabilidad (
+}, transaction = null) => {
+  const result = await sequelize.query(
+    `INSERT INTO pedido_contabilidad (
       entidad_comercial_id,
       pedido_id_externo,
       tipo_pedido,
@@ -25,11 +23,21 @@ const crearPedidoContabilidad = async ({
       total,
       estado
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-    RETURNING id
-  `;
 
-  const values = [
+    VALUES (
+    :entidad_comercial_id,
+    :pedido_id_externo,
+    :tipo_pedido,
+    :modulo_origen,
+    :subtotal,
+    :descuento,
+    :comision,
+    :total,
+    :estado
+)
+RETURNING id`,
+{
+  replacements: {
     entidad_comercial_id,
     pedido_id_externo,
     tipo_pedido,
@@ -39,62 +47,94 @@ const crearPedidoContabilidad = async ({
     comision,
     total,
     estado
-  ];
-  
+  },
+  type: sequelize.QueryTypes.INSERT,
+  transaction
+}
+);
 
-  const result = await db.query(query, values);
-  return result.rows[0];
-};
-const actualizarEstadoPedidoContabilidad = async (pedido_id_externo, estado) => {
-  const query = `
-    UPDATE pedido_contabilidad
-    SET estado = $1
-    WHERE pedido_id_externo = $2
-    RETURNING *
-  `;
-
-  const values = [estado, pedido_id_externo];
-  const result = await db.query(query, values);
-
-  return result.rows[0] || null;
+return result[0][0].id;
 };
 
-// Admin-contabilidad Emmanuel
+const actualizarEstadoPedidoContabilidad =
+async (
+    pedido_id_externo,
+    estado,
+    modulo_origen = null,
+    transaction = null
+) => {
+
+const result = await sequelize.query(
+`
+UPDATE pedido_contabilidad
+SET estado = :estado
+WHERE pedido_id_externo = :pedido_id_externo
+AND (
+    :modulo_origen IS NULL
+    OR modulo_origen = :modulo_origen
+)
+RETURNING *
+`,
+{
+  replacements: {
+    estado,
+    pedido_id_externo,
+    modulo_origen
+  },
+  type: sequelize.QueryTypes.UPDATE,
+  transaction
+}
+);
+
+return result[0][0] || null;
+};
+
 const actualizarResumenPedidoContabilidad = async ({
   pedido_id_externo,
   subtotal,
   descuento,
   comision,
   total,
-  estado
-}) => {
-  const query = `
-    UPDATE pedido_contabilidad
-    SET
-      subtotal = $1,
-      descuento = $2,
-      comision = $3,
-      total = $4,
-      estado = $5
-    WHERE pedido_id_externo = $6
-    RETURNING *
-  `;
+estado,
+  modulo_origen = null
+}, transaction = null) => {
 
-  const values = [
+const result = await sequelize.query(
+`
+UPDATE pedido_contabilidad
+SET
+  subtotal = :subtotal,
+  descuento = :descuento,
+  comision = :comision,
+  total = :total,
+  estado = :estado
+WHERE pedido_id_externo = :pedido_id_externo
+AND (
+    :modulo_origen IS NULL
+    OR modulo_origen = :modulo_origen
+)
+RETURNING *
+`,
+{
+  replacements: {
     subtotal,
     descuento,
     comision,
     total,
     estado,
-    pedido_id_externo
-  ];
+    pedido_id_externo,
+    modulo_origen
+  },
+  type: sequelize.QueryTypes.UPDATE,
+  transaction
+}
+);
 
-  const result = await db.query(query, values);
-  return result.rows[0] || null;
+return result[0][0] || null;
 };
+
 module.exports = {
   crearPedidoContabilidad,
   actualizarEstadoPedidoContabilidad,
   actualizarResumenPedidoContabilidad
-
 };

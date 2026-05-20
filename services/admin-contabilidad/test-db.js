@@ -2,22 +2,22 @@
 
 require('dotenv').config();
 
-console.log('🚀 Iniciando prueba...');
+console.log('Iniciando prueba...');
 
 const db = require('./src/config/db');
 
 (async () => {
   try {
-    console.log('⏳ Intentando conectar...');
+    console.log(' Intentando conectar...');
 
     const result = await db.query('SELECT NOW()');
 
-    console.log('✅ Conectado a Neon:', result.rows[0]);
+    console.log('Conectado a Neon:', result.rows[0]);
 
   } catch (error) {
-    console.error('❌ Error conexión:', error);
+    console.error(' Error conexión:', error);
   } finally {
-    console.log('🏁 Fin del script');
+    console.log(' Fin del script');
     process.exit();
   }
 })();

@@ -1,1 +1,0 @@
-Retoma desde donde quedamos. El resumen anterior está en context/2026-04-27-avance.md

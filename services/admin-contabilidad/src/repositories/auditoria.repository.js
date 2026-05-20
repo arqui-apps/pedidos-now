@@ -1,10 +1,17 @@
-const db = require('../config/db');
+const { sequelize } = require('../config/db');
 
-const registrarLog = async (data) => {
-    await db.query(
+const registrarLog = async (data, transaction = null) => {
+    await sequelize.query(
         `INSERT INTO auditoria_financiera (accion, descripcion, monto)
-         VALUES (?, ?, ?)`,
-        [data.accion, data.descripcion, data.monto]
+         VALUES (:accion, :descripcion, :monto)`,
+        {
+            replacements: {
+                accion: data.accion,
+                descripcion: data.descripcion,
+                monto: data.monto || null
+            },
+            transaction
+        }
     );
 };
 
