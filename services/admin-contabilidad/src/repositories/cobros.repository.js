@@ -54,7 +54,7 @@ const crearCobro = async (data, transaction = null) => {
                     data.ultimo_error_externo || null,
 
                 reconciliado:
-                    data.reconciliado || false
+                    data.reconciliado ?? false
             },
             type: sequelize.QueryTypes.INSERT,
             transaction
@@ -227,6 +227,30 @@ const actualizarEstadoCobro = async (cobro_id, nuevoEstado, transaction = null) 
     return result[0];
 };
 
+const actualizarErrorExterno = async (
+    cobro_id,
+    error,
+    transaction = null
+) => {
+
+    const result = await sequelize.query(
+        `UPDATE cobro
+         SET ultimo_error_externo = :error,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = :id`,
+        {
+            replacements: {
+                id: cobro_id,
+                error
+            },
+            type: sequelize.QueryTypes.UPDATE,
+            transaction
+        }
+    );
+
+    return result;
+};
+
 const obtenerCobroPorPedidoYCliente = async (pedido_id, cliente_id) => {
     const result = await sequelize.query(
         `SELECT * FROM cobro 
@@ -252,6 +276,7 @@ module.exports = {
     registrarCancelacion,
     obtenerEstadisticasCobros,
     actualizarEstadoCobro,
+    actualizarErrorExterno,
     obtenerCobroPorPedidoYCliente,
     obtenerCobroPorIdempotencyKey
 };

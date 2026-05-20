@@ -3,15 +3,70 @@
 
 class CobroStateMachine {
     constructor() {
-        this.validStates = ['pendiente', 'procesando', 'completado', 'denegado', 'cancelado'];
+        this.validStates = [
+            'pendiente',
+            'procesando',
 
+            // estados distribuidos
+            'banco_aprobado',
+            'cobros_confirmado',
+
+            // finales correctos
+            'completado',
+            'denegado',
+            'cancelado',
+
+            // resiliencia
+            'inconsistente',
+            'reversion_pendiente',
+            'reconciliacion_manual'
+        ];
         // Transiciones permitidas: estado_actual → [estados_permitidos]
         this.transitions = {
-            'pendiente': ['procesando', 'cancelado'],
-            'procesando': ['completado', 'denegado'],
-            'completado': ['cancelado'],
-            'denegado': [],
-            'cancelado': []
+            pendiente: [
+                'procesando',
+                'cancelado'
+            ],
+
+            procesando: [
+                'banco_aprobado',
+                'denegado',
+                'inconsistente'
+            ],
+
+            banco_aprobado: [
+                'cobros_confirmado',
+                'reversion_pendiente',
+                'inconsistente'
+            ],
+
+            cobros_confirmado: [
+                'completado',
+                'reconciliacion_manual'
+            ],
+
+            completado: [
+                'cancelado'
+            ],
+
+            denegado: [],
+
+            cancelado: [],
+
+            inconsistente: [
+                'reconciliacion_manual',
+                'reversion_pendiente'
+            ],
+
+            reversion_pendiente: [
+                'cancelado',
+                'reconciliacion_manual'
+            ],
+
+            reconciliacion_manual: [
+                'completado',
+                'cancelado'
+            ]
         };
     }
 

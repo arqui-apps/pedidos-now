@@ -8,6 +8,9 @@ const morgan = require('morgan');
 const compression = require('compression');
 
 const { sequelize } = require('./config/db');
+const {
+    iniciarWorkerReconciliacion
+} = require('./workers/reconciliacion.worker');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 
@@ -166,22 +169,47 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   try {
+
     // Probar conexión a base de datos
     await sequelize.authenticate();
-    console.log('Conexión a PostgreSQL establecida correctamente.');
 
-    // Sincronizar modelos (crear tablas si no existen)
+    console.log(
+      'Conexión a PostgreSQL establecida correctamente.'
+    );
+
+    // Inicializar DB
     await initDB();
-    console.log('Tablas base verificadas.');
-    
-    
+
+    console.log(
+      'Tablas base verificadas.'
+    );
+
+    // Iniciar worker de reconciliación
+    iniciarWorkerReconciliacion();
+
+    console.log(
+      '[Sistema] Worker de reconciliación iniciado'
+    );
+
     // Iniciar servidor
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Servidor corriendo en puerto ${PORT}`);
-      console.log(`URL: http://localhost:${PORT}`);
+
+      console.log(
+        `Servidor corriendo en puerto ${PORT}`
+      );
+
+      console.log(
+        `URL: http://localhost:${PORT}`
+      );
     });
+
   } catch (error) {
-    console.error('Error al iniciar servidor:', error.message);
+
+    console.error(
+      'Error al iniciar servidor:',
+      error.message
+    );
+
     process.exit(1);
   }
 };

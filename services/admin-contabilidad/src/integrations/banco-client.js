@@ -34,8 +34,7 @@ try {
         );
 
         console.log(
-            '[BancoClient] HEADERS FINALES:',
-            config.headers
+            '[BancoClient] Request preparada'
         );
 
         return config;
@@ -119,11 +118,7 @@ const obtenerCuentasPorAsociado = async (associate_id) => {
         );
 
         console.log(
-            JSON.stringify(
-                response.data,
-                null,
-                2
-            )
+            `[BancoClient] Asociado obtenido correctamente`
         );
 
         const cuentas =
@@ -134,11 +129,7 @@ const obtenerCuentasPorAsociado = async (associate_id) => {
         );
 
         console.log(
-            JSON.stringify(
-                cuentas,
-                null,
-                2
-            )
+            `[BancoClient] ${cuentas.length} cuentas obtenidas`
         );
         
         if (!Array.isArray(cuentas)) {
@@ -230,13 +221,7 @@ const validarTarjeta = async (data) => {
         }
 
         console.log(
-            '[BancoClient] VALIDATE PAYLOAD:',
-            data
-        );
-
-        console.log(
-            '[BancoClient] TOKEN:',
-            global.bankToken
+            '[BancoClient] Validando tarjeta'
         );
 
         const response = await circuitBreaker.execute(() =>
@@ -606,8 +591,7 @@ const loginBanco = async () => {
     console.log('[BancoClient] Ejecutando login bancario...');
 
     console.log(
-        '[BancoClient] Usuario:',
-        process.env.BANK_USER
+        '[BancoClient] Ejecutando autenticación bancaria'
     );
 
     const response = await bancoCaller.post(
@@ -619,15 +603,7 @@ const loginBanco = async () => {
     );
 
     console.log(
-        '[BancoClient] LOGIN RESPONSE COMPLETA:'
-    );
-
-    console.log(
-        JSON.stringify(
-            response.data,
-            null,
-            2
-        )
+        '[BancoClient] Login bancario exitoso'
     );
 
     global.bankToken = response.data.token.token;
@@ -635,11 +611,6 @@ const loginBanco = async () => {
     bancoCaller.defaults.headers.common[
         'Authorization'
     ] = `Bearer ${global.bankToken}`;
-
-    console.log(
-        '[BancoClient] TOKEN GUARDADO:',
-        global.bankToken
-    );
 
     return global.bankToken;
 };

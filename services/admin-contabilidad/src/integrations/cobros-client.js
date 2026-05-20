@@ -28,15 +28,14 @@ const procesarCobro = async (data) => {
         const payload = toCobrosAPI(data);
 
         console.log(
-            '[CobrosClient] Payload transformado:',
-            JSON.stringify(payload, null, 2)
+            '[CobrosClient] Payload transformado correctamente'
         );
 
         const response =
-            await cobrosCaller.post(
-                '/payments',
-                payload
-            );
+        await cobrosCaller.post(
+            '/payments',
+            payload
+        );
 
         return response.data;
 
@@ -85,7 +84,10 @@ const obtenerCobroPorId = async (id) => {
 
 const cancelarCobro = async (id, motivo) => {
     try {
-        const response = await cobrosCaller.put(`/cobros/${id}/cancelar`, { motivo });
+        const response = await cobrosCaller.post(
+            `/payments/${id}/cancel`,
+            { motivo }
+        );
         return response.data;
     } catch (error) {
         throw new Error(`Error cancelando cobro: ${error.message}`);
@@ -94,26 +96,20 @@ const cancelarCobro = async (id, motivo) => {
 
 const registrarDevolucion = async (data) => {
     try {
-        console.log(
-            '[CobrosClient] Token actual:',
-            global.currentToken
-        );
-
-        console.log(
-            '[CobrosClient] Payload:',
-            payload
-        );
         const response = await cobrosCaller.post('/devoluciones', data);
         return response.data;
-    } catch (error) {
-        console.log(
-            '[CobrosClient] Error status:',
-            error.response?.status
+        } catch (error) {
+        console.error(
+            '[CobrosClient] Error devolucion:',
+            {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            }
         );
 
-        console.log(
-            '[CobrosClient] Error data:',
-            error.response?.data
+        throw new Error(
+            `Error registrando devolución: ${error.message}`
         );
     }
 };

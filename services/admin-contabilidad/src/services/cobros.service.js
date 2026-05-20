@@ -57,6 +57,7 @@ const procesarCobro = async (data) => {
         let source_account_id = null;
         let transferencia_bancaria = null;
         let numero_transaccion = null;
+        let banco_aprobado = false;
 
         // 2. TRANSICIÓN A PROCESANDO
         estadoActual = stateMachine.transition(estadoActual, 'procesando');
@@ -116,6 +117,13 @@ if (data.tipo_pago === 'tarjeta') {
 
     transferencia_bancaria =
         cobroBanco;
+    banco_aprobado = true;
+
+    estadoActual =
+    stateMachine.transition(
+        estadoActual,
+        'banco_aprobado'
+    );
 }
 
 // ===============================
@@ -126,8 +134,76 @@ console.log(
     '[CobrosService] Enviando cobro a API externa...'
 );
 
-const cobroExterno =
-    await cobrosClient.procesarCobro(data);
+let cobroExterno = null;
+
+try {
+
+    cobroExterno =
+        await cobrosClient.procesarCobro(data);
+
+} catch (errorCobros) {
+
+    console.error(
+        '[CobrosService] FALLA COBROS API:',
+        errorCobros.message
+    );
+
+    // Caso crítico:
+    // banco cobró pero API externa falló
+
+    if (banco_aprobado) {
+
+        estadoActual = 'inconsistente';
+
+        await cobrosRepo.crearCobro(
+            {
+                idempotency_key: idempotencyKey,
+                cliente_id: data.cliente_id,
+                pedido_id: data.pedido_id,
+                monto_total: data.monto_total,
+                tarifa_servicio,
+                propina: data.propina || 0,
+                tipo_pago: data.tipo_pago,
+                repartidor_id: data.repartidor_id,
+                cupon_id: data.cupon_id || null,
+
+                estado: estadoActual,
+
+                numero_transaccion,
+
+                estado_reconciliacion:
+                    'requiere_revision',
+
+                payment_id_cobros: null,
+
+                transaction_id_banco:
+                    transferencia_bancaria?.id ||
+                    numero_transaccion,
+
+                ultimo_error_externo:
+                    errorCobros.message,
+
+                reconciliado: false
+            },
+            transaction
+        );
+
+        await transaction.commit();
+
+        return {
+            ok: false,
+            inconsistencia: true,
+            estado: estadoActual,
+            mensaje:
+                'INCONSISTENCIA DISTRIBUIDA: banco aprobado pero Cobros API falló',
+            transaction_id_banco:
+                transferencia_bancaria?.id ||
+                numero_transaccion
+        };
+    }
+
+    throw errorCobros;
+}
 
 console.log(
     '[CobrosService] Respuesta Cobros:',
@@ -136,11 +212,24 @@ console.log(
 
 cobro_realizado = true;
 
-estadoActual =
-    stateMachine.transition(
-        estadoActual,
-        'completado'
-    );
+if (estadoActual === 'banco_aprobado') {
+
+    estadoActual =
+        stateMachine.transition(
+            estadoActual,
+            'cobros_confirmado'
+        );
+
+    estadoActual =
+        stateMachine.transition(
+            estadoActual,
+            'completado'
+        );
+}
+else {
+
+    estadoActual = 'completado';
+}
 
 // Si banco no devolvió transacción,
 // usar payment_id de Cobros API
