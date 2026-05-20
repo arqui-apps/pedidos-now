@@ -7,7 +7,7 @@ let cobrosCaller;
 try {
     cobrosCaller = axios.create({
         baseURL: COBROS_SERVICE_URL,
-        timeout: 5000
+        timeout: 20000
     });
 
     cobrosCaller.interceptors.request.use(config => {
