@@ -33,6 +33,14 @@ const swaggerDefinition = {
             description: 'Conexión, consultas y movimientos financieros del microservicio de Negocios'
         },
         {
+            name: 'Reportes Paquetería',
+            description: 'Conexión, consultas y movimientos financieros del microservicio de Paquetería'
+        },
+        {
+            name: 'Reportes Restaurantes',
+            description: 'Conexión, consultas y movimientos financieros del microservicio de Restaurantes'
+        },
+        {
             name: 'Reportes',
             description: 'Reportes administrativos y contables'
         },
