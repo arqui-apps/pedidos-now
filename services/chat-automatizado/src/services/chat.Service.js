@@ -12,7 +12,6 @@ import pool from "../config/database.js";
 import logger from "../config/logger.js";
 import { buildEscalationPayload } from "./escalation.service.js";
 
-
 const HUMAN_SENDER_BY_USER_TYPE = {
     cliente: "cliente",
     repartidor: "repartidor",
@@ -26,65 +25,99 @@ const STATIC_MESSAGES = {
         "2. Pedido llegó en mal estado\n" +
         "3. Otro problema\n" +
         "0. Volver al menú",
-
     PROBLEMA_COBRO:
         "¿Qué problema tienes con el cobro?\n" +
         "1. Cobro duplicado\n" +
         "2. No reconozco el cargo\n" +
         "0. Volver al menú",
-
     CONSULTA_PEDIDO:
-        "Ingresa el código de tu pedido.\n" + "0. Volver al menú",
-
+        "Ingresa el código de tu pedido.\n0. Volver al menú",
     FAQ_CLIENTE:
-        "Preguntas frecuentes para clientes.\n" +
-        "Por ahora esta vista se integrará con tu módulo FAQ.\n" +
-        "0. Volver al menú",
-
+        "Preguntas frecuentes para clientes.\n0. Volver al menú",
     PROBLEMA_ENTREGA:
         "¿Qué problema tienes con la entrega?\n" +
         "1. Cliente no responde\n" +
         "2. Dirección incorrecta\n" +
         "3. Necesito apoyo en carretera\n" +
         "0. Volver al menú",
-
     PROBLEMA_PAGO_REPARTIDOR:
         "¿Qué problema tienes con tu pago?\n" +
         "1. No recibí el pago\n" +
         "2. Monto incorrecto\n" +
         "0. Volver al menú",
-
     SOPORTE_CARRETERA:
-        "Tu solicitud de apoyo en carretera fue registrada.\n" +
-        "Un agente dará seguimiento.",
-
+        "Tu solicitud de apoyo en carretera fue registrada.\nUn agente dará seguimiento.",
     FAQ_REPARTIDOR:
-        "Preguntas frecuentes para repartidores.\n" +
-        "0. Volver al menú",
-
+        "Preguntas frecuentes para repartidores.\n0. Volver al menú",
     PROBLEMA_PEDIDO_NEGOCIO:
         "¿Qué problema tienes con el pedido?\n" +
         "1. Cliente no recogió / canceló tarde\n" +
         "2. Pedido con datos incorrectos\n" +
         "0. Volver al menú",
-
     CANCELAR_PEDIDO_NEGOCIO:
-        "Ingresa el código del pedido que deseas cancelar.\n" +
-        "0. Volver al menú",
-
+        "Ingresa el código del pedido que deseas cancelar.\n0. Volver al menú",
     PROBLEMA_COBRO_NEGOCIO:
-        "¿Qué problema tienes con el cobro?\n" +
-        "1. Hablar con agente\n" +
-        "0. Volver al menú",
-
+        "¿Qué problema tienes con el cobro?\n1. Hablar con agente\n0. Volver al menú",
     FAQ_NEGOCIO:
-        "Preguntas frecuentes para negocios.\n" + "0. Volver al menú",
-
+        "Preguntas frecuentes para negocios.\n0. Volver al menú",
     ESCALAR_AGENTE:
         "Tu caso será escalado a un agente de servicio al cliente.",
-
     RESUELTO: "Tu caso fue resuelto correctamente. Gracias por contactarnos.",
 };
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+const FAQ_CATEGORY_MAP = {
+    FAQ_CLIENTE:    "cliente",
+    FAQ_REPARTIDOR: "repartidor",
+    FAQ_NEGOCIO:    "negocio",
+};
+
+async function buildFaqMessage(state, userType) {
+    const category = FAQ_CATEGORY_MAP[state] || userType;
+    try {
+        const [rows] = await pool.query(
+            `SELECT id_faq, question, answer
+             FROM faq_design
+             WHERE category_type = ? AND faq_status = 'active'
+             ORDER BY id_faq ASC
+             LIMIT 50`,
+            [category]
+        );
+        if (!rows || rows.length === 0) {
+            return "No hay preguntas frecuentes disponibles en este momento.\n0. Volver al menú";
+        }
+        const preguntasTexto = rows.map((faq, i) => `${i + 1}. ${faq.question}`).join("\n");
+        return "Preguntas frecuentes:\n" + preguntasTexto + "\n0. Volver al menú";
+    } catch (err) {
+        logger.warn({ err: err.message, state }, "[FAQ] Error al obtener FAQs de la BD");
+        return "No se pudieron cargar las preguntas frecuentes.\n0. Volver al menú";
+    }
+}
+
+async function getFaqAnswer(state, userType, optionNumber) {
+    const category = FAQ_CATEGORY_MAP[state] || userType;
+    const index = parseInt(optionNumber, 10) - 1;
+    if (isNaN(index) || index < 0) return null;
+    try {
+        const [rows] = await pool.query(
+            `SELECT id_faq, question, answer
+             FROM faq_design
+             WHERE category_type = ? AND faq_status = 'active'
+             ORDER BY id_faq ASC
+             LIMIT 50`,
+            [category]
+        );
+        if (!rows || index >= rows.length) return null;
+        const faq = rows[index];
+        return `❓ ${faq.question}\n\n💡 ${faq.answer}\n\n¿Te ayudó esta respuesta?\n1. Ver más preguntas\n0. Volver al menú`;
+    } catch (err) {
+        logger.warn({ err: err.message }, "[FAQ] Error al obtener respuesta de FAQ");
+        return null;
+    }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getPersistedSnapshot(actor) {
     if (typeof actor.getPersistedSnapshot === "function") {
@@ -95,9 +128,7 @@ function getPersistedSnapshot(actor) {
 
 function normalizePersistedSnapshot(rawSnapshot) {
     if (!rawSnapshot) return null;
-
     let snapshot = rawSnapshot;
-
     if (typeof snapshot === "string") {
         try {
             snapshot = JSON.parse(snapshot);
@@ -106,15 +137,10 @@ function normalizePersistedSnapshot(rawSnapshot) {
             return null;
         }
     }
-
-    if (!snapshot || typeof snapshot !== "object") {
-        return null;
-    }
-
+    if (!snapshot || typeof snapshot !== "object") return null;
     if (!snapshot.children || typeof snapshot.children !== "object") {
         snapshot.children = {};
     }
-
     return snapshot;
 }
 
@@ -129,14 +155,9 @@ function normalizeInput(input) {
 
 function resolveEventType(currentState, inputType) {
     if (inputType) return inputType;
-
-    if (
-        currentState === "CONSULTA_PEDIDO" ||
-        currentState === "CANCELAR_PEDIDO_NEGOCIO"
-    ) {
+    if (currentState === "CONSULTA_PEDIDO" || currentState === "CANCELAR_PEDIDO_NEGOCIO") {
         return "INPUT_CODE";
     }
-
     return "OPTION";
 }
 
@@ -150,16 +171,9 @@ async function saveMessage(id_session, sender, content) {
 
 async function getMenuMessage(state, userType) {
     const menu = await Menu.findOne({
-        where: {
-            actual_state: state,
-            is_active: 1,
-        },
+        where: { actual_state: state, is_active: 1 },
     });
-
-    if (!menu) {
-        return STATIC_MESSAGES[state] || `Estado actual: ${state}`;
-    }
-
+    if (!menu) return STATIC_MESSAGES[state] || `Estado actual: ${state}`;
     if (
         menu.audience_type === "todos" ||
         menu.audience_type === userType ||
@@ -167,7 +181,6 @@ async function getMenuMessage(state, userType) {
     ) {
         return menu.menu_content;
     }
-
     return STATIC_MESSAGES[state] || `Estado actual: ${state}`;
 }
 
@@ -178,13 +191,12 @@ async function buildBotMessage(state, context, userType, extra = {}) {
                 "Pedido encontrado:\n" +
                 `Código: ${extra.order?.order_code || context.order_code}\n` +
                 `Estado: ${extra.order?.status || "desconocido"}\n` +
-                `Origen: ${extra.order?.source || "N/A"}\n\n` +
                 `Negocio: ${extra.order?.business || "N/A"}\n` +
+                `Origen: ${extra.order?.source || "N/A"}\n\n` +
                 "1. Reportar problema con pedido\n" +
                 "0. Volver al menú"
             );
         }
-
         return (
             "No se encontró ningún pedido con el código ingresado.\n" +
             "Verifica que el código sea correcto e intenta de nuevo.\n" +
@@ -222,8 +234,15 @@ async function buildBotMessage(state, context, userType, extra = {}) {
         );
     }
 
+    if (state === "FAQ_CLIENTE" || state === "FAQ_REPARTIDOR" || state === "FAQ_NEGOCIO") {
+        if (extra.faqAnswer) return extra.faqAnswer;
+        return buildFaqMessage(state, userType);
+    }
+
     return getMenuMessage(state, userType);
 }
+
+// ─── Exports ──────────────────────────────────────────────────────────────────
 
 export async function startSession({ id_usuario, user_type }) {
     if (!id_usuario || !user_type) {
@@ -231,32 +250,17 @@ export async function startSession({ id_usuario, user_type }) {
     }
 
     const user = await ext.getUserById(id_usuario);
-
-    if (!user) {
-        throw new Error("No se pudo validar el usuario");
-    }
+    if (!user) throw new Error("No se pudo validar el usuario");
 
     const existingSession = await ChatSession.findOne({
-        where: {
-            id_usuario,
-            user_type,
-            session_status: "active",
-            is_active: 1,
-        },
+        where: { id_usuario, user_type, session_status: "active", is_active: 1 },
         order: [["id_session", "DESC"]],
     });
 
     if (existingSession) {
-        const persistedSnapshot = normalizePersistedSnapshot(
-            existingSession.chat_context
-        );
+        const persistedSnapshot = normalizePersistedSnapshot(existingSession.chat_context);
         const persistedContext = persistedSnapshot?.context || {};
-        const botMessage = await buildBotMessage(
-            existingSession.current_state,
-            persistedContext,
-            user_type
-        );
-
+        const botMessage = await buildBotMessage(existingSession.current_state, persistedContext, user_type);
         return {
             resumed: true,
             id_session: existingSession.id_session,
@@ -265,10 +269,7 @@ export async function startSession({ id_usuario, user_type }) {
         };
     }
 
-    const actor = createActor(chatMachine, {
-        input: { id_usuario, user_type },
-    });
-
+    const actor = createActor(chatMachine, { input: { id_usuario, user_type } });
     actor.start();
 
     const snapshot = actor.getSnapshot();
@@ -286,12 +287,7 @@ export async function startSession({ id_usuario, user_type }) {
         is_active: 1,
     });
 
-    const botMessage = await buildBotMessage(
-        currentState,
-        persistedSnapshot.context || {},
-        user_type
-    );
-
+    const botMessage = await buildBotMessage(currentState, persistedSnapshot.context || {}, user_type);
     await saveMessage(session.id_session, "bot", botMessage);
 
     logger.info({ id_session: session.id_session, id_usuario, user_type }, "[Chat] Sesión iniciada");
@@ -306,31 +302,20 @@ export async function startSession({ id_usuario, user_type }) {
 
 export async function sendMessage({ id_session, input, input_type = null }) {
     const session = await ChatSession.findByPk(id_session);
-
-    if (!session) {
-        throw new Error("Sesión no encontrada");
-    }
-
-    if (session.session_status !== "active") {
-        throw new Error("La sesión ya no está activa");
-    }
+    if (!session) throw new Error("Sesión no encontrada");
+    if (session.session_status !== "active") throw new Error("La sesión ya no está activa");
 
     const normalizedInput = normalizeInput(input);
     const restoredSnapshot = normalizePersistedSnapshot(session.chat_context);
-    const actorInput = {
-        id_usuario: session.id_usuario,
-        user_type: session.user_type,
-    };
+    const actorInput = { id_usuario: session.id_usuario, user_type: session.user_type };
 
-    logger.debug({ id_session, state: session.current_state, user_type: session.user_type }, "[Chat] Procesando mensaje");
+    logger.debug({ id_session, state: session.current_state }, "[Chat] Procesando mensaje");
 
     let actor;
-
     try {
         actor = restoredSnapshot
             ? createActor(chatMachine, { snapshot: restoredSnapshot })
             : createActor(chatMachine, { input: actorInput });
-
         actor.start();
     } catch (error) {
         logger.warn({ id_session, err: error.message }, "[Chat] Snapshot inválido, iniciando desde cero");
@@ -344,7 +329,6 @@ export async function sendMessage({ id_session, input, input_type = null }) {
     await saveMessage(id_session, humanSender, normalizedInput);
 
     const eventType = resolveEventType(beforeState, input_type);
-
     actor.send({ type: eventType, input: normalizedInput });
 
     let currentState = String(actor.getSnapshot().value);
@@ -353,118 +337,82 @@ export async function sendMessage({ id_session, input, input_type = null }) {
     let botMessage = null;
 
     if (currentState === "CONSULTA_PEDIDO_RESULTADO") {
-        const order = await ext.getOrderByCode(
-            actor.getSnapshot().context.order_code
-        );
-
+        const order = await ext.getOrderByCode(actor.getSnapshot().context.order_code);
         extra = { orderFound: !!order, order };
-
         await pool.query(
             `INSERT INTO order_inquiry (id_session, inquiry_type, input_value, result_found, is_active)
              VALUES (?, 'pedido', ?, ?, 1)`,
             [id_session, actor.getSnapshot().context.order_code, order ? 1 : 0]
         );
+        botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type, extra);
 
-        botMessage = await buildBotMessage(
-            currentState,
-            actor.getSnapshot().context,
-            session.user_type,
-            extra
-        );
     } else if (currentState === "COMPENSACION_CUPON") {
         const coupon = await ext.createCompensationCoupon(
-            session.id_usuario,
-            25.0,
+            session.id_usuario, 25.0,
             "Compensación por problema con pedido",
             actor.getSnapshot().context.order_code
         );
-
         await Compensation.create({
-            id_usuario: session.id_usuario,
-            id_session,
-            amount: 25.0,
-            cupon_code: coupon.cupon_code,
+            id_usuario: session.id_usuario, id_session,
+            amount: 25.0, cupon_code: coupon.cupon_code,
             expiration_date: coupon.expiration_date,
             reason: "Compensación por problema con pedido",
-            compensation_type: "cupon",
-            compensation_status: "pendiente",
-            is_active: 1,
+            compensation_type: "cupon", compensation_status: "pendiente", is_active: 1,
         });
-
         extra = { cupon_code: coupon.cupon_code, amount: 25.0 };
-
-        botMessage = await buildBotMessage(
-            currentState,
-            actor.getSnapshot().context,
-            session.user_type,
-            extra
-        );
-
+        botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type, extra);
         actor.send({ type: "RESOLVED" });
         currentState = String(actor.getSnapshot().value);
         resolution = "resuelto_con_cupon";
+
     } else if (currentState === "COMPENSACION_REEMBOLSO") {
         const refund = await ext.requestRefund(
-            session.id_usuario,
-            50.0,
+            session.id_usuario, 50.0,
             "Reembolso por problema reportado en chat automatizado",
-            id_session,
-            actor.getSnapshot().context.order_code
+            id_session, actor.getSnapshot().context.order_code
         );
-
         await Compensation.create({
-            id_usuario: session.id_usuario,
-            id_session,
-            amount: 50.0,
-            cupon_code: null,
-            expiration_date: null,
+            id_usuario: session.id_usuario, id_session,
+            amount: 50.0, cupon_code: null, expiration_date: null,
             reason: "Reembolso por problema reportado en chat automatizado",
             compensation_type: "reembolso",
             compensation_status: refund.processed ? "procesado" : "pendiente",
             is_active: 1,
         });
-
         extra = { processed: refund.processed, amount: 50.0 };
-
-        botMessage = await buildBotMessage(
-            currentState,
-            actor.getSnapshot().context,
-            session.user_type,
-            extra
-        );
-
+        botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type, extra);
         actor.send({ type: "RESOLVED" });
         currentState = String(actor.getSnapshot().value);
         resolution = "resuelto_con_reembolso";
+
     } else if (currentState === "SOPORTE_CARRETERA") {
         const support = await SupportRequest.create({
-            id_delivery: session.id_usuario,
-            id_pedido: null,
-            id_session,
-            id_problem: null,
-            request_status: "pendiente",
-            problem_details: "Solicitud generada desde chat automatizado",
-            is_active: 1,
+            id_delivery: session.id_usuario, id_pedido: null, id_session,
+            id_problem: null, request_status: "pendiente",
+            problem_details: "Solicitud generada desde chat automatizado", is_active: 1,
         });
-
         extra = { id_support_request: support.id_support_request };
-
-        botMessage = await buildBotMessage(
-            currentState,
-            actor.getSnapshot().context,
-            session.user_type,
-            extra
-        );
-
+        botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type, extra);
         actor.send({ type: "RESOLVED" });
         currentState = String(actor.getSnapshot().value);
         resolution = "resuelto";
+
+    } else if (
+        (currentState === "FAQ_CLIENTE" || currentState === "FAQ_REPARTIDOR" || currentState === "FAQ_NEGOCIO") &&
+        beforeState === currentState &&
+        normalizedInput !== "0" &&
+        normalizedInput !== ""
+    ) {
+        const faqAnswer = await getFaqAnswer(currentState, session.user_type, normalizedInput);
+        if (faqAnswer) {
+            extra = { faqAnswer };
+            botMessage = faqAnswer;
+        } else {
+            botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type);
+        }
+
     } else {
-        botMessage = await buildBotMessage(
-            currentState,
-            actor.getSnapshot().context,
-            session.user_type
-        );
+        botMessage = await buildBotMessage(currentState, actor.getSnapshot().context, session.user_type);
 
         if (currentState === "RESUELTO" && beforeState === "CANCELAR_PEDIDO_NEGOCIO_CONFIRMAR") {
             const orderCode = actor.getSnapshot().context.order_code;
@@ -483,19 +431,15 @@ export async function sendMessage({ id_session, input, input_type = null }) {
             try {
                 const machineCtx = actor.getSnapshot().context;
                 extra.escalationPayload = await buildEscalationPayload({
-                    session,
-                    previousState: beforeState,
-                    lastUserInput: normalizedInput,
-                    machineContext: machineCtx,
+                    session, previousState: beforeState,
+                    lastUserInput: normalizedInput, machineContext: machineCtx,
                 });
             } catch (escErr) {
                 logger.warn({ err: escErr.message }, "[Escalation] No se pudo guardar el payload");
             }
         }
 
-        if (currentState === "RESUELTO" && !resolution) {
-            resolution = "resuelto";
-        }
+        if (currentState === "RESUELTO" && !resolution) resolution = "resuelto";
     }
 
     const persistedSnapshot = getPersistedSnapshot(actor);
