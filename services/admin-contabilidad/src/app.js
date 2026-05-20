@@ -30,6 +30,9 @@ const reportesRestaurantesRoutes = require('./routes/reportesRestaurantes.routes
 // Admin-contabilidad Victor
 const reportesNegociosRoutes = require('./routes/reportesNegocios.routes');
 
+// Admin-contabilidad Kenneth
+const reportesPaqueteriaRoutes = require('./routes/reportesPaqueteria.routes');
+
 
 //Admin-conta Jeff. Daniel Ramos
 const promocionesRoutes = require('./routes/promociones.routes');
@@ -117,9 +120,11 @@ app.use('/api/dashboard', require('./routes/dashboard.routes'));
 app.use('/api/reportes-restaurantes', reportesRestaurantesRoutes);
 
 // Admin-contabilidad Victor
-
-
 app.use('/api/reportes-negocios', reportesNegociosRoutes);
+
+// Admin-contabilidad Kenneth
+app.use('/api/reportes-paqueteria', reportesPaqueteriaRoutes);
+
 
 //Admin-conta Jeff. Daniel Ramos
 app.use(promocionesRoutes);

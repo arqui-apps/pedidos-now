@@ -33,6 +33,14 @@ const swaggerDefinition = {
             description: 'Conexión, consultas y movimientos financieros del microservicio de Negocios'
         },
         {
+            name: 'Reportes Paquetería',
+            description: 'Conexión, consultas y movimientos financieros del microservicio de Paquetería'
+        },
+        {
+            name: 'Reportes Restaurantes',
+            description: 'Conexión, consultas y movimientos financieros del microservicio de Restaurantes'
+        },
+        {
             name: 'Reportes',
             description: 'Reportes administrativos y contables'
         },
@@ -51,6 +59,23 @@ const swaggerDefinition = {
         {
             name: 'Dashboard',
             description: 'Indicadores generales del módulo'
+        }, 
+        //Admin-conta Jeff. Daniel Ramos
+        {
+            name: 'Cupones',
+            description: 'Gestión administrativa de cupones'
+        },
+        {
+            name: 'Promociones',
+            description: 'Gestión de promociones generales'
+        },
+        {
+            name: 'Promociones Flash',
+            description: 'Gestión de promociones flash'
+        },
+        {
+            name: 'Reportes Promociones',
+            description: 'Reportes y sincronización de promociones'
         }
     ],
     components: {

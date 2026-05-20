@@ -2,6 +2,7 @@
 
 const negociosService = require('../services/negocios.service');
 const movimientoRepository = require('../repositories/movimiento.repository');
+const reportesNegociosRepository = require('../repositories/reportesNegocios.repository');
 
 const healthNegocios = async (req, res, next) => {
     try {
@@ -233,7 +234,64 @@ const registrarDescuentoNegocio = async (req, res, next) => {
         next(error);
     }
 };
+// Admin-contabilidad Victor
+const registrarPedidoContabilidadNegocio = async (req, res, next) => {
+    try {
+        const resultado = await reportesNegociosRepository.guardarPedidoYMovimientoNegocio(req.body);
 
+        res.status(201).json({
+            ok: true,
+            message: 'Pedido de negocio registrado en contabilidad correctamente',
+            modulo: 'negocios',
+            data: resultado
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Admin-contabilidad Victor
+const obtenerResumenNegocios = async (req, res, next) => {
+    try {
+        const resumen = await reportesNegociosRepository.obtenerResumenNegocios();
+
+        res.json({
+            ok: true,
+            modulo: 'negocios',
+            reporte: 'resumen_general',
+            data: resumen
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Admin-contabilidad Victor
+const obtenerResumenNegocioPorEntidad = async (req, res, next) => {
+    try {
+        const { businessId } = req.params;
+
+        const resumen = await reportesNegociosRepository.obtenerResumenNegocioPorEntidad(businessId);
+
+        if (!resumen) {
+            return res.status(404).json({
+                ok: false,
+                modulo: 'negocios',
+                message: 'No se encontró información contable para este negocio'
+            });
+        }
+
+        res.json({
+            ok: true,
+            modulo: 'negocios',
+            reporte: 'resumen_por_negocio',
+            businessId,
+            data: resumen
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 module.exports = {
     healthNegocios,
     listarNegocios,
@@ -244,5 +302,9 @@ module.exports = {
     obtenerStockProducto,
     registrarMovimientoNegocio,
     registrarCancelacionNegocio,
-    registrarDescuentoNegocio
+    registrarDescuentoNegocio,
+    registrarPedidoContabilidadNegocio,
+    obtenerResumenNegocios,
+    obtenerResumenNegocioPorEntidad
+    
 };

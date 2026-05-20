@@ -6,7 +6,7 @@ const NEGOCIOS_SERVICE_URL = process.env.NEGOCIOS_SERVICE_URL || 'https://proyec
 
 const http = axios.create({
     baseURL: NEGOCIOS_SERVICE_URL,
-    timeout: 15000,
+    timeout: 60000,
     headers: {
         Accept: 'application/json'
     }
