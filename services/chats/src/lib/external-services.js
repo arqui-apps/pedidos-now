@@ -437,15 +437,12 @@ export async function createCompensationCoupon(payload = {}) {
 
   return getData(result);
 }
+
 // ===============================
 // COBROS / PAYMENTS
 // ===============================
-// IMPORTANTE:
-// COBROS_SERVICE_URL debe ser:
-// https://cobros-api.fly.dev
-//
-// Las rutas reales de Cobros están bajo:
-// /api/cobros
+// COBROS_SERVICE_URL=https://cobros-api.fly.dev
+// Las rutas reales de Cobros están bajo /api/cobros
 
 export async function getCobrosHealth() {
   const result = await requestJson({
@@ -576,6 +573,46 @@ export async function getRestaurantOrderLogistics(restauranteId, pedidoId) {
     path: `/restaurantes/${encodeURIComponent(
       restauranteId
     )}/pedidos/${encodeURIComponent(pedidoId)}/logistica`,
+  });
+
+  return getData(result);
+}
+
+// ===============================
+// ADMIN / CONTABILIDAD WEBHOOK
+// ===============================
+// Recomendado en .env y Railway:
+// ADMIN_ACCOUNTING_WEBHOOK_URL=https://pedidos-now-admin-y-contabilidad.onrender.com/api/chats/resolucion
+
+export async function notifyAdminAccountingResolution(payload = {}) {
+  const webhookUrl =
+    process.env.ADMIN_ACCOUNTING_WEBHOOK_URL ||
+    'https://pedidos-now-admin-y-contabilidad.onrender.com/api/chats/resolucion';
+
+  const conversationId = payload.conversation_id;
+  const status = payload.status;
+  const requesterType = payload.requester_type;
+  const requesterExtId = payload.requester_ext_id;
+
+  if (!conversationId || !status || !requesterType || !requesterExtId) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'conversation_id, status, requester_type y requester_ext_id son obligatorios para notificar a Admin/Contabilidad.',
+      400
+    );
+  }
+
+  const result = await requestJson({
+    serviceName: 'Admin/Contabilidad',
+    baseUrl: webhookUrl,
+    path: '',
+    method: 'POST',
+    body: {
+      conversation_id: conversationId,
+      status,
+      requester_type: requesterType,
+      requester_ext_id: requesterExtId,
+    },
   });
 
   return getData(result);

@@ -2,6 +2,7 @@
 import { query, execute, transaction } from './db';
 import {
   createCompensationCoupon,
+  notifyAdminAccountingResolution,
   refundPayment,
 } from './external-services';
 import {
@@ -1436,6 +1437,117 @@ export async function changeConversationStatus(conversationId, payload = {}) {
       refund: refundIntegration,
     };
   }
+  let adminAccountingWebhookIntegration = null;
+
+  if (['RESOLVED_COUPON', 'RESOLVED_REFUND'].includes(new_status)) {
+    try {
+      const webhookPayload = {
+        conversation_id: result.id,
+        status: result.status,
+        requester_type: result.requester_type,
+        requester_ext_id: result.requester_ext_id,
+      };
+
+      const webhookResult = await notifyAdminAccountingResolution(webhookPayload);
+
+      adminAccountingWebhookIntegration = {
+        success: true,
+        service: 'ADMIN_CONTABILIDAD',
+        action: 'CHAT_RESOLUTION_WEBHOOK',
+        payload: webhookPayload,
+        response: webhookResult,
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'ADMIN_ACCOUNTING_WEBHOOK_SENT',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'SUCCESS',
+            service: 'ADMIN_CONTABILIDAD',
+            action: 'CHAT_RESOLUTION_WEBHOOK',
+            payload: webhookPayload,
+            response: webhookResult,
+          }),
+        ]
+      );
+    } catch (error) {
+      adminAccountingWebhookIntegration = {
+        success: false,
+        service: 'ADMIN_CONTABILIDAD',
+        action: 'CHAT_RESOLUTION_WEBHOOK',
+        warning:
+          'La conversación fue cerrada, pero no se pudo notificar automáticamente a Admin/Contabilidad.',
+        error: {
+          code: error.code || 'ADMIN_ACCOUNTING_WEBHOOK_ERROR',
+          message: error.message,
+          details: error.details || null,
+        },
+      };
+
+      await execute(
+        `
+        INSERT INTO events
+          (
+            id,
+            conversation_id,
+            event_type,
+            payload,
+            created_at,
+            updated_at
+          )
+        VALUES
+          (
+            UUID(),
+            ?,
+            'ADMIN_ACCOUNTING_WEBHOOK_FAILED',
+            CAST(? AS JSON),
+            NOW(),
+            NOW()
+          )
+        `,
+        [
+          result.id,
+          JSON.stringify({
+            status: 'FAILED',
+            service: 'ADMIN_CONTABILIDAD',
+            action: 'CHAT_RESOLUTION_WEBHOOK',
+            error: {
+              code: error.code || 'ADMIN_ACCOUNTING_WEBHOOK_ERROR',
+              message: error.message,
+              details: error.details || null,
+            },
+          }),
+        ]
+      );
+    }
+  }
+
+  if (adminAccountingWebhookIntegration) {
+    result.external_integrations = {
+      ...(result.external_integrations || {}),
+      admin_accounting_webhook: adminAccountingWebhookIntegration,
+    };
+  }
 
   emitConversationStatusChanged(result, {
     new_status,
@@ -1443,6 +1555,7 @@ export async function changeConversationStatus(conversationId, payload = {}) {
     reason,
     coupon_integration: couponIntegration,
     refund_integration: refundIntegration,
+    admin_accounting_webhook_integration: adminAccountingWebhookIntegration,
   });
 
   emitConversationUpdated(result);
