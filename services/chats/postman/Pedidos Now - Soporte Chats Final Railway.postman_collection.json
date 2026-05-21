@@ -1,0 +1,1563 @@
+{
+  "info": {
+    "_postman_id": "dbdbecbb-f1ba-4d68-9e88-865874645014",
+    "name": "Pedidos Now - Soporte Chats Final Railway",
+    "description": "Colección final del microservicio de Soporte/Chats con URLs directas de Railway, sin variables de colección. Broker/Auth queda pendiente. Para endpoints con IDs, reemplazar manualmente los valores de ejemplo en la URL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "42241609"
+  },
+  "item": [
+    {
+      "name": "01 - Health y disponibilidad",
+      "item": [
+        {
+          "name": "01. GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/health",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. GET DB Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/health/db-test",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "health",
+                "db-test"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. GET Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/availability",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "availability"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. POST Availability",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_of_week\": 1,\n  \"start_time\": \"08:00\",\n  \"end_time\": \"17:00\",\n  \"enabled\": true,\n  \"timezone\": \"America/Guatemala\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/availability",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "availability"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. GET Availability by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/availability/PEGAR_AVAILABILITY_ID",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "PEGAR_AVAILABILITY_ID"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. PATCH Availability by ID",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_time\": \"08:00\",\n  \"end_time\": \"18:00\",\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/availability/PEGAR_AVAILABILITY_ID",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "PEGAR_AVAILABILITY_ID"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. DELETE Availability by ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/availability/PEGAR_AVAILABILITY_ID",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "PEGAR_AVAILABILITY_ID"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Flujo principal de conversación",
+      "item": [
+        {
+          "name": "01. POST Crear conversación ORDER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"user-demo-001\",\n  \"requester_display_name\": \"Usuario Demo\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"ORDER-DEMO-001\",\n  \"subject\": \"Problema con pedido de prueba\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. GET Listar conversaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. GET Listar conversaciones IN_QUEUE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations?status=IN_QUEUE",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "IN_QUEUE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. GET Detalle conversación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. PATCH Asignar agente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_ext_id\": \"agent-demo-001\",\n  \"agent_display_name\": \"Agente Demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/assign-agent",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "assign-agent"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. POST Mensaje USER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender_role\": \"USER\",\n  \"sender_ext_id\": \"user-demo-001\",\n  \"content\": \"Hola, necesito ayuda con mi pedido.\",\n  \"client_message_id\": \"user-demo-msg-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/messages",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. POST Mensaje AGENT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender_role\": \"AGENT\",\n  \"sender_ext_id\": \"agent-demo-001\",\n  \"content\": \"Hola, soy el agente asignado. Estoy revisando tu caso.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/messages",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08. GET Mensajes conversación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/messages",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09. PATCH Resolver sin solución",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_status\": \"RESOLVED_NO_SOLUTION\",\n  \"changed_by_ext_id\": \"agent-demo-001\",\n  \"reason\": \"Caso revisado y cerrado como prueba.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/status",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. PATCH Cerrar manualmente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_status\": \"CLOSED_MANUAL\",\n  \"changed_by_ext_id\": \"agent-demo-001\",\n  \"reason\": \"El agente cerró manualmente la conversación.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/status",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Integración Chatbot a Soporte",
+      "item": [
+        {
+          "name": "01. POST Aceptar escalación chatbot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_ext_id\": \"agent-demo-001\",\n  \"agent_display_name\": \"Agente Demo\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/integrations/chatbot/escalations/PEGAR_SESSION_ID/accept",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "integrations",
+                "chatbot",
+                "escalations",
+                "PEGAR_SESSION_ID",
+                "accept"
+              ]
+            },
+            "description": "Usar sessionId real que ya tenga escalación activa en el chatbot."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - External Context",
+      "item": [
+        {
+          "name": "01. GET External Context conversación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/external-context",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "external-context"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. POST Crear caso Restaurante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"99\",\n  \"requester_display_name\": \"Cliente Restaurante Demo\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"1:1\",\n  \"subject\": \"Problema con pedido de restaurante\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. POST Crear caso Paquetería DELIVERY",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"COURIER\",\n  \"requester_ext_id\": \"1\",\n  \"requester_display_name\": \"Repartidor Paquetería Demo\",\n  \"case_type\": \"DELIVERY\",\n  \"case_reference\": \"1\",\n  \"subject\": \"Problema con envío de paquetería\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. POST Crear caso Negocio BUSINESS_CASE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"BUSINESS\",\n  \"requester_ext_id\": \"2000004\",\n  \"requester_display_name\": \"Electro Tech Demo\",\n  \"case_type\": \"BUSINESS_CASE\",\n  \"case_reference\": \"2000004\",\n  \"subject\": \"Consulta de soporte para negocio\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. POST Crear caso Negocios por logística",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"99\",\n  \"requester_display_name\": \"Cliente Logística Negocios\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"logistics:PEGAR_CODIGO_LOGISTICO_REAL\",\n  \"subject\": \"Consulta de entrega asociada a negocio\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Descuentos RESOLVED_COUPON",
+      "item": [
+        {
+          "name": "01. POST Crear conversación para cupón",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"1\",\n  \"requester_display_name\": \"Cliente Cupón Demo\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"9982\",\n  \"subject\": \"Pedido no entregado, requiere compensación\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. PATCH Resolver con cupón",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_status\": \"RESOLVED_COUPON\",\n  \"changed_by_ext_id\": \"agent-demo-001\",\n  \"reason\": \"Pedido afectado. Se genera cupón de compensación.\",\n  \"coupon\": {\n    \"tipo_descuento\": \"MONTO_FIJO\",\n    \"valor_descuento\": 20,\n    \"monto_minimo_pedido\": null,\n    \"pedido_afectado_id\": 9982,\n    \"motivo_compensacion\": \"Pedido no entregado por condiciones climáticas\",\n    \"confirmacion_pedido_fallido\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/status",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Cobros RESOLVED_REFUND",
+      "item": [
+        {
+          "name": "01. GET Cobros health externo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://cobros-api.fly.dev/api/cobros/health",
+              "protocol": "https",
+              "host": [
+                "cobros-api",
+                "fly",
+                "dev"
+              ],
+              "path": [
+                "api",
+                "cobros",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. POST Cobros crear pago externo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n  \"courier_id\": \"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\",\n  \"business_id\": \"cccccccc-cccc-cccc-cccc-cccccccccccc\",\n  \"delivery_address_id\": \"dddddddd-dddd-dddd-dddd-dddddddddddd\",\n  \"reservation_id\": \"RES-CHAT-TEST-001\",\n  \"order_id\": \"ORD-CHAT-TEST-001\",\n  \"currency_code\": \"GTQ\",\n  \"payment_method_code\": \"CARD_CREDIT\",\n  \"card_type\": \"CREDIT\",\n  \"product_discounts\": 0,\n  \"coupon_discount\": 0,\n  \"service_fee\": 5,\n  \"courier_earned_fee\": 15,\n  \"approved_extra_fee\": 0,\n  \"tip_amount\": 10,\n  \"weight_lbs\": 12,\n  \"insurance_value\": 0,\n  \"items\": [\n    {\n      \"product_id\": \"11111111-1111-1111-1111-111111111111\",\n      \"external_product_id\": \"PROD-10\",\n      \"product_name\": \"Hamburguesa\",\n      \"quantity\": 2,\n      \"unit_price\": 40,\n      \"item_discount\": 0,\n      \"is_combo\": false\n    }\n  ],\n  \"idempotency_key\": \"idem-chat-test-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://cobros-api.fly.dev/api/cobros/payments",
+              "protocol": "https",
+              "host": [
+                "cobros-api",
+                "fly",
+                "dev"
+              ],
+              "path": [
+                "api",
+                "cobros",
+                "payments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. GET Cobros payment por ID externo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://cobros-api.fly.dev/api/cobros/payments/PEGAR_PAYMENT_ID",
+              "protocol": "https",
+              "host": [
+                "cobros-api",
+                "fly",
+                "dev"
+              ],
+              "path": [
+                "api",
+                "cobros",
+                "payments",
+                "PEGAR_PAYMENT_ID"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. POST Cobros refund directo externo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10,\n  \"reason\": \"Refund from chat support\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://cobros-api.fly.dev/api/cobros/payments/PEGAR_PAYMENT_ID/refund",
+              "protocol": "https",
+              "host": [
+                "cobros-api",
+                "fly",
+                "dev"
+              ],
+              "path": [
+                "api",
+                "cobros",
+                "payments",
+                "PEGAR_PAYMENT_ID",
+                "refund"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. POST Crear conversación para refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n  \"requester_display_name\": \"Cliente Refund Demo\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"PEGAR_PAYMENT_ID\",\n  \"subject\": \"Solicitud de reembolso desde chat\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. PATCH Resolver con reembolso",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_status\": \"RESOLVED_REFUND\",\n  \"changed_by_ext_id\": \"agent-demo-001\",\n  \"reason\": \"Reembolso aprobado desde chat de servicio al cliente.\",\n  \"refund\": {\n    \"payment_id\": \"PEGAR_PAYMENT_ID\",\n    \"amount\": 10,\n    \"reason\": \"Reembolso aprobado por agente de soporte.\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/conversations/PEGAR_CONVERSATION_ID/status",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 - Admin y Contabilidad",
+      "item": [
+        {
+          "name": "01. GET Casos RESOLVED_COUPON para Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations?status=RESOLVED_COUPON",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "RESOLVED_COUPON"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. GET Casos RESOLVED_REFUND para Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations?status=RESOLVED_REFUND",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "RESOLVED_REFUND"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. POST Webhook Admin directo externo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversation_id\": \"PEGAR_CONVERSATION_ID\",\n  \"status\": \"RESOLVED_REFUND\",\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"99\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-admin-y-contabilidad.onrender.com/api/chats/resolucion",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-admin-y-contabilidad",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "api",
+                "chats",
+                "resolucion"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 - Prefijo soporte para Broker",
+      "item": [
+        {
+          "name": "01. GET Soporte Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/health",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. GET Soporte DB Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/health/db-test",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "health",
+                "db-test"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. GET Soporte Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/availability",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "availability"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. GET Soporte Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. POST Soporte Crear conversación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requester_type\": \"CUSTOMER\",\n  \"requester_ext_id\": \"user-soporte-test\",\n  \"requester_display_name\": \"Usuario Soporte Test\",\n  \"case_type\": \"ORDER\",\n  \"case_reference\": \"order-soporte-001\",\n  \"subject\": \"Prueba usando prefijo soporte\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. GET Soporte Detalle conversación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations/PEGAR_CONVERSATION_ID",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations",
+                "PEGAR_CONVERSATION_ID"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. GET Soporte Mensajes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations/PEGAR_CONVERSATION_ID/messages",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "messages"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08. PATCH Soporte Asignar agente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_ext_id\": \"agent-demo-001\",\n  \"agent_display_name\": \"Agente Demo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations/PEGAR_CONVERSATION_ID/assign-agent",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "assign-agent"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09. PATCH Soporte Cambiar status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_status\": \"RESOLVED_NO_SOLUTION\",\n  \"changed_by_ext_id\": \"agent-demo-001\",\n  \"reason\": \"Cierre por prueba desde prefijo soporte.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations/PEGAR_CONVERSATION_ID/status",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. GET Soporte External Context",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/conversations/PEGAR_CONVERSATION_ID/external-context",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "conversations",
+                "PEGAR_CONVERSATION_ID",
+                "external-context"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11. POST Soporte Chatbot Accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agent_ext_id\": \"agent-demo-001\",\n  \"agent_display_name\": \"Agente Demo\",\n  \"inactivity_minutes\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/integrations/chatbot/escalations/PEGAR_SESSION_ID/accept",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "integrations",
+                "chatbot",
+                "escalations",
+                "PEGAR_SESSION_ID",
+                "accept"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09 - Jobs internos",
+      "item": [
+        {
+          "name": "01. POST Close timeouts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/internal/conversations/close-timeouts",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "internal",
+                "conversations",
+                "close-timeouts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. POST Soporte Close timeouts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/soporte/internal/conversations/close-timeouts",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "soporte",
+                "internal",
+                "conversations",
+                "close-timeouts"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10 - Pendiente Broker/Auth",
+      "item": [
+        {
+          "name": "NOTA - Auth pendiente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pedidos-now-production-c4cf.up.railway.app/api/health",
+              "protocol": "https",
+              "host": [
+                "pedidos-now-production-c4cf",
+                "up",
+                "railway",
+                "app"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Pendiente con Broker/Auth: confirmar si broker valida token antes de reenviar, qué headers mandará (x-user-id, x-user-role, x-user-name, x-agent-id) y si /api/soporte será el prefijo oficial."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
