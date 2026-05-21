@@ -76,6 +76,11 @@ const swaggerDefinition = {
         {
             name: 'Reportes Promociones',
             description: 'Reportes y sincronización de promociones'
+        },
+        // Admin-conta Albert
+        {
+            name: 'Chats',
+            description: 'Integración con el microservicio de Chats — resoluciones financieras, consulta de conversaciones y estadísticas'
         }
     ],
     components: {
