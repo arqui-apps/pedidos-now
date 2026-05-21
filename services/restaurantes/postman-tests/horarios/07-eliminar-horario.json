@@ -1,0 +1,13 @@
+{
+  "endpoint": "DELETE http://localhost:3000/api/restaurantes/1/horarios/:id",
+  "descripcion": "Eliminar (inactivar) un horario de un restaurante",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "ejemplo": "DELETE http://localhost:3000/api/restaurantes/1/horarios/1",
+  "nota": "Esta operación no elimina el registro, solo lo marca como inactivo (activo = false)",
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Horario inactivado exitosamente"
+  }
+}

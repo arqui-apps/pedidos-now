@@ -1,0 +1,27 @@
+{
+  "endpoint": "PUT http://localhost:3000/api/restaurantes/1/horarios/:id",
+  "descripcion": "Actualizar un horario de un restaurante",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "ejemplo": "PUT http://localhost:3000/api/restaurantes/1/horarios/1",
+  "body": {
+    "dia_semana": 1,
+    "hora_apertura": "07:00:00",
+    "hora_cierre": "23:00:00",
+    "activo": true
+  },
+  "nota": "Todos los campos son opcionales. Solo se actualizan los campos proporcionados",
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Horario actualizado exitosamente",
+    "data": {
+      "id": 1,
+      "restaurante_id": 1,
+      "dia_semana": 1,
+      "hora_apertura": "07:00:00",
+      "hora_cierre": "23:00:00",
+      "activo": true
+    }
+  }
+}

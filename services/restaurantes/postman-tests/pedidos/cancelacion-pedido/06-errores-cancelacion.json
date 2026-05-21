@@ -1,0 +1,64 @@
+{
+  "descripcion": "Casos de error comunes al cancelar un pedido",
+  "casos": [
+    {
+      "nombre": "cancelado_por inválido",
+      "endpoint": "POST http://localhost:3000/api/pedidos/1/cancelacion/cancelar",
+      "body": {
+        "cancelado_por": "admin",
+        "motivo": "Prueba"
+      },
+      "respuesta": {
+        "success": false,
+        "message": "cancelado_por debe ser: cliente, restaurante, repartidor, sistema"
+      }
+    },
+    {
+      "nombre": "motivo vacío",
+      "endpoint": "POST http://localhost:3000/api/pedidos/1/cancelacion/cancelar",
+      "body": {
+        "cancelado_por": "cliente"
+      },
+      "respuesta": {
+        "success": false,
+        "message": "El motivo es requerido"
+      }
+    },
+    {
+      "nombre": "pedido ya cancelado",
+      "endpoint": "POST http://localhost:3000/api/pedidos/3/cancelacion/cancelar",
+      "body": {
+        "cancelado_por": "cliente",
+        "motivo": "Otro intento"
+      },
+      "respuesta": {
+        "success": false,
+        "message": "El pedido ya fue cancelado"
+      }
+    },
+    {
+      "nombre": "pedido ya entregado",
+      "endpoint": "POST http://localhost:3000/api/pedidos/6/cancelacion/cancelar",
+      "body": {
+        "cancelado_por": "cliente",
+        "motivo": "Llegó frío"
+      },
+      "respuesta": {
+        "success": false,
+        "message": "No se puede cancelar un pedido entregado"
+      }
+    },
+    {
+      "nombre": "pedido no existe",
+      "endpoint": "POST http://localhost:3000/api/pedidos/9999/cancelacion/cancelar",
+      "body": {
+        "cancelado_por": "cliente",
+        "motivo": "Prueba"
+      },
+      "respuesta": {
+        "success": false,
+        "message": "Pedido no encontrado"
+      }
+    }
+  ]
+}

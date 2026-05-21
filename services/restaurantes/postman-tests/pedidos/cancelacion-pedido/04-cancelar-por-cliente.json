@@ -1,0 +1,42 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/cancelacion/cancelar",
+  "descripcion": "Cancelar un pedido desde el lado del cliente. Aplica multa del 5% si el pedido ya fue confirmado (estado 3, 4 o 5).",
+  "ejemplo": "POST http://localhost:3000/api/pedidos/2/cancelacion/cancelar",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "cancelado_por": "cliente",
+    "motivo": "Ya no quiero el pedido"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Pedido cancelado exitosamente",
+    "data": {
+      "cancelacion_id": 3,
+      "pedido_id": "2",
+      "cancelado_por": "cliente",
+      "estado_al_cancelar": "pendiente",
+      "aplica_multa": false,
+      "monto_multa": 0
+    }
+  },
+  "escenario_con_multa": {
+    "descripcion": "Cancelación por cliente cuando el pedido ya está en estado \"preparando\" (multa 5%)",
+    "body": {
+      "cancelado_por": "cliente",
+      "motivo": "Me equivoqué de dirección"
+    },
+    "respuesta_data": {
+      "estado_al_cancelar": "preparando",
+      "aplica_multa": true,
+      "monto_multa": 1600
+    }
+  },
+  "notas": [
+    "cancelado_por acepta: cliente, restaurante, repartidor, sistema",
+    "Multa cliente (5%): aplica si estado_id está en [3, 4, 5] (preparando, listo, en_camino)",
+    "No se puede cancelar un pedido ya entregado (estado_id=6) o ya cancelado (estado_id=7)",
+    "Se registra historial de estados automáticamente"
+  ]
+}

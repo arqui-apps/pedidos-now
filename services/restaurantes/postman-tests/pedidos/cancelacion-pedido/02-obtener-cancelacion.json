@@ -1,0 +1,31 @@
+{
+  "endpoint": "GET http://localhost:3000/api/pedidos/cancelaciones/:id",
+  "descripcion": "Obtener una cancelación específica por su ID",
+  "ejemplo": "GET http://localhost:3000/api/pedidos/cancelaciones/1",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "pedido_id": 3,
+      "cancelado_por": "cliente",
+      "motivo": "Cambié de opinión",
+      "estado_al_cancelar": "pendiente",
+      "aplica_multa": false,
+      "monto_multa": "0.00",
+      "fecha_cancelacion": "2026-03-09T12:00:00.000Z",
+      "pedido": {
+        "id": 3,
+        "total": "15000.00"
+      }
+    }
+  },
+  "caso_error_404": {
+    "endpoint": "GET http://localhost:3000/api/pedidos/cancelaciones/9999",
+    "respuesta": {
+      "success": false,
+      "message": "Cancelación no encontrada"
+    }
+  }
+}

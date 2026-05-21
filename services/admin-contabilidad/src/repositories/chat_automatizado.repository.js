@@ -1,68 +1,128 @@
-﻿const db = require('../config/db');
+const db = require('../config/db');
 
 const query = (conn) => conn || db;
 
-const normalizeJson = (value) => {
+const toJson = (value) => {
     if (value === undefined || value === null) {
         return null;
     }
 
     if (typeof value === 'string') {
-        return value;
+        try {
+            JSON.parse(value);
+            return value;
+        } catch (error) {
+            return JSON.stringify(value);
+        }
     }
 
     return JSON.stringify(value);
 };
 
+const toNumber = (value) => {
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    return Number(value);
+};
+
+const mapResumenRow = (row) => ({
+    total_sesiones: toNumber(row.total_sesiones) ?? 0,
+    sesiones_activas: toNumber(row.sesiones_activas) ?? 0,
+    resueltas: toNumber(row.resueltas) ?? 0,
+    escaladas: toNumber(row.escaladas) ?? 0,
+    minutos_promedio: toNumber(row.minutos_promedio)
+});
+
+const mapCompensacionResumen = (row) => ({
+    compensation_type: row.compensation_type,
+    compensation_status: row.compensation_status,
+    total: toNumber(row.total) ?? 0,
+    monto_total: toNumber(row.monto_total) ?? 0
+});
+
+const mapCountRow = (row, key) => ({
+    [key]: row[key],
+    total: toNumber(row.total) ?? 0
+});
+
+const mapReporteClienteRow = (row) => ({
+    ...row,
+    minutos_resolucion: toNumber(row.minutos_resolucion),
+    total_mensajes: toNumber(row.total_mensajes) ?? 0,
+    total_compensaciones: toNumber(row.total_compensaciones) ?? 0,
+    monto_compensaciones: toNumber(row.monto_compensaciones) ?? 0,
+    total_soporte: toNumber(row.total_soporte) ?? 0,
+    total_consultas: toNumber(row.total_consultas) ?? 0,
+    total_payloads_recibidos: toNumber(row.total_payloads_recibidos) ?? 0
+});
+
+const groupBySession = (items) => items.reduce((acc, item) => {
+    const sessionId = item.id_session_externo;
+
+    if (sessionId === undefined || sessionId === null) {
+        return acc;
+    }
+
+    if (!acc[sessionId]) {
+        acc[sessionId] = [];
+    }
+
+    acc[sessionId].push(item);
+    return acc;
+}, {});
+
 const guardarPayload = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_payload_auditoria
         (entity_type, external_id, id_session_externo, id_usuario_externo, raw_payload)
-        VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_session_externo = VALUES(id_session_externo),
-            id_usuario_externo = VALUES(id_usuario_externo),
-            raw_payload = VALUES(raw_payload),
-            received_at = CURRENT_TIMESTAMP`,
+        VALUES ($1, $2, $3, $4, $5::jsonb)
+        ON CONFLICT (entity_type, external_id) DO UPDATE SET
+            id_session_externo = EXCLUDED.id_session_externo,
+            id_usuario_externo = EXCLUDED.id_usuario_externo,
+            raw_payload = EXCLUDED.raw_payload,
+            received_at = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.entity_type,
             data.external_id || null,
             data.id_session_externo || null,
             data.id_usuario_externo || null,
-            normalizeJson(data.raw_payload)
+            toJson(data.raw_payload)
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const guardarSesion = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_sesion_resumen
         (id_session_externo, id_usuario_externo, user_type, current_state,
         previous_state, chat_context, session_status, resolution, start_time,
         end_time, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_usuario_externo = VALUES(id_usuario_externo),
-            user_type = VALUES(user_type),
-            current_state = VALUES(current_state),
-            previous_state = VALUES(previous_state),
-            chat_context = VALUES(chat_context),
-            session_status = VALUES(session_status),
-            resolution = VALUES(resolution),
-            start_time = VALUES(start_time),
-            end_time = VALUES(end_time),
-            is_active = VALUES(is_active)`,
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
+        ON CONFLICT (id_session_externo) DO UPDATE SET
+            id_usuario_externo = EXCLUDED.id_usuario_externo,
+            user_type = EXCLUDED.user_type,
+            current_state = EXCLUDED.current_state,
+            previous_state = EXCLUDED.previous_state,
+            chat_context = EXCLUDED.chat_context,
+            session_status = EXCLUDED.session_status,
+            resolution = EXCLUDED.resolution,
+            start_time = EXCLUDED.start_time,
+            end_time = EXCLUDED.end_time,
+            is_active = EXCLUDED.is_active,
+            update_date = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.id_session_externo,
             data.id_usuario_externo,
             data.user_type,
             data.current_state || null,
             data.previous_state || null,
-            normalizeJson(data.chat_context),
+            toJson(data.chat_context),
             data.session_status || 'active',
             data.resolution || null,
             data.start_time || null,
@@ -71,22 +131,23 @@ const guardarSesion = async (data, conn = null) => {
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const guardarMensaje = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_mensaje_historial
         (id_mensaje_externo, id_session_externo, message_sender,
         message_content, sent_time, is_active)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_session_externo = VALUES(id_session_externo),
-            message_sender = VALUES(message_sender),
-            message_content = VALUES(message_content),
-            sent_time = VALUES(sent_time),
-            is_active = VALUES(is_active)`,
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id_mensaje_externo) DO UPDATE SET
+            id_session_externo = EXCLUDED.id_session_externo,
+            message_sender = EXCLUDED.message_sender,
+            message_content = EXCLUDED.message_content,
+            sent_time = EXCLUDED.sent_time,
+            is_active = EXCLUDED.is_active,
+            update_date = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.id_mensaje_externo || null,
             data.id_session_externo,
@@ -97,32 +158,33 @@ const guardarMensaje = async (data, conn = null) => {
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const guardarCompensacion = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_compensacion
         (id_compensacion_externo, id_usuario_externo, id_session_externo,
         amount, cupon_code, expiration_date, reason, compensation_type,
         compensation_status, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_usuario_externo = VALUES(id_usuario_externo),
-            id_session_externo = VALUES(id_session_externo),
-            amount = VALUES(amount),
-            cupon_code = VALUES(cupon_code),
-            expiration_date = VALUES(expiration_date),
-            reason = VALUES(reason),
-            compensation_type = VALUES(compensation_type),
-            compensation_status = VALUES(compensation_status),
-            is_active = VALUES(is_active)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id_compensacion_externo) DO UPDATE SET
+            id_usuario_externo = EXCLUDED.id_usuario_externo,
+            id_session_externo = EXCLUDED.id_session_externo,
+            amount = EXCLUDED.amount,
+            cupon_code = EXCLUDED.cupon_code,
+            expiration_date = EXCLUDED.expiration_date,
+            reason = EXCLUDED.reason,
+            compensation_type = EXCLUDED.compensation_type,
+            compensation_status = EXCLUDED.compensation_status,
+            is_active = EXCLUDED.is_active,
+            update_date = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.id_compensacion_externo || null,
             data.id_usuario_externo || null,
             data.id_session_externo || null,
-            data.amount || null,
+            data.amount ?? null,
             data.cupon_code || null,
             data.expiration_date || null,
             data.reason || null,
@@ -132,25 +194,26 @@ const guardarCompensacion = async (data, conn = null) => {
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const guardarSoporte = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_support_request
         (id_support_request_externo, id_delivery_externo, id_pedido_externo,
         id_session_externo, id_problem_externo, request_status,
         problem_details, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_delivery_externo = VALUES(id_delivery_externo),
-            id_pedido_externo = VALUES(id_pedido_externo),
-            id_session_externo = VALUES(id_session_externo),
-            id_problem_externo = VALUES(id_problem_externo),
-            request_status = VALUES(request_status),
-            problem_details = VALUES(problem_details),
-            is_active = VALUES(is_active)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id_support_request_externo) DO UPDATE SET
+            id_delivery_externo = EXCLUDED.id_delivery_externo,
+            id_pedido_externo = EXCLUDED.id_pedido_externo,
+            id_session_externo = EXCLUDED.id_session_externo,
+            id_problem_externo = EXCLUDED.id_problem_externo,
+            request_status = EXCLUDED.request_status,
+            problem_details = EXCLUDED.problem_details,
+            is_active = EXCLUDED.is_active,
+            update_date = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.id_support_request_externo || null,
             data.id_delivery_externo || null,
@@ -163,23 +226,24 @@ const guardarSoporte = async (data, conn = null) => {
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const guardarConsulta = async (data, conn = null) => {
-    const [result] = await query(conn).query(
+    const result = await query(conn).query(
         `INSERT INTO chat_order_inquiry
         (id_inquiry_externo, id_session_externo, inquiry_type, input_value,
         inquiry_time, result_found, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            id = LAST_INSERT_ID(id),
-            id_session_externo = VALUES(id_session_externo),
-            inquiry_type = VALUES(inquiry_type),
-            input_value = VALUES(input_value),
-            inquiry_time = VALUES(inquiry_time),
-            result_found = VALUES(result_found),
-            is_active = VALUES(is_active)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (id_inquiry_externo) DO UPDATE SET
+            id_session_externo = EXCLUDED.id_session_externo,
+            inquiry_type = EXCLUDED.inquiry_type,
+            input_value = EXCLUDED.input_value,
+            inquiry_time = EXCLUDED.inquiry_time,
+            result_found = EXCLUDED.result_found,
+            is_active = EXCLUDED.is_active,
+            update_date = CURRENT_TIMESTAMP
+        RETURNING id`,
         [
             data.id_inquiry_externo || null,
             data.id_session_externo,
@@ -191,69 +255,73 @@ const guardarConsulta = async (data, conn = null) => {
         ]
     );
 
-    return result.insertId;
+    return result.rows[0].id;
 };
 
 const getResumenChat = async () => {
-    const [sesiones] = await db.query(
+    const sesionesResult = await db.query(
         `SELECT
             COUNT(*) AS total_sesiones,
-            SUM(session_status = 'active') AS sesiones_activas,
-            SUM(resolution = 'resuelto') AS resueltas,
-            SUM(resolution = 'escalado_a_agente') AS escaladas,
-            AVG(TIMESTAMPDIFF(MINUTE, start_time, end_time)) AS minutos_promedio
+            COUNT(*) FILTER (WHERE session_status = 'active') AS sesiones_activas,
+            COUNT(*) FILTER (WHERE resolution = 'resuelto') AS resueltas,
+            COUNT(*) FILTER (WHERE resolution = 'escalado_a_agente') AS escaladas,
+            AVG(EXTRACT(EPOCH FROM (end_time - start_time)) / 60.0) AS minutos_promedio
         FROM chat_sesion_resumen`
     );
 
-    const [compensaciones] = await db.query(
+    const compensacionesResult = await db.query(
         `SELECT
             compensation_type,
             compensation_status,
             COUNT(*) AS total,
-            IFNULL(SUM(amount), 0) AS monto_total
+            COALESCE(SUM(amount), 0) AS monto_total
         FROM chat_compensacion
-        GROUP BY compensation_type, compensation_status`
+        GROUP BY compensation_type, compensation_status
+        ORDER BY compensation_type, compensation_status`
     );
 
-    const [soporte] = await db.query(
+    const soporteResult = await db.query(
         `SELECT request_status, COUNT(*) AS total
         FROM chat_support_request
-        GROUP BY request_status`
+        GROUP BY request_status
+        ORDER BY request_status`
     );
 
-    const [consultas] = await db.query(
+    const consultasResult = await db.query(
         `SELECT inquiry_type, COUNT(*) AS total
         FROM chat_order_inquiry
-        GROUP BY inquiry_type`
+        GROUP BY inquiry_type
+        ORDER BY inquiry_type`
     );
 
     return {
-        sesiones: sesiones[0],
-        compensaciones,
-        soporte,
-        consultas
+        sesiones: mapResumenRow(sesionesResult.rows[0] || {}),
+        compensaciones: compensacionesResult.rows.map(mapCompensacionResumen),
+        soporte: soporteResult.rows.map((row) => mapCountRow(row, 'request_status')),
+        consultas: consultasResult.rows.map((row) => mapCountRow(row, 'inquiry_type'))
     };
 };
 
 const getReportesClientes = async () => {
-    const [rows] = await db.query(
+    const result = await db.query(
         `SELECT *
         FROM vw_chat_reporte_cliente
-        ORDER BY start_time DESC, id_session_externo DESC`
+        ORDER BY start_time DESC NULLS LAST, id_session_externo DESC`
     );
 
-    return rows;
+    return result.rows.map(mapReporteClienteRow);
 };
 
 const getReporteCliente = async (idUsuario) => {
-    const [sesiones] = await db.query(
+    const sesionesResult = await db.query(
         `SELECT *
         FROM chat_sesion_resumen
-        WHERE id_usuario_externo = ?
-        ORDER BY start_time DESC, id_session_externo DESC`,
+        WHERE id_usuario_externo = $1
+        ORDER BY start_time DESC NULLS LAST, id_session_externo DESC`,
         [idUsuario]
     );
 
+    const sesiones = sesionesResult.rows;
     const sessionIds = sesiones.map((sesion) => sesion.id_session_externo);
 
     if (!sessionIds.length) {
@@ -267,62 +335,65 @@ const getReporteCliente = async (idUsuario) => {
         };
     }
 
-    const placeholders = sessionIds.map(() => '?').join(', ');
-
-    const [mensajes] = await db.query(
+    const mensajesResult = await db.query(
         `SELECT *
         FROM chat_mensaje_historial
-        WHERE id_session_externo IN (${placeholders})
-        ORDER BY sent_time ASC, id ASC`,
-        sessionIds
+        WHERE id_session_externo = ANY($1::bigint[])
+        ORDER BY sent_time ASC NULLS LAST, id ASC`,
+        [sessionIds]
     );
 
-    const [compensaciones] = await db.query(
+    const compensacionesResult = await db.query(
         `SELECT *
         FROM chat_compensacion
-        WHERE id_usuario_externo = ? OR id_session_externo IN (${placeholders})
+        WHERE id_usuario_externo = $1 OR id_session_externo = ANY($2::bigint[])
         ORDER BY created_date ASC, id ASC`,
-        [idUsuario, ...sessionIds]
+        [idUsuario, sessionIds]
     );
 
-    const [soporte] = await db.query(
+    const soporteResult = await db.query(
         `SELECT *
         FROM chat_support_request
-        WHERE id_session_externo IN (${placeholders})
+        WHERE id_session_externo = ANY($1::bigint[])
         ORDER BY created_date ASC, id ASC`,
-        sessionIds
+        [sessionIds]
     );
 
-    const [consultas] = await db.query(
+    const consultasResult = await db.query(
         `SELECT *
         FROM chat_order_inquiry
-        WHERE id_session_externo IN (${placeholders})
-        ORDER BY inquiry_time ASC, id ASC`,
-        sessionIds
+        WHERE id_session_externo = ANY($1::bigint[])
+        ORDER BY inquiry_time ASC NULLS LAST, id ASC`,
+        [sessionIds]
     );
 
-    const [payloads] = await db.query(
+    const payloadsResult = await db.query(
         `SELECT entity_type, external_id, id_session_externo, id_usuario_externo, raw_payload, received_at
         FROM chat_payload_auditoria
-        WHERE id_usuario_externo = ? OR id_session_externo IN (${placeholders})
+        WHERE id_usuario_externo = $1 OR id_session_externo = ANY($2::bigint[])
         ORDER BY received_at ASC, id ASC`,
-        [idUsuario, ...sessionIds]
+        [idUsuario, sessionIds]
     );
 
-    const bySession = (items) => sessionIds.reduce((acc, idSession) => {
-        acc[idSession] = items.filter((item) => item.id_session_externo === idSession);
-        return acc;
-    }, {});
+    const mensajes = mensajesResult.rows;
+    const compensaciones = compensacionesResult.rows.map((item) => ({
+        ...item,
+        amount: toNumber(item.amount)
+    }));
+    const soporte = soporteResult.rows;
+    const consultas = consultasResult.rows;
+    const payloads = payloadsResult.rows;
 
-    const mensajesPorSesion = bySession(mensajes);
-    const soportePorSesion = bySession(soporte);
-    const consultasPorSesion = bySession(consultas);
-    const payloadsPorSesion = bySession(payloads);
+    const mensajesPorSesion = groupBySession(mensajes);
+    const compensacionesPorSesion = groupBySession(compensaciones);
+    const soportePorSesion = groupBySession(soporte);
+    const consultasPorSesion = groupBySession(consultas);
+    const payloadsPorSesion = groupBySession(payloads);
 
     const sesionesConDetalle = sesiones.map((sesion) => ({
         ...sesion,
         mensajes: mensajesPorSesion[sesion.id_session_externo] || [],
-        compensaciones: compensaciones.filter((item) => item.id_session_externo === sesion.id_session_externo),
+        compensaciones: compensacionesPorSesion[sesion.id_session_externo] || [],
         soporte: soportePorSesion[sesion.id_session_externo] || [],
         consultas: consultasPorSesion[sesion.id_session_externo] || [],
         payloads: payloadsPorSesion[sesion.id_session_externo] || []
@@ -333,7 +404,7 @@ const getReporteCliente = async (idUsuario) => {
         total_sesiones: sesiones.length,
         total_mensajes: mensajes.length,
         total_compensaciones: compensaciones.length,
-        monto_compensaciones: compensaciones.reduce((total, item) => total + Number(item.amount || 0), 0),
+        monto_compensaciones: compensaciones.reduce((total, item) => total + (item.amount || 0), 0),
         sesiones: sesionesConDetalle
     };
 };

@@ -1,136 +1,136 @@
 -- =========================================================
 -- Integracion Chat Automatizado -> Administracion Contable
 -- =========================================================
--- Este script esta pensado para copiar y pegar en MySQL Workbench.
--- Crea la base si no existe, selecciona la base, crea las tablas
--- necesarias y recrea la vista de reporte por cliente.
---
--- Es idempotente: se puede ejecutar mas de una vez.
--- No usa llaves foraneas porque estos datos vienen de otro
--- microservicio y Administracion solo debe copiarlos/guardarlos,
--- aunque lleguen en distinto orden.
+-- Script para PostgreSQL
+-- Compatible con la configuracion actual de admin-contabilidad.
+-- Crea las tablas necesarias y recrea la vista de reporte
+-- por cliente para la informacion copiada desde chat-automatizado.
 -- =========================================================
 
-CREATE DATABASE IF NOT EXISTS admin_conta
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_general_ci;
-
-USE admin_conta;
-
 CREATE TABLE IF NOT EXISTS chat_sesion_resumen (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_session_externo BIGINT NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    id_session_externo BIGINT NOT NULL UNIQUE,
     id_usuario_externo BIGINT NOT NULL,
-    user_type ENUM('cliente', 'repartidor', 'negocio') NOT NULL,
+    user_type VARCHAR(20) NOT NULL,
     current_state VARCHAR(50) NULL,
     previous_state VARCHAR(50) NULL,
-    chat_context JSON NULL,
-    session_status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
-    resolution ENUM(
-        'resuelto',
-        'resuelto_con_cupon',
-        'resuelto_con_reembolso',
-        'escalado_a_agente',
-        'cerrado_sin_resolver'
-    ) NULL,
-    start_time DATETIME NULL,
-    end_time DATETIME NULL,
-    is_active TINYINT DEFAULT 1,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_sesion_externa (id_session_externo),
-    KEY idx_chat_sesion_usuario (id_usuario_externo),
-    KEY idx_chat_sesion_estado (session_status, resolution),
-    KEY idx_chat_sesion_fecha (start_time, end_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    chat_context JSONB NULL,
+    session_status VARCHAR(20) DEFAULT 'active',
+    resolution VARCHAR(40) NULL,
+    start_time TIMESTAMP NULL,
+    end_time TIMESTAMP NULL,
+    is_active SMALLINT DEFAULT 1,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_sesion_usuario
+    ON chat_sesion_resumen (id_usuario_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_sesion_estado
+    ON chat_sesion_resumen (session_status, resolution);
+CREATE INDEX IF NOT EXISTS idx_chat_sesion_fecha
+    ON chat_sesion_resumen (start_time, end_time);
 
 CREATE TABLE IF NOT EXISTS chat_mensaje_historial (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_mensaje_externo BIGINT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    id_mensaje_externo BIGINT NULL UNIQUE,
     id_session_externo BIGINT NOT NULL,
     message_sender VARCHAR(30) NOT NULL,
     message_content TEXT NULL,
-    sent_time DATETIME NULL,
-    is_active TINYINT DEFAULT 1,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_mensaje_externo (id_mensaje_externo),
-    KEY idx_chat_mensaje_sesion (id_session_externo),
-    KEY idx_chat_mensaje_fecha (sent_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    sent_time TIMESTAMP NULL,
+    is_active SMALLINT DEFAULT 1,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_mensaje_sesion
+    ON chat_mensaje_historial (id_session_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_mensaje_fecha
+    ON chat_mensaje_historial (sent_time);
 
 CREATE TABLE IF NOT EXISTS chat_compensacion (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_compensacion_externo BIGINT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    id_compensacion_externo BIGINT NULL UNIQUE,
     id_usuario_externo BIGINT NULL,
     id_session_externo BIGINT NULL,
     amount DECIMAL(10, 2) NULL,
     cupon_code VARCHAR(100) NULL,
-    expiration_date DATETIME NULL,
+    expiration_date TIMESTAMP NULL,
     reason TEXT NULL,
-    compensation_type ENUM('cupon', 'reembolso') NULL,
-    compensation_status ENUM('pendiente', 'procesado', 'usado', 'expirado', 'rechazado') DEFAULT 'pendiente',
-    is_active TINYINT DEFAULT 1,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_compensacion_externa (id_compensacion_externo),
-    KEY idx_chat_compensacion_usuario (id_usuario_externo),
-    KEY idx_chat_compensacion_sesion (id_session_externo),
-    KEY idx_chat_compensacion_estado (compensation_type, compensation_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    compensation_type VARCHAR(20) NULL,
+    compensation_status VARCHAR(20) DEFAULT 'pendiente',
+    is_active SMALLINT DEFAULT 1,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_compensacion_usuario
+    ON chat_compensacion (id_usuario_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_compensacion_sesion
+    ON chat_compensacion (id_session_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_compensacion_estado
+    ON chat_compensacion (compensation_type, compensation_status);
 
 CREATE TABLE IF NOT EXISTS chat_support_request (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_support_request_externo BIGINT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    id_support_request_externo BIGINT NULL UNIQUE,
     id_delivery_externo BIGINT NULL,
     id_pedido_externo BIGINT NULL,
     id_session_externo BIGINT NULL,
     id_problem_externo BIGINT NULL,
-    request_status ENUM('pendiente', 'en_proceso', 'resuelto', 'cancelado') DEFAULT 'pendiente',
+    request_status VARCHAR(20) DEFAULT 'pendiente',
     problem_details TEXT NULL,
-    is_active TINYINT DEFAULT 1,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_support_externo (id_support_request_externo),
-    KEY idx_chat_support_sesion (id_session_externo),
-    KEY idx_chat_support_pedido (id_pedido_externo),
-    KEY idx_chat_support_estado (request_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    is_active SMALLINT DEFAULT 1,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_support_sesion
+    ON chat_support_request (id_session_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_support_pedido
+    ON chat_support_request (id_pedido_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_support_estado
+    ON chat_support_request (request_status);
 
 CREATE TABLE IF NOT EXISTS chat_order_inquiry (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    id_inquiry_externo BIGINT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    id_inquiry_externo BIGINT NULL UNIQUE,
     id_session_externo BIGINT NOT NULL,
-    inquiry_type ENUM('pedido', 'cliente', 'repartidor') NOT NULL,
+    inquiry_type VARCHAR(20) NOT NULL,
     input_value VARCHAR(100) NOT NULL,
-    inquiry_time DATETIME NULL,
-    result_found TINYINT DEFAULT 0,
-    is_active TINYINT DEFAULT 1,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_inquiry_externo (id_inquiry_externo),
-    KEY idx_chat_inquiry_sesion (id_session_externo),
-    KEY idx_chat_inquiry_tipo (inquiry_type),
-    KEY idx_chat_inquiry_fecha (inquiry_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    inquiry_time TIMESTAMP NULL,
+    result_found SMALLINT DEFAULT 0,
+    is_active SMALLINT DEFAULT 1,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_inquiry_sesion
+    ON chat_order_inquiry (id_session_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_inquiry_tipo
+    ON chat_order_inquiry (inquiry_type);
+CREATE INDEX IF NOT EXISTS idx_chat_inquiry_fecha
+    ON chat_order_inquiry (inquiry_time);
 
 CREATE TABLE IF NOT EXISTS chat_payload_auditoria (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    entity_type ENUM('sesion', 'mensaje', 'compensacion', 'soporte', 'consulta') NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    entity_type VARCHAR(20) NOT NULL,
     external_id BIGINT NULL,
     id_session_externo BIGINT NULL,
     id_usuario_externo BIGINT NULL,
-    raw_payload JSON NOT NULL,
-    received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_chat_payload_externo (entity_type, external_id),
-    KEY idx_chat_payload_sesion (id_session_externo),
-    KEY idx_chat_payload_usuario (id_usuario_externo),
-    KEY idx_chat_payload_tipo (entity_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    raw_payload JSONB NOT NULL,
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_chat_payload_externo UNIQUE (entity_type, external_id)
+);
 
-DROP VIEW IF EXISTS vw_chat_reporte_cliente;
+CREATE INDEX IF NOT EXISTS idx_chat_payload_sesion
+    ON chat_payload_auditoria (id_session_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_payload_usuario
+    ON chat_payload_auditoria (id_usuario_externo);
+CREATE INDEX IF NOT EXISTS idx_chat_payload_tipo
+    ON chat_payload_auditoria (entity_type);
 
-CREATE VIEW vw_chat_reporte_cliente AS
+CREATE OR REPLACE VIEW vw_chat_reporte_cliente AS
 SELECT
     s.id_usuario_externo,
     s.user_type,
@@ -141,13 +141,17 @@ SELECT
     s.resolution,
     s.start_time,
     s.end_time,
-    TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time) AS minutos_resolucion,
-    IFNULL(m.total_mensajes, 0) AS total_mensajes,
-    IFNULL(c.total_compensaciones, 0) AS total_compensaciones,
-    IFNULL(c.monto_compensaciones, 0) AS monto_compensaciones,
-    IFNULL(sr.total_soporte, 0) AS total_soporte,
-    IFNULL(oi.total_consultas, 0) AS total_consultas,
-    IFNULL(pa.total_payloads_recibidos, 0) AS total_payloads_recibidos
+    CASE
+        WHEN s.start_time IS NOT NULL AND s.end_time IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 60.0
+        ELSE NULL
+    END AS minutos_resolucion,
+    COALESCE(m.total_mensajes, 0) AS total_mensajes,
+    COALESCE(c.total_compensaciones, 0) AS total_compensaciones,
+    COALESCE(c.monto_compensaciones, 0) AS monto_compensaciones,
+    COALESCE(sr.total_soporte, 0) AS total_soporte,
+    COALESCE(oi.total_consultas, 0) AS total_consultas,
+    COALESCE(pa.total_payloads_recibidos, 0) AS total_payloads_recibidos
 FROM chat_sesion_resumen s
 LEFT JOIN (
     SELECT id_session_externo, COUNT(*) AS total_mensajes
@@ -158,7 +162,7 @@ LEFT JOIN (
     SELECT
         id_session_externo,
         COUNT(*) AS total_compensaciones,
-        SUM(IFNULL(amount, 0)) AS monto_compensaciones
+        SUM(COALESCE(amount, 0)) AS monto_compensaciones
     FROM chat_compensacion
     GROUP BY id_session_externo
 ) c ON c.id_session_externo = s.id_session_externo

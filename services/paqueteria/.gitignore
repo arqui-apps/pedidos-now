@@ -1,2 +1,26 @@
-.env
+# Node
 node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+
+# Build
+dist/
+build/
+
+# Local SQL scratch files
+tablasCourier.sql

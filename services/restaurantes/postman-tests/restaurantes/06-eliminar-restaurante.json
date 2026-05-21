@@ -1,0 +1,16 @@
+{
+  "endpoint": "DELETE http://localhost:3000/api/restaurantes/:id",
+  "descripcion": "Inactivar un restaurante (soft delete)",
+  "ejemplo": "DELETE http://localhost:3000/api/restaurantes/1",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Restaurante inactivado exitosamente"
+  },
+  "notas": [
+    "Esto es un soft delete, el restaurante NO se elimina de la BD",
+    "Se marca activo=false y disponible=false",
+    "El restaurante dejará de aparecer en las consultas normales"
+  ]
+}

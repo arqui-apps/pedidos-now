@@ -1,0 +1,2 @@
+// Exportar configuraciones
+module.exports = {};

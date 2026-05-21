@@ -1,0 +1,361 @@
+{
+  "info": {
+    "name": "Restaurantes - Pedidos",
+    "_postman_id": "pedidos-collection-001",
+    "description": "Colección completa de endpoints para gestión de pedidos, detalles, historial y cancelaciones",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "pedido_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "detalle_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Pedidos Principales",
+      "item": [
+        {
+          "name": "01 - Crear Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": 100,\n  \"direccion_entrega\": \"Calle Falsa 123, Apto 4B\",\n  \"notas\": \"Sin cebolla, por favor\",\n  \"descuento_aplicado\": 5.00,\n  \"items\": [\n    {\n      \"producto_id\": 1,\n      \"cantidad\": 2,\n      \"descuento\": 0\n    },\n    {\n      \"producto_id\": 2,\n      \"cantidad\": 1,\n      \"descuento\": 0\n    }\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Listar Pedidos del Restaurante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos?estado_id=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos"],
+              "query": [
+                {
+                  "key": "estado_id",
+                  "value": "1"
+                },
+                {
+                  "key": "cliente_id",
+                  "value": "100",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Obtener Pedido Específico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Actualizar Pedido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccion_entrega\": \"Nueva dirección\",\n  \"notas\": \"Tocar el timbre\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Cambiar Estado del Pedido",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "estado"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_id\": 2,\n  \"motivo\": \"Pedido confirmado\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Detalles del Pedido",
+      "item": [
+        {
+          "name": "01 - Listar Detalles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Obtener Detalle Específico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles/{{detalle_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles", "{{detalle_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Agregar Producto al Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"producto_id\": 3,\n  \"cantidad\": 2,\n  \"descuento\": 0\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04 - Agregar Combo al Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"combo_id\": 1,\n  \"cantidad\": 1,\n  \"descuento\": 500\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 - Actualizar Detalle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles/{{detalle_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles", "{{detalle_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 3,\n  \"descuento\": 1000\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 - Eliminar Ítem del Pedido",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles/{{detalle_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles", "{{detalle_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Historial de Estados",
+      "item": [
+        {
+          "name": "01 - Ver Historial del Pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/historial",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "historial"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cancelaciones",
+      "item": [
+        {
+          "name": "01 - Obtener Cancelación del Pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/cancelacion",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "cancelacion"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Cancelar por Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/cancelacion/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "cancelacion", "cancelar"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancelado_por\": \"cliente\",\n  \"motivo\": \"Cambio de planes\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 - Cancelar por Restaurante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/cancelacion/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "cancelacion", "cancelar"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancelado_por\": \"restaurante\",\n  \"motivo\": \"No hay ingredientes\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Estados de Pedido (Catálogo)",
+      "item": [
+        {
+          "name": "01 - Listar Estados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estados-pedido",
+              "host": ["{{baseUrl}}"],
+              "path": ["estados-pedido"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 - Obtener Estado Específico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estados-pedido/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["estados-pedido", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

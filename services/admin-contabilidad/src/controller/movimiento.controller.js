@@ -1,4 +1,23 @@
 const service = require('../services/movimiento.service');
+const repo = require('../repositories/movimiento.repository');
+
+const getAllMovimientos = async (req, res) => {
+    try {
+        const movimiento = await repo.getAllMovimientos();
+        res.json({
+            ok: true,
+            data: movimiento,
+            count: movimiento.length
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            error: 'Error al obtener movimientos',
+            detalle: error.message
+        });
+    }
+};
 
 const ingresoPedido = async (req, res) => {
     try {
@@ -14,11 +33,11 @@ const ingresoPedido = async (req, res) => {
 
         res.json(result);
     } catch (error) {
-        console.error({
-            mensaje: error.message,
-            stack: error.stack
-        });        
-        res.status(500).json({error:'Error al registrar ingreso'});
+        console.error(error);        
+        res.status(500).json({
+            ok: false,
+            error:'Error al registrar ingreso'
+        });
     }
 };
 
@@ -28,26 +47,32 @@ const egreso = async (req, res) => {
 
         const result = await service.registrarEgreso(data);
 
-        res.json(result);
+        res.json({
+            ok: true,
+            data: result
+        });
     } catch (error) {
-        console.error({
-            mensaje: error.message,
-            stack: error.stack
-        });        
-        res.status(500).json({error: 'Error al registrar egreso'});
+        console.error(error);        
+        res.status(500).json({
+            ok: false,
+            error: 'Error al registrar egreso'
+        });
     }
 };
 
 const getFondos = async (req, res) => {
     try {
         const fondos = await service.obtenerFondos();
-        res.json(fondos);
+        res.json({
+            ok: true,
+            data: fondos
+        });
     } catch (error) {
-        console.error({
-            mensaje: error.message,
-            stack: error.stack
-        });        
-        res.status(500).json({error:'Error obteniendo fondos'});
+        console.error(error);        
+        res.status(500).json({
+            ok: false,
+            error:'Error obteniendo fondos'
+        });
     }
 };
 
@@ -55,13 +80,16 @@ const getFondoReembolsos = async (req, res) => {
     try {
         const fondos = await service.obtenerFondos();
         const fondo = fondos.find(f => f.id === 2);
-        res.json(fondo);
-    } catch (error) {
-        console.error({
-            mensaje: error.message,
-            stack: error.stack
+        res.json({
+            ok: true,
+            data: fondo
         });
-        res.status(500).json({error: 'Error obtenido fondo'});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            error: 'Error obtenido fondo'
+        });
     }
 };
 
@@ -70,6 +98,7 @@ const recargarFondo = async (req, res) => {
         const {monto} = req.body;
         if (!monto || monto <= 0){
             return res.status(400).json({
+                ok: false,
                 error:'Monto inválido'
             });
         }
@@ -81,13 +110,16 @@ const recargarFondo = async (req, res) => {
             modulo_origen: 'reembolso',
             descripcion: 'Recarga fondo reembolsos'
         });
-        res.json({ok: true, mensaje: 'Fondo recargado'});
+        res.json({
+            ok: true, 
+            mensaje: 'Fondo recargado'
+        });
     } catch (error) {
-        console.error({
-            mensaje: error.message,
-            stack: error.stack
-        });        
-        res.status(500).json({error: 'Error recargando fondo'});
+        console.error(error);        
+        res.status(500).json({
+            ok: false,
+            error: 'Error recargando fondo'
+        });
     }
 };
 
@@ -96,5 +128,6 @@ module.exports = {
     egreso,
     getFondos,
     getFondoReembolsos,
-    recargarFondo
+    recargarFondo,
+    getAllMovimientos
 }

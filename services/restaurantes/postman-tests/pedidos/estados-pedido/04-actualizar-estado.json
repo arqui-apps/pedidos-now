@@ -1,0 +1,31 @@
+{
+  "endpoint": "PUT http://localhost:3000/api/estados-pedido/:id",
+  "descripcion": "Actualizar un estado de pedido existente. Todos los campos son opcionales.",
+  "ejemplo": "PUT http://localhost:3000/api/estados-pedido/8",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "nombre": "en_revision_soporte",
+    "descripcion": "Descripción actualizada por soporte"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Estado actualizado exitosamente",
+    "data": {
+      "id": 8,
+      "nombre": "en_revision_soporte",
+      "descripcion": "Descripción actualizada por soporte"
+    }
+  },
+  "caso_error_404": {
+    "endpoint": "PUT http://localhost:3000/api/estados-pedido/9999",
+    "respuesta": {
+      "success": false,
+      "message": "Estado no encontrado"
+    }
+  },
+  "notas": [
+    "Solo se actualizan los campos enviados; los demás mantienen su valor"
+  ]
+}

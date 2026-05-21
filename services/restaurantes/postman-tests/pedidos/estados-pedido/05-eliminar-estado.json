@@ -1,0 +1,22 @@
+{
+  "endpoint": "DELETE http://localhost:3000/api/estados-pedido/:id",
+  "descripcion": "Eliminar un estado de pedido. Falla si el estado está en uso por algún pedido.",
+  "ejemplo": "DELETE http://localhost:3000/api/estados-pedido/8",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Estado eliminado exitosamente"
+  },
+  "caso_error_en_uso": {
+    "descripcion": "Intento de eliminar el estado \"pendiente\" (id=1) que tiene pedidos asociados",
+    "endpoint": "DELETE http://localhost:3000/api/estados-pedido/1",
+    "respuesta": {
+      "success": false,
+      "message": "No se puede eliminar: estado en uso por pedidos"
+    }
+  },
+  "notas": [
+    "Usar con precaución: es eliminación física, no soft delete"
+  ]
+}

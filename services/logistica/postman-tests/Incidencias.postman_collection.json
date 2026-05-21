@@ -1,0 +1,219 @@
+{
+	"info": {
+		"_postman_id": "logistica-incidencias-003",
+		"name": "Logística - Incidencias",
+		"description": "Colección de endpoints para gestión de incidencias durante entregas",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Crear Incidencia",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"entrega_id\": 1,\n  \"repartidor_id\": 10,\n  \"tipo_incidencia\": \"cliente_ausente\",\n  \"descripcion\": \"Cliente no se encontraba en el domicilio. Se dejó aviso.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias"]
+				},
+				"description": "Registra una nueva incidencia durante una entrega.\n\n**Campos requeridos:**\n- entrega_id: ID de la entrega\n- tipo_incidencia: Tipo de incidencia\n- descripcion: Descripción detallada\n\n**Campos opcionales:**\n- repartidor_id: ID del repartidor (null si no aplica)\n\n**Tipos de incidencia válidos:**\n- direccion_incorrecta\n- cliente_ausente\n- paquete_danado\n- rechazo_cliente\n- accidente\n- otro\n\n**Respuesta exitosa (201):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Incidencia registrada exitosamente\",\n  \"data\": {\n    \"id_incidencia\": 1,\n    \"entrega_id\": 1,\n    \"repartidor_id\": 10,\n    \"tipo_incidencia\": \"cliente_ausente\",\n    \"descripcion\": \"...\",\n    \"resuelta\": false,\n    \"created_at\": \"2026-03-21T11:00:00Z\"\n  }\n}\n```\n\n**Errores:**\n- 400: Tipo de incidencia no válido\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Listar Incidencias",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias?page=1&limit=50&resuelta=false&tipo_incidencia=cliente_ausente",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias"],
+					"query": [
+						{
+							"key": "page",
+							"value": "1",
+							"description": "Número de página"
+						},
+						{
+							"key": "limit",
+							"value": "50",
+							"description": "Resultados por página"
+						},
+						{
+							"key": "resuelta",
+							"value": "false",
+							"description": "Filtrar por estado (true/false)"
+						},
+						{
+							"key": "tipo_incidencia",
+							"value": "cliente_ausente",
+							"description": "Filtrar por tipo"
+						},
+						{
+							"key": "entrega_id",
+							"value": "",
+							"description": "Filtrar por entrega",
+							"disabled": true
+						},
+						{
+							"key": "repartidor_id",
+							"value": "",
+							"description": "Filtrar por repartidor",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Lista incidencias con filtros y paginación.\n\n**Query params opcionales:**\n- page: Número de página (default: 1)\n- limit: Resultados por página (default: 50)\n- entrega_id: Filtrar por entrega\n- repartidor_id: Filtrar por repartidor\n- tipo_incidencia: Filtrar por tipo\n- resuelta: true | false\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"pagination\": {\n    \"total\": 25,\n    \"page\": 1,\n    \"limit\": 50,\n    \"totalPages\": 1\n  }\n}\n```\n\n**Incluye:** Datos básicos de la entrega relacionada"
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener Incidencia por ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "1"]
+				},
+				"description": "Obtiene detalle de una incidencia por su ID.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id_incidencia\": 1,\n    \"entrega_id\": 1,\n    \"repartidor_id\": 10,\n    \"tipo_incidencia\": \"cliente_ausente\",\n    \"descripcion\": \"...\",\n    \"resuelta\": false,\n    \"entrega\": {...}\n  }\n}\n```\n\n**Incluye:** Datos completos de la entrega\n\n**Errores:**\n- 404: Incidencia no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Incidencias por Entrega",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/entrega/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "entrega", "1"]
+				},
+				"description": "Obtiene todas las incidencias de una entrega específica.\n\n**Parámetros de ruta:**\n- id: ID de la entrega\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_incidencia\": 1,\n      \"tipo_incidencia\": \"cliente_ausente\",\n      \"descripcion\": \"...\",\n      \"resuelta\": false,\n      \"created_at\": \"2026-03-21T11:00:00Z\"\n    }\n  ]\n}\n```\n\n**Orden:** Descendente por fecha de creación"
+			},
+			"response": []
+		},
+		{
+			"name": "Incidencias por Repartidor",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/repartidor/10?resuelta=false",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "repartidor", "10"],
+					"query": [
+						{
+							"key": "resuelta",
+							"value": "false",
+							"description": "Filtrar por estado (true/false)"
+						}
+					]
+				},
+				"description": "Obtiene incidencias reportadas por un repartidor.\n\n**Parámetros de ruta:**\n- repartidor_id: ID del repartidor\n\n**Query params:**\n- resuelta: true | false (opcional)\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_incidencia\": 1,\n      \"tipo_incidencia\": \"cliente_ausente\",\n      \"resuelta\": false,\n      \"entrega\": {...}\n    }\n  ]\n}\n```\n\n**Incluye:** Datos básicos de la entrega"
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar Incidencia",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"descripcion\": \"Descripción actualizada de la incidencia\",\n  \"tipo_incidencia\": \"otro\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "1"]
+				},
+				"description": "Actualiza la descripción o tipo de una incidencia.\n\n**Campos opcionales:**\n- descripcion: Nueva descripción\n- tipo_incidencia: Nuevo tipo\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Incidencia actualizada exitosamente\",\n  \"data\": {...}\n}\n```\n\n**Errores:**\n- 404: Incidencia no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Resolver Incidencia",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/1/resolver",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "1", "resolver"]
+				},
+				"description": "Marca una incidencia como resuelta.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Incidencia marcada como resuelta\",\n  \"data\": {\n    \"id_incidencia\": 1,\n    \"resuelta\": true,\n    ...\n  }\n}\n```\n\n**Errores:**\n- 404: Incidencia no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Reabrir Incidencia",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/1/reabrir",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "1", "reabrir"]
+				},
+				"description": "Reabre una incidencia previamente resuelta.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Incidencia reabierta\",\n  \"data\": {\n    \"id_incidencia\": 1,\n    \"resuelta\": false,\n    ...\n  }\n}\n```\n\n**Errores:**\n- 404: Incidencia no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Estadísticas de Incidencias",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/incidencias/stats/estadisticas?empresa_id=1&fecha_inicio=2026-03-01&fecha_fin=2026-03-31",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "incidencias", "stats", "estadisticas"],
+					"query": [
+						{
+							"key": "empresa_id",
+							"value": "1",
+							"description": "Filtrar por empresa"
+						},
+						{
+							"key": "fecha_inicio",
+							"value": "2026-03-01",
+							"description": "Fecha de inicio (YYYY-MM-DD)"
+						},
+						{
+							"key": "fecha_fin",
+							"value": "2026-03-31",
+							"description": "Fecha de fin (YYYY-MM-DD)"
+						}
+					]
+				},
+				"description": "Obtiene estadísticas de incidencias.\n\n**Query params opcionales:**\n- empresa_id: Filtrar por empresa\n- fecha_inicio: Fecha de inicio\n- fecha_fin: Fecha de fin\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total\": 50,\n    \"resueltas\": 30,\n    \"noResueltas\": 20,\n    \"porTipo\": [\n      {\n        \"tipo_incidencia\": \"cliente_ausente\",\n        \"cantidad\": 15\n      },\n      {\n        \"tipo_incidencia\": \"direccion_incorrecta\",\n        \"cantidad\": 10\n      }\n    ]\n  }\n}\n```\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}

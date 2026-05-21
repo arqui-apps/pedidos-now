@@ -1,0 +1,35 @@
+{
+  "endpoint": "PUT http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/detalles/:id",
+  "descripcion": "Actualizar cantidad y/o descuento de un ítem del pedido. Recalcula subtotal y total.",
+  "ejemplo": "PUT http://localhost:3000/api/restaurantes/1/pedidos/1/detalles/1",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "cantidad": 3,
+    "descuento": 200
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Detalle actualizado exitosamente",
+    "data": {
+      "id": 1,
+      "pedido_id": 1,
+      "producto_id": 3,
+      "combo_id": null,
+      "cantidad": 3,
+      "precio_unitario": "8500.00",
+      "descuento": "200.00",
+      "subtotal": "24900.00"
+    }
+  },
+  "caso_error_cantidad_invalida": {
+    "body": {
+      "cantidad": -1
+    },
+    "respuesta": {
+      "success": false,
+      "message": "La cantidad debe ser mayor a 0"
+    }
+  }
+}

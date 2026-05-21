@@ -1,0 +1,28 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/cancelacion/cancelar",
+  "descripcion": "Cancelar un pedido desde el lado del restaurante. Aplica multa del 10% si el pedido está en estado 2, 3, 4 o 5.",
+  "ejemplo": "POST http://localhost:3000/api/pedidos/4/cancelacion/cancelar",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "cancelado_por": "restaurante",
+    "motivo": "No tenemos los ingredientes necesarios para preparar el pedido"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Pedido cancelado exitosamente",
+    "data": {
+      "cancelacion_id": 4,
+      "pedido_id": "4",
+      "cancelado_por": "restaurante",
+      "estado_al_cancelar": "confirmado",
+      "aplica_multa": true,
+      "monto_multa": 3200
+    }
+  },
+  "notas": [
+    "Multa restaurante (10%): aplica si estado_id está en [2, 3, 4, 5] (confirmado, preparando, listo, en_camino)",
+    "El monto_multa se calcula como: total_pedido * 0.10 redondeado a 2 decimales"
+  ]
+}

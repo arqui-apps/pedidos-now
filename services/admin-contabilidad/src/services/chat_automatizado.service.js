@@ -1,4 +1,4 @@
-﻿const db = require('../config/db');
+const db = require('../config/db');
 const repo = require('../repositories/chat_automatizado.repository');
 
 const required = (data, fields) => {
@@ -11,9 +11,22 @@ const required = (data, fields) => {
     }
 };
 
-const pick = (data, adminName, chatName) => data[adminName] ?? data[chatName] ?? null;
+const ensureRecordObject = (data, entityType) => {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        const error = new Error(`El payload de ${entityType} debe ser un objeto JSON`);
+        error.status = 400;
+        throw error;
+    }
+};
+
+const pick = (data, ...names) => {
+    const value = names.find((name) => data[name] !== undefined && data[name] !== null);
+    return value ? data[value] : null;
+};
 
 const mapSesion = (data) => {
+    ensureRecordObject(data, 'sesion');
+
     const mapped = {
         id_session_externo: pick(data, 'id_session_externo', 'id_session'),
         id_usuario_externo: pick(data, 'id_usuario_externo', 'id_usuario'),
@@ -33,6 +46,8 @@ const mapSesion = (data) => {
 };
 
 const mapMensaje = (data) => {
+    ensureRecordObject(data, 'mensaje');
+
     const mapped = {
         id_mensaje_externo: pick(data, 'id_mensaje_externo', 'id_mensaje'),
         id_session_externo: pick(data, 'id_session_externo', 'id_session'),
@@ -47,6 +62,8 @@ const mapMensaje = (data) => {
 };
 
 const mapCompensacion = (data) => {
+    ensureRecordObject(data, 'compensacion');
+
     const mapped = {
         id_compensacion_externo: pick(data, 'id_compensacion_externo', 'id_compensacion'),
         id_usuario_externo: pick(data, 'id_usuario_externo', 'id_usuario'),
@@ -65,6 +82,8 @@ const mapCompensacion = (data) => {
 };
 
 const mapSoporte = (data) => {
+    ensureRecordObject(data, 'soporte');
+
     const mapped = {
         id_support_request_externo: pick(data, 'id_support_request_externo', 'id_support_request'),
         id_delivery_externo: pick(data, 'id_delivery_externo', 'id_delivery'),
@@ -81,6 +100,8 @@ const mapSoporte = (data) => {
 };
 
 const mapConsulta = (data) => {
+    ensureRecordObject(data, 'consulta');
+
     const mapped = {
         id_inquiry_externo: pick(data, 'id_inquiry_externo', 'id_inquiry'),
         id_session_externo: pick(data, 'id_session_externo', 'id_session'),
@@ -99,29 +120,37 @@ const payloadData = (entityType, data, mapped, externalId) => ({
     entity_type: entityType,
     external_id: externalId,
     id_session_externo: mapped.id_session_externo,
-    id_usuario_externo: mapped.id_usuario_externo,
+    id_usuario_externo: mapped.id_usuario_externo ?? pick(data, 'id_usuario_externo', 'id_usuario'),
     raw_payload: data
 });
 
-const guardarConPayload = async (data, entityType, mapFn, saveFn, getExternalId) => {
-    const conn = await db.getConnection();
+const withTransaction = async (callback) => {
+    const conn = await db.connect();
 
     try {
-        await conn.beginTransaction();
-
-        const mapped = mapFn(data);
-        const id = await saveFn(mapped, conn);
-        await repo.guardarPayload(payloadData(entityType, data, mapped, getExternalId(mapped)), conn);
-
-        await conn.commit();
-        return { ok: true, id };
+        await conn.query('BEGIN');
+        const result = await callback(conn);
+        await conn.query('COMMIT');
+        return result;
     } catch (error) {
-        await conn.rollback();
+        await conn.query('ROLLBACK');
         throw error;
     } finally {
         conn.release();
     }
 };
+
+const guardarConPayload = async (data, entityType, mapFn, saveFn, getExternalId) => withTransaction(async (conn) => {
+    const mapped = mapFn(data);
+    const id = await saveFn(mapped, conn);
+
+    await repo.guardarPayload(
+        payloadData(entityType, data, mapped, getExternalId(mapped)),
+        conn
+    );
+
+    return { ok: true, id };
+});
 
 const guardarSesion = (data) => guardarConPayload(
     data,
@@ -163,8 +192,7 @@ const guardarConsulta = (data) => guardarConPayload(
     (mapped) => mapped.id_inquiry_externo
 );
 
-const guardarLote = async (payload) => {
-    const conn = await db.getConnection();
+const guardarLote = async (payload) => withTransaction(async (conn) => {
     const result = {
         sesiones: 0,
         mensajes: 0,
@@ -173,53 +201,43 @@ const guardarLote = async (payload) => {
         consultas: 0
     };
 
-    try {
-        await conn.beginTransaction();
-
-        for (const item of payload.sesiones || []) {
-            const mapped = mapSesion(item);
-            await repo.guardarSesion(mapped, conn);
-            await repo.guardarPayload(payloadData('sesion', item, mapped, mapped.id_session_externo), conn);
-            result.sesiones += 1;
-        }
-
-        for (const item of payload.mensajes || []) {
-            const mapped = mapMensaje(item);
-            await repo.guardarMensaje(mapped, conn);
-            await repo.guardarPayload(payloadData('mensaje', item, mapped, mapped.id_mensaje_externo), conn);
-            result.mensajes += 1;
-        }
-
-        for (const item of payload.compensaciones || []) {
-            const mapped = mapCompensacion(item);
-            await repo.guardarCompensacion(mapped, conn);
-            await repo.guardarPayload(payloadData('compensacion', item, mapped, mapped.id_compensacion_externo), conn);
-            result.compensaciones += 1;
-        }
-
-        for (const item of payload.soporte || []) {
-            const mapped = mapSoporte(item);
-            await repo.guardarSoporte(mapped, conn);
-            await repo.guardarPayload(payloadData('soporte', item, mapped, mapped.id_support_request_externo), conn);
-            result.soporte += 1;
-        }
-
-        for (const item of payload.consultas || []) {
-            const mapped = mapConsulta(item);
-            await repo.guardarConsulta(mapped, conn);
-            await repo.guardarPayload(payloadData('consulta', item, mapped, mapped.id_inquiry_externo), conn);
-            result.consultas += 1;
-        }
-
-        await conn.commit();
-        return { ok: true, guardados: result };
-    } catch (error) {
-        await conn.rollback();
-        throw error;
-    } finally {
-        conn.release();
+    for (const item of payload.sesiones || []) {
+        const mapped = mapSesion(item);
+        await repo.guardarSesion(mapped, conn);
+        await repo.guardarPayload(payloadData('sesion', item, mapped, mapped.id_session_externo), conn);
+        result.sesiones += 1;
     }
-};
+
+    for (const item of payload.mensajes || []) {
+        const mapped = mapMensaje(item);
+        await repo.guardarMensaje(mapped, conn);
+        await repo.guardarPayload(payloadData('mensaje', item, mapped, mapped.id_mensaje_externo), conn);
+        result.mensajes += 1;
+    }
+
+    for (const item of payload.compensaciones || []) {
+        const mapped = mapCompensacion(item);
+        await repo.guardarCompensacion(mapped, conn);
+        await repo.guardarPayload(payloadData('compensacion', item, mapped, mapped.id_compensacion_externo), conn);
+        result.compensaciones += 1;
+    }
+
+    for (const item of payload.soporte || []) {
+        const mapped = mapSoporte(item);
+        await repo.guardarSoporte(mapped, conn);
+        await repo.guardarPayload(payloadData('soporte', item, mapped, mapped.id_support_request_externo), conn);
+        result.soporte += 1;
+    }
+
+    for (const item of payload.consultas || []) {
+        const mapped = mapConsulta(item);
+        await repo.guardarConsulta(mapped, conn);
+        await repo.guardarPayload(payloadData('consulta', item, mapped, mapped.id_inquiry_externo), conn);
+        result.consultas += 1;
+    }
+
+    return { ok: true, guardados: result };
+});
 
 const getResumen = () => repo.getResumenChat();
 

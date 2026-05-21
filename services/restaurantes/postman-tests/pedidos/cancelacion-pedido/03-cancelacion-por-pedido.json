@@ -1,0 +1,28 @@
+{
+  "endpoint": "GET http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/cancelacion",
+  "descripcion": "Obtener la cancelación asociada a un pedido específico",
+  "ejemplo": "GET http://localhost:3000/api/pedidos/3/cancelacion",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "pedido_id": 3,
+      "cancelado_por": "cliente",
+      "motivo": "Cambié de opinión",
+      "estado_al_cancelar": "pendiente",
+      "aplica_multa": false,
+      "monto_multa": "0.00",
+      "fecha_cancelacion": "2026-03-09T12:00:00.000Z"
+    }
+  },
+  "caso_sin_cancelacion": {
+    "descripcion": "El pedido no tiene cancelación registrada",
+    "endpoint": "GET http://localhost:3000/api/pedidos/1/cancelacion",
+    "respuesta": {
+      "success": false,
+      "message": "Este pedido no tiene cancelación registrada"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "endpoint": "DELETE http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/detalles/:id",
+  "descripcion": "Eliminar un ítem del pedido. Recalcula subtotal y total del pedido automáticamente.",
+  "ejemplo": "DELETE http://localhost:3000/api/restaurantes/1/pedidos/1/detalles/1",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Ítem eliminado del pedido"
+  },
+  "caso_error_404": {
+    "endpoint": "DELETE http://localhost:3000/api/pedidos/1/detalles/9999",
+    "respuesta": {
+      "success": false,
+      "message": "Detalle no encontrado"
+    }
+  },
+  "notas": [
+    "Si se elimina el último ítem, subtotal y total del pedido quedan en 0"
+  ]
+}

@@ -1,0 +1,135 @@
+{
+	"info": {
+		"_postman_id": "logistica-asignaciones-002",
+		"name": "Logística - Asignaciones",
+		"description": "Colección de endpoints para asignación de repartidores a entregas",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Asignar Repartidor",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"entrega_id\": 1,\n  \"repartidor_id\": 10\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones"]
+				},
+				"description": "Asigna un repartidor a una entrega.\n\n**Campos requeridos:**\n- entrega_id: ID de la entrega\n- repartidor_id: ID del repartidor\n\n**Comportamiento:**\n- Desactiva automáticamente cualquier asignación anterior\n- Si la entrega está en estado 'pendiente', la cambia a 'asignada'\n- Registra el cambio en el historial de estados\n\n**Respuesta exitosa (201):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Repartidor asignado exitosamente\",\n  \"data\": {\n    \"id_asignacion\": 1,\n    \"entrega_id\": 1,\n    \"repartidor_id\": 10,\n    \"asignado_por_usuario_id\": 1,\n    \"activa\": true,\n    \"fecha_asignacion\": \"2026-03-21T10:30:00Z\"\n  }\n}\n```\n\n**Errores:**\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Reasignar Repartidor",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"repartidor_id\": 15,\n  \"comentario\": \"Reasignación por cambio de zona\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones/entrega/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones", "entrega", "1"]
+				},
+				"description": "Reasigna una entrega a un nuevo repartidor.\n\n**Parámetros de ruta:**\n- id: ID de la entrega\n\n**Campos requeridos:**\n- repartidor_id: ID del nuevo repartidor\n\n**Campos opcionales:**\n- comentario: Razón de la reasignación\n\n**Validaciones:**\n- No se puede reasignar entregas finalizadas (entregada/cancelada)\n\n**Comportamiento:**\n- Desactiva la asignación actual\n- Crea una nueva asignación activa\n- Registra en el historial\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Repartidor reasignado exitosamente\",\n  \"data\": {...}\n}\n```\n\n**Errores:**\n- 400: No se puede reasignar entrega finalizada\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener Asignación Activa",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones/entrega/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones", "entrega", "1"]
+				},
+				"description": "Obtiene la asignación activa de una entrega.\n\n**Parámetros de ruta:**\n- id: ID de la entrega\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id_asignacion\": 1,\n    \"entrega_id\": 1,\n    \"repartidor_id\": 10,\n    \"asignado_por_usuario_id\": 1,\n    \"activa\": true,\n    \"fecha_asignacion\": \"2026-03-21T10:30:00Z\"\n  }\n}\n```\n\n**Errores:**\n- 404: No hay asignación activa\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Historial de Asignaciones",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones/entrega/1/historial",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones", "entrega", "1", "historial"]
+				},
+				"description": "Obtiene todas las asignaciones de una entrega (historial completo).\n\n**Parámetros de ruta:**\n- id: ID de la entrega\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_asignacion\": 1,\n      \"entrega_id\": 1,\n      \"repartidor_id\": 10,\n      \"activa\": false,\n      \"fecha_asignacion\": \"2026-03-21T10:00:00Z\"\n    },\n    {\n      \"id_asignacion\": 2,\n      \"entrega_id\": 1,\n      \"repartidor_id\": 15,\n      \"activa\": true,\n      \"fecha_asignacion\": \"2026-03-21T12:00:00Z\"\n    }\n  ]\n}\n```\n\n**Orden:** Descendente por fecha de asignación\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Entregas por Repartidor",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones/repartidor/10?activa=true",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones", "repartidor", "10"],
+					"query": [
+						{
+							"key": "activa",
+							"value": "true",
+							"description": "Filtrar por asignaciones activas (true/false)"
+						}
+					]
+				},
+				"description": "Obtiene las entregas asignadas a un repartidor.\n\n**Parámetros de ruta:**\n- repartidor_id: ID del repartidor\n\n**Query params:**\n- activa: true | false (default: true)\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_asignacion\": 1,\n      \"entrega_id\": 1,\n      \"repartidor_id\": 10,\n      \"activa\": true,\n      \"entrega\": {\n        \"id_entrega\": 1,\n        \"estado_entrega\": \"en_ruta\",\n        \"direccion_entrega\": \"...\",\n        ...\n      }\n    }\n  ]\n}\n```\n\n**Incluye:** Datos completos de la entrega\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Desasignar Repartidor",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"comentario\": \"Repartidor no disponible\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/asignaciones/entrega/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "asignaciones", "entrega", "1"]
+				},
+				"description": "Desasigna el repartidor de una entrega.\n\n**Parámetros de ruta:**\n- id: ID de la entrega\n\n**Campos opcionales:**\n- comentario: Razón de la desasignación\n\n**Comportamiento:**\n- Desactiva la asignación actual\n- Cambia el estado de la entrega a 'pendiente'\n- Registra en el historial\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Repartidor desasignado exitosamente\"\n}\n```\n\n**Errores:**\n- 404: No hay asignación activa\n- 500: Error del servidor"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}

@@ -1,0 +1,51 @@
+{
+  "endpoint": "GET http://localhost:3000/api/estados-pedido",
+  "descripcion": "Obtener todos los estados de pedido disponibles, ordenados por id ASC",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "nombre": "pendiente",
+        "descripcion": "Pedido recibido, esperando confirmación del restaurante"
+      },
+      {
+        "id": 2,
+        "nombre": "confirmado",
+        "descripcion": "Pedido confirmado por el restaurante"
+      },
+      {
+        "id": 3,
+        "nombre": "preparando",
+        "descripcion": "El restaurante está preparando el pedido"
+      },
+      {
+        "id": 4,
+        "nombre": "listo",
+        "descripcion": "Pedido listo para ser recogido por el repartidor"
+      },
+      {
+        "id": 5,
+        "nombre": "en_camino",
+        "descripcion": "Repartidor en camino con el pedido"
+      },
+      {
+        "id": 6,
+        "nombre": "entregado",
+        "descripcion": "Pedido entregado al cliente"
+      },
+      {
+        "id": 7,
+        "nombre": "cancelado",
+        "descripcion": "Pedido cancelado"
+      }
+    ],
+    "count": 7
+  },
+  "notas": [
+    "No requiere autenticación",
+    "Resultados ordenados por id ASC"
+  ]
+}

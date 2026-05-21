@@ -1,0 +1,25 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes/1/horarios",
+  "descripcion": "Crear un nuevo horario para un restaurante",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "dia_semana": 1,
+    "hora_apertura": "08:00:00",
+    "hora_cierre": "22:00:00"
+  },
+  "nota": "dia_semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo. restaurante_id ahora viene en la URL",
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Horario creado exitosamente",
+    "data": {
+      "id": 1,
+      "restaurante_id": 1,
+      "dia_semana": 1,
+      "hora_apertura": "08:00:00",
+      "hora_cierre": "22:00:00",
+      "activo": true
+    }
+  }
+}

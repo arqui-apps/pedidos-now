@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "Restaurantes - Productos",
+    "_postman_id": "productos-collection-001",
+    "description": "Colección completa de endpoints para gestión de productos en restaurantes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "producto_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Crear Producto Completo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto_id\": 1,\n  \"nombre\": \"Hamburguesa Clásica\",\n  \"descripcion\": \"Hamburguesa con carne de res, lechuga, tomate, cebolla y queso\",\n  \"imagen_url\": \"https://example.com/productos/hamburguesa.jpg\",\n  \"precio\": 15000\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Crear Producto Mínimo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto_id\": 2,\n  \"nombre\": \"Pizza Margarita\",\n  \"precio\": 25000\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Listar Productos del Restaurante",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos?activo=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos"],
+          "query": [
+            {
+              "key": "activo",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Obtener Producto Específico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Actualizar Producto",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Hamburguesa Especial\",\n  \"descripcion\": \"Hamburguesa premium con carne angus\",\n  \"precio\": 18000\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Toggle Activo Producto",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}/activo",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}", "activo"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activo\": false\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Eliminar (Inactivar) Producto",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

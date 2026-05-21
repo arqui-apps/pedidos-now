@@ -1,0 +1,19 @@
+{
+  "endpoint": "PATCH http://localhost:3000/api/restaurantes/1/horarios/:id/activo",
+  "descripcion": "Activar o desactivar un horario de un restaurante",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "ejemplo": "PATCH http://localhost:3000/api/restaurantes/1/horarios/1/activo",
+  "body": {
+    "activo": true
+  },
+  "nota": "Si no se proporciona el campo 'activo', se alterna el estado actual (toggle)",
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Horario activado",
+    "data": {
+      "activo": true
+    }
+  }
+}

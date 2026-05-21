@@ -1,0 +1,2 @@
+// Exportar middlewares
+module.exports = {};

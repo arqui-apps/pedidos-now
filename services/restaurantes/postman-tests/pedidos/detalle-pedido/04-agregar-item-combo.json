@@ -1,0 +1,46 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/detalles",
+  "descripcion": "Agregar un combo como ítem al pedido.",
+  "ejemplo": "POST http://localhost:3000/api/restaurantes/1/pedidos/1/detalles",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "combo_id": 1,
+    "cantidad": 1,
+    "descuento": 500
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Ítem agregado al pedido",
+    "data": {
+      "id": 4,
+      "pedido_id": 1,
+      "producto_id": null,
+      "combo_id": 1,
+      "cantidad": 1,
+      "precio_unitario": "22000.00",
+      "descuento": "500.00",
+      "subtotal": "21500.00"
+    }
+  },
+  "caso_error_sin_producto_ni_combo": {
+    "body": {
+      "cantidad": 1
+    },
+    "respuesta": {
+      "success": false,
+      "message": "Debe indicar producto_id o combo_id"
+    }
+  },
+  "caso_error_cantidad_invalida": {
+    "body": {
+      "producto_id": 3,
+      "cantidad": 0
+    },
+    "respuesta": {
+      "success": false,
+      "message": "La cantidad debe ser mayor a 0"
+    }
+  }
+}

@@ -1,0 +1,544 @@
+{
+  "info": {
+    "name": "Restaurantes Service - MASTER Collection",
+    "_postman_id": "master-collection-001",
+    "description": "Colección maestra con todos los endpoints del servicio de restaurantes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "producto_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "combo_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "pedido_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "horario_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Restaurantes",
+      "item": [
+        {
+          "name": "Crear Restaurante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pizza Hut Centro\",\n  \"descripcion\": \"Las mejores pizzas\",\n  \"direccion\": \"Av. Principal 123\",\n  \"telefono\": \"555-1234\",\n  \"correo\": \"contacto@pizzahut.com\",\n  \"disponible\": true\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Restaurantes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes?activo=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes"],
+              "query": [
+                {
+                  "key": "activo",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Restaurante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Restaurante",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Pizza Hut Centro - Actualizado\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Disponibilidad",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/disponibilidad",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "disponibilidad"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"disponible\": false\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Horarios",
+      "item": [
+        {
+          "name": "Crear Horario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "horarios"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dia_semana\": 0,\n  \"hora_apertura\": \"08:00:00\",\n  \"hora_cierre\": \"22:00:00\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Horarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "horarios"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Horario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios/{{horario_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "horarios", "{{horario_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hora_apertura\": \"07:00:00\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Crear Producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_producto_id\": 1,\n  \"nombre\": \"Hamburguesa Clásica\",\n  \"descripcion\": \"Deliciosa hamburguesa\",\n  \"precio\": 15000\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 18000\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Precio Actual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}/precio/actual",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}", "precio", "actual"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Precio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/productos/{{producto_id}}/precio",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "productos", "{{producto_id}}", "precio"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio_nuevo\": 20000,\n  \"motivo\": \"Ajuste de inflación\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Combos",
+      "item": [
+        {
+          "name": "Crear Combo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/combos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "combos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_combo_id\": 1,\n  \"nombre\": \"Combo Familiar\",\n  \"descripcion\": \"2 pizzas + refresco\",\n  \"precio\": 120000,\n  \"productos\": [\n    {\"producto_id\": 1, \"cantidad\": 2},\n    {\"producto_id\": 3, \"cantidad\": 1}\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Combos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/combos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "combos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar Productos al Combo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/combos/{{combo_id}}/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "combos", "{{combo_id}}", "productos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productos\": [\n    {\"producto_id\": 5, \"cantidad\": 1}\n  ]\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pedidos",
+      "item": [
+        {
+          "name": "Crear Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente_id\": 100,\n  \"direccion_entrega\": \"Calle 123\",\n  \"items\": [\n    {\"producto_id\": 1, \"cantidad\": 2, \"descuento\": 0}\n  ]\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Pedidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "estado"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_id\": 2,\n  \"motivo\": \"Confirmado\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agregar Ítem al Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/detalles",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "detalles"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"producto_id\": 2,\n  \"cantidad\": 1,\n  \"descuento\": 0\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ver Historial de Estados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/historial",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "historial"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar Pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/pedidos/{{pedido_id}}/cancelacion/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["restaurantes", "{{restaurante_id}}", "pedidos", "{{pedido_id}}", "cancelacion", "cancelar"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cancelado_por\": \"cliente\",\n  \"motivo\": \"Cambio de planes\"\n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Estados de Pedido",
+      "item": [
+        {
+          "name": "Listar Estados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/estados-pedido",
+              "host": ["{{baseUrl}}"],
+              "path": ["estados-pedido"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

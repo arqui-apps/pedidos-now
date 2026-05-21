@@ -1,5 +1,12 @@
 const db = require('../config/db');
 
+const getAllReembolsos = async () => {
+    const [rows] = await db.query(
+        'SELECT * FROM reembolso_cliente'
+    );
+    return rows;
+};
+
 const crearReembolsoConn = async (conn, data) => {
     const [result] = await conn.query(
         `INSERT INTO reembolso_cliente 
@@ -16,5 +23,6 @@ const crearReembolsoConn = async (conn, data) => {
 }
 
 module.exports = {
-    crearReembolsoConn
+    crearReembolsoConn,
+    getAllReembolsos
 };

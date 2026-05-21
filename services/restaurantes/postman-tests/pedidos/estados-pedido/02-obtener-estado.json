@@ -1,0 +1,22 @@
+{
+  "endpoint": "GET http://localhost:3000/api/estados-pedido/:id",
+  "descripcion": "Obtener un estado de pedido específico por su ID",
+  "ejemplo": "GET http://localhost:3000/api/estados-pedido/1",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": {
+      "id": 1,
+      "nombre": "pendiente",
+      "descripcion": "Pedido recibido, esperando confirmación del restaurante"
+    }
+  },
+  "caso_error_404": {
+    "endpoint": "GET http://localhost:3000/api/estados-pedido/9999",
+    "respuesta": {
+      "success": false,
+      "message": "Estado no encontrado"
+    }
+  }
+}

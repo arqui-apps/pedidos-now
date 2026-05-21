@@ -1,0 +1,26 @@
+{
+  "endpoint": "GET http://localhost:3000/api/pedidos/cancelaciones",
+  "descripcion": "Obtener todas las cancelaciones registradas, ordenadas por fecha DESC",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": [
+      {
+        "id": 2,
+        "pedido_id": 5,
+        "cancelado_por": "restaurante",
+        "motivo": "No tenemos ingredientes para preparar el pedido",
+        "estado_al_cancelar": "confirmado",
+        "aplica_multa": true,
+        "monto_multa": "3200.00",
+        "fecha_cancelacion": "2026-03-10T18:30:00.000Z",
+        "pedido": {
+          "id": 5,
+          "total": "32000.00"
+        }
+      }
+    ],
+    "count": 1
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/detalles",
+  "descripcion": "Agregar un producto como ítem al pedido. Actualiza subtotal y total del pedido automáticamente.",
+  "ejemplo": "POST http://localhost:3000/api/restaurantes/1/pedidos/1/detalles",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "producto_id": 3,
+    "cantidad": 2,
+    "descuento": 0
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Ítem agregado al pedido",
+    "data": {
+      "id": 3,
+      "pedido_id": 1,
+      "producto_id": 3,
+      "combo_id": null,
+      "cantidad": 2,
+      "precio_unitario": "8500.00",
+      "descuento": "0.00",
+      "subtotal": "17000.00"
+    }
+  },
+  "notas": [
+    "Debe enviar producto_id O combo_id, no ambos",
+    "El precio_unitario se toma del catálogo; no es necesario enviarlo",
+    "No se pueden agregar ítems a pedidos entregados (estado_id=6) o cancelados (estado_id=7)"
+  ]
+}

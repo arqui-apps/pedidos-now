@@ -1,0 +1,30 @@
+{
+  "endpoint": "POST http://localhost:3000/api/estados-pedido",
+  "descripcion": "Crear un nuevo estado de pedido. El campo \"nombre\" es obligatorio.",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "nombre": "en_revision",
+    "descripcion": "Pedido en revisión por el equipo de soporte"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Estado creado exitosamente",
+    "data": {
+      "id": 8,
+      "nombre": "en_revision",
+      "descripcion": "Pedido en revisión por el equipo de soporte"
+    }
+  },
+  "caso_error_sin_nombre": {
+    "descripcion": "Error al no enviar el campo nombre",
+    "body": {
+      "descripcion": "Sin nombre"
+    },
+    "respuesta": {
+      "success": false,
+      "message": "El nombre es requerido"
+    }
+  }
+}

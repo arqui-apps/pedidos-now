@@ -1,0 +1,10 @@
+{
+  "endpoint": "GET http://localhost:3000/health",
+  "descripcion": "Verificar que el servidor está funcionando correctamente",
+  "headers": {},
+  "respuesta_esperada": {
+    "status": "OK",
+    "service": "restaurantes-service"
+  },
+  "nota": "Este endpoint sirve para health checks en producción y para verificar que el servidor está arriba"
+}

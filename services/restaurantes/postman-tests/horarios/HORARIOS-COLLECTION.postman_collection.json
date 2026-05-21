@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "Restaurantes - Horarios",
+    "_postman_id": "horarios-collection-001",
+    "description": "Colección completa de endpoints para gestión de horarios de restaurantes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "restaurante_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "horario_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Crear Horario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dia_semana\": 1,\n  \"hora_apertura\": \"08:00:00\",\n  \"hora_cierre\": \"22:00:00\"\n}"
+        },
+        "description": "dia_semana: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo"
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Crear Horarios Semana Completa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dia_semana\": 0,\n  \"hora_apertura\": \"09:00:00\",\n  \"hora_cierre\": \"21:00:00\"\n}"
+        },
+        "description": "Ejecutar 7 veces cambiando dia_semana de 0 a 6"
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Listar Horarios del Restaurante",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios?activo=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios"],
+          "query": [
+            {
+              "key": "activo",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Obtener Horario Específico",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios/{{horario_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios", "{{horario_id}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Actualizar Horario",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios/{{horario_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios", "{{horario_id}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"hora_apertura\": \"07:00:00\",\n  \"hora_cierre\": \"23:00:00\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Eliminar (Inactivar) Horario",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios/{{horario_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios", "{{horario_id}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Toggle Activo Horario",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/restaurantes/{{restaurante_id}}/horarios/{{horario_id}}/activo",
+          "host": ["{{baseUrl}}"],
+          "path": ["restaurantes", "{{restaurante_id}}", "horarios", "{{horario_id}}", "activo"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activo\": true\n}"
+        }
+      },
+      "response": []
+    }
+  ]
+}

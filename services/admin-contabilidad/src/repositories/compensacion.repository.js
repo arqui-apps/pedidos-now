@@ -1,5 +1,20 @@
 const db = require('../config/db');
 
+const getAllCompensaciones = async () => {
+    const [rows] = await db.query(
+        'SELECT * FROM compensacion_entidad'
+    );
+    return rows;
+};
+
+const getCompensacionById = async (id) => {
+    const [rows] = await db.query(
+        'SELECT * FROM compensacion_entidad WHERE id = ?',
+        [id]
+    );
+    return rows[0];
+};
+
 const crearCompensacion = async (data) => {
     const [result] = await db.query(
         `INSERT INTO compensacion_entidad
@@ -12,5 +27,7 @@ const crearCompensacion = async (data) => {
 };
 
 module.exports = {
-    crearCompensacion
+    crearCompensacion,
+    getAllCompensaciones,
+    getCompensacionById
 };

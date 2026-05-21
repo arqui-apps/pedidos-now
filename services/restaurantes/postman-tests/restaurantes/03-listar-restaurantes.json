@@ -1,0 +1,26 @@
+{
+  "endpoint": "GET http://localhost:3000/api/restaurantes",
+  "descripcion": "Obtener todos los restaurantes activos",
+  "headers": {},
+  "query_params": {},
+  "respuesta_esperada": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "nombre": "Restaurante El Buen Sabor",
+        "descripcion": "Restaurante de comida casera y tradicional",
+        "direccion": "Calle Principal #123, Ciudad",
+        "disponible": true,
+        "activo": true,
+        "horarios": []
+      }
+    ],
+    "count": 1
+  },
+  "variantes": {
+    "filtrar_activos": "GET http://localhost:3000/api/restaurantes?activo=true",
+    "filtrar_disponibles": "GET http://localhost:3000/api/restaurantes?disponible=true",
+    "ambos_filtros": "GET http://localhost:3000/api/restaurantes?activo=true&disponible=true"
+  }
+}

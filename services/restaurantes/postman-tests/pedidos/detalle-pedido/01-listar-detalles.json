@@ -1,0 +1,40 @@
+{
+  "endpoint": "GET http://localhost:3000/api/restaurantes/1/pedidos/:pedido_id/detalles",
+  "descripcion": "Listar todos los ítems (detalles) de un pedido de un restaurante",
+  "ejemplo": "GET http://localhost:3000/api/restaurantes/1/pedidos/1/detalles",
+  "headers": {},
+  "body": null,
+  "respuesta_esperada": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "pedido_id": 1,
+        "producto_id": 3,
+        "combo_id": null,
+        "cantidad": 2,
+        "precio_unitario": "8500.00",
+        "descuento": "0.00",
+        "subtotal": "17000.00"
+      },
+      {
+        "id": 2,
+        "pedido_id": 1,
+        "producto_id": null,
+        "combo_id": 1,
+        "cantidad": 1,
+        "precio_unitario": "22000.00",
+        "descuento": "500.00",
+        "subtotal": "21500.00"
+      }
+    ],
+    "count": 2
+  },
+  "caso_error_pedido_no_existe": {
+    "endpoint": "GET http://localhost:3000/api/restaurantes/1/pedidos/9999/detalles",
+    "respuesta": {
+      "success": false,
+      "message": "Pedido no encontrado en este restaurante"
+    }
+  }
+}

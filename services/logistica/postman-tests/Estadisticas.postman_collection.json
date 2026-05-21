@@ -1,0 +1,112 @@
+{
+	"info": {
+		"_postman_id": "logistica-estadisticas-004",
+		"name": "Logística - Estadísticas",
+		"description": "Colección de endpoints para estadísticas y reportes del módulo de logística",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Estadísticas Generales",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/estadisticas/generales?empresa_id=1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "estadisticas", "generales"],
+					"query": [
+						{
+							"key": "empresa_id",
+							"value": "1",
+							"description": "Filtrar por empresa"
+						},
+						{
+							"key": "fecha_inicio",
+							"value": "",
+							"description": "Fecha de inicio (opcional)",
+							"disabled": true
+						},
+						{
+							"key": "fecha_fin",
+							"value": "",
+							"description": "Fecha de fin (opcional)",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Obtiene estadísticas generales para el dashboard.\n\n**Query params opcionales:**\n- empresa_id: Filtrar por empresa\n- fecha_inicio: Filtrar desde fecha (YYYY-MM-DD)\n- fecha_fin: Filtrar hasta fecha (YYYY-MM-DD)\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"totalEntregas\": 150,\n    \"entregasActivas\": 45,\n    \"entregasHoy\": 12,\n    \"entregasPorEstado\": [\n      {\n        \"estado_entrega\": \"pendiente\",\n        \"cantidad\": 20\n      },\n      {\n        \"estado_entrega\": \"asignada\",\n        \"cantidad\": 15\n      },\n      {\n        \"estado_entrega\": \"en_ruta\",\n        \"cantidad\": 10\n      },\n      {\n        \"estado_entrega\": \"entregada\",\n        \"cantidad\": 100\n      },\n      {\n        \"estado_entrega\": \"fallida\",\n        \"cantidad\": 3\n      },\n      {\n        \"estado_entrega\": \"cancelada\",\n        \"cantidad\": 2\n      }\n    ],\n    \"totalIncidencias\": 25,\n    \"incidenciasNoResueltas\": 8,\n    \"asignacionesActivas\": 25\n  }\n}\n```\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Resumen por Periodo",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/estadisticas/periodo?empresa_id=1&fecha_inicio=2026-03-01&fecha_fin=2026-03-31",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "estadisticas", "periodo"],
+					"query": [
+						{
+							"key": "empresa_id",
+							"value": "1",
+							"description": "Filtrar por empresa"
+						},
+						{
+							"key": "fecha_inicio",
+							"value": "2026-03-01",
+							"description": "Fecha de inicio (requerido)"
+						},
+						{
+							"key": "fecha_fin",
+							"value": "2026-03-31",
+							"description": "Fecha de fin (requerido)"
+						}
+					]
+				},
+				"description": "Obtiene resumen de entregas agrupado por día en un periodo.\n\n**Query params:**\n- fecha_inicio: Fecha inicio (REQUERIDO) - YYYY-MM-DD\n- fecha_fin: Fecha fin (REQUERIDO) - YYYY-MM-DD\n- empresa_id: Filtrar por empresa (opcional)\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"entregasPorDia\": [\n      {\n        \"fecha\": \"2026-03-01\",\n        \"cantidad\": 15\n      },\n      {\n        \"fecha\": \"2026-03-02\",\n        \"cantidad\": 20\n      },\n      {\n        \"fecha\": \"2026-03-03\",\n        \"cantidad\": 18\n      }\n    ],\n    \"entregasCompletadasPorDia\": [\n      {\n        \"fecha\": \"2026-03-01\",\n        \"cantidad\": 12\n      },\n      {\n        \"fecha\": \"2026-03-02\",\n        \"cantidad\": 18\n      },\n      {\n        \"fecha\": \"2026-03-03\",\n        \"cantidad\": 15\n      }\n    ]\n  }\n}\n```\n\n**Uso:** Ideal para gráficos de líneas/barras mostrando evolución diaria\n\n**Errores:**\n- 400: Faltan fecha_inicio o fecha_fin\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Rendimiento de Repartidores",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/estadisticas/repartidores?empresa_id=1&fecha_inicio=2026-03-01&fecha_fin=2026-03-31",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "estadisticas", "repartidores"],
+					"query": [
+						{
+							"key": "empresa_id",
+							"value": "1",
+							"description": "Filtrar por empresa"
+						},
+						{
+							"key": "fecha_inicio",
+							"value": "2026-03-01",
+							"description": "Fecha de inicio"
+						},
+						{
+							"key": "fecha_fin",
+							"value": "2026-03-31",
+							"description": "Fecha de fin"
+						}
+					]
+				},
+				"description": "Obtiene estadísticas de rendimiento por repartidor.\n\n**Query params opcionales:**\n- empresa_id: Filtrar por empresa\n- fecha_inicio: Fecha inicio - YYYY-MM-DD\n- fecha_fin: Fecha fin - YYYY-MM-DD\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"entregasPorRepartidor\": [\n      {\n        \"repartidor_id\": 10,\n        \"total_asignaciones\": 45\n      },\n      {\n        \"repartidor_id\": 15,\n        \"total_asignaciones\": 38\n      },\n      {\n        \"repartidor_id\": 20,\n        \"total_asignaciones\": 52\n      }\n    ],\n    \"incidenciasPorRepartidor\": [\n      {\n        \"repartidor_id\": 10,\n        \"total_incidencias\": 2\n      },\n      {\n        \"repartidor_id\": 15,\n        \"total_incidencias\": 5\n      },\n      {\n        \"repartidor_id\": 20,\n        \"total_incidencias\": 1\n      }\n    ]\n  }\n}\n```\n\n**Uso:** Evaluar desempeño de repartidores, identificar top performers y problemas\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}

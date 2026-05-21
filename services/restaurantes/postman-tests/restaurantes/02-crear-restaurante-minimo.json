@@ -1,0 +1,22 @@
+{
+  "endpoint": "POST http://localhost:3000/api/restaurantes",
+  "descripcion": "Crear restaurante solo con campos obligatorios",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "nombre": "Pizza Express",
+    "direccion": "Avenida 5ta #45-67"
+  },
+  "respuesta_esperada": {
+    "success": true,
+    "message": "Restaurante creado exitosamente",
+    "data": {
+      "id": 2,
+      "nombre": "Pizza Express",
+      "direccion": "Avenida 5ta #45-67",
+      "disponible": false,
+      "activo": true
+    }
+  }
+}

@@ -1,0 +1,362 @@
+{
+  "info": {
+    "_postman_id": "59e712d5-e127-416c-91ce-f160983eae64",
+    "name": "descuentos-arqui",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "42124048"
+  },
+  "item": [
+    {
+      "name": "solicitud-promocion-normal-para-empresas",
+      "item": [
+        {
+          "name": "post-solicitud",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/solicitudes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "solicitudes"
+              ]
+            },
+            "description": "Crea una solicitud de promoción enviada por una empresa (restaurante, farmacia o supermercado).\n\nLa solicitud es evaluada automáticamente:\n\n- Si la empresa tiene 100 o más pedidos: se APRUEBA y se crea la promoción activa con usos_maximos = 20% del nivel de pedidos.\n    \n- Si tiene menos de 100 pedidos: se RECHAZA con motivo.\n    \n\nBody requerido:  \n{  \n\"empresa_id\": 42, // ID de la empresa en su microservicio  \n\"tipo_empresa\": \"RESTAURANTE\", // RESTAURANTE | FARMACIA | SUPERMERCADO  \n\"nivel_pedidos_empresa\": 320, // Total de pedidos que tiene la empresa en la plataforma  \n\"nombre\": \"Nombre promo\", // Máximo 120 caracteres  \n\"descripcion\": \"Descripción\",  \n\"tipo_descuento\": \"PORCENTAJE\", // PORCENTAJE | MONTO_FIJO  \n\"valor_descuento\": 15.00,  \n\"fecha_inicio_solicitada\": \"2026-03-01T08:00:00\", // Formato ISO 8601  \n\"fecha_fin_solicitada\": \"2026-03-15T23:59:59\",  \n\"hora_inicio\": \"14:00\", // Opcional. Formato HH:MM. Si se omite aplica todo el día  \n\"hora_fin\": \"18:00\", // Opcional. Requerido si se envía hora_inicio  \n\"alcances\": \\[ // Al menos un alcance requerido  \n{  \n\"tipo_alcance\": \"PRODUCTO\", // PRODUCTO | COMBO | TIPO_PRODUCTO | NEGOCIO  \n\"id_objeto_promocionable\": 108 // ID del producto, combo, tipo o negocio  \n}  \n\\]  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-solicitudes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/solicitudes?empresa_id=42&tipo_empresa=RESTAURANTE&estado=APROBADA",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "solicitudes"
+              ],
+              "query": [
+                {
+                  "key": "empresa_id",
+                  "value": "42"
+                },
+                {
+                  "key": "tipo_empresa",
+                  "value": "RESTAURANTE"
+                },
+                {
+                  "key": "estado",
+                  "value": "APROBADA"
+                }
+              ]
+            },
+            "description": "Variaciones de esta petición:\n\nGET /api/solicitudes\n\nGET /api/solicitudes?estado=APROBADA  \nGET /api/solicitudes?estado=RECHAZADA  \nGET /api/solicitudes?empresa_id=42&estado=APROBADA  \nGET /api/solicitudes?tipo_empresa=RESTAURANTE&estado=RECHAZADA  \nGET /api/solicitudes?empresa_id=42&tipo_empresa=RESTAURANTE&estado=APROBADA\n\nEjemplo de respuesta:  \n{  \n\"success\": true,  \n\"data\": \\[  \n{  \n\"id\": 2,  \n\"empresa_id\": 42,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"nombre_solicitado\": \"Descuento en Hamburguesas Clásicas\",  \n\"descripcion_solicitada\": \"Promoción de temporada en hamburguesas\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"15.00\",  \n\"fecha_inicio_solicitada\": \"2026-03-01T20:00:00.000Z\",  \n\"fecha_fin_solicitada\": \"2026-03-16T11:59:59.000Z\",  \n\"hora_inicio_solicitada\": \"14:00:00\",  \n\"hora_fin_solicitada\": \"18:00:00\",  \n\"numero_pedidos_actuales\": 320,  \n\"estado\": \"APROBADA\",  \n\"fecha_respuesta\": \"2026-03-08T07:36:54.000Z\",  \n\"motivo_rechazo\": null,  \n\"alcances\": \\[  \n{  \n\"id\": 3,  \n\"solicitud_promocion_id\": 2,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108  \n},  \n{  \n\"id\": 4,  \n\"solicitud_promocion_id\": 2,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 109  \n}  \n\\]  \n}  \n\\],  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-solicitud-por-id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/solicitudes/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "solicitudes",
+                "2"
+              ]
+            },
+            "description": "Obtener solicitud por ID.\n\nEjemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": {  \n\"id\": 2,  \n\"empresa_id\": 42,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"nombre_solicitado\": \"Descuento en Hamburguesas Clásicas\",  \n\"descripcion_solicitada\": \"Promoción de temporada en hamburguesas\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"15.00\",  \n\"fecha_inicio_solicitada\": \"2026-03-01T20:00:00.000Z\",  \n\"fecha_fin_solicitada\": \"2026-03-16T11:59:59.000Z\",  \n\"hora_inicio_solicitada\": \"14:00:00\",  \n\"hora_fin_solicitada\": \"18:00:00\",  \n\"numero_pedidos_actuales\": 320,  \n\"estado\": \"APROBADA\",  \n\"fecha_respuesta\": \"2026-03-08T07:36:54.000Z\",  \n\"motivo_rechazo\": null,  \n\"alcances\": \\[  \n{  \n\"id\": 3,  \n\"solicitud_promocion_id\": 2,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108  \n},  \n{  \n\"id\": 4,  \n\"solicitud_promocion_id\": 2,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 109  \n}  \n\\]  \n},  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "solicitud-promocion-flash-para-empresas",
+      "item": [
+        {
+          "name": "post-promocion-flash",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"nombre\": \"Flash Mediodía\",\r\n  \"descripcion\": \"Descuento relámpago en productos seleccionados\",\r\n  \"tipo_descuento\": \"PORCENTAJE\",\r\n  \"valor_descuento\": 25.00,\r\n  \"fecha_inicio\": \"2026-03-11T00:00:00\",\r\n  \"fecha_fin\": \"2026-03-11T23:59:59\",\r\n  \"duracion_minutos\": 30,\r\n  \"alcances\": [\r\n    { \"tipo_alcance\": \"PRODUCTO\", \"referencia_id\": 108, \"tipo_empresa\": \"RESTAURANTE\" },\r\n    { \"tipo_alcance\": \"PRODUCTO\", \"referencia_id\": 205, \"tipo_empresa\": \"RESTAURANTE\" }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/promociones-flash",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones-flash"
+              ]
+            },
+            "description": "Crea una solicitud de promoción enviada por una empresa (restaurante, farmacia o supermercado) o administración.\n\nLa solicitud es evaluada automáticamente:\n\n- La promoción se crea con estado ACTIVA inmediatamente.\n    \n- El campo duracion_minutos determina cuánto tiempo estará activa la promoción desde su fecha de activación y desde que el usuario abre la aplicación.\n    \n\nBody requerido:\n\n{  \n\"nombre\": \"Flash 50% Hamburguesas\", // Máximo 120 caracteres  \n\"descripcion\": \"Promoción flash por tiempo limitado\",  \n\"tipo_descuento\": \"PORCENTAJE\", // PORCENTAJE | MONTO_FIJO  \n\"valor_descuento\": 50.00,\n\n\"fecha_inicio\": \"2026-03-11\", // Fecha de inicio de la promoción  \n\"fecha_fin\": \"2026-03-11\", /a/ Fecha de finalización\n\n\"hora_inicio\": \"18:00\", // Opcional. Formato HH:MM  \n\"hora_fin\": \"20:00\", // Opcional. Requerido si se envía hora_inicio\n\n\"duracion_minutos\": 30, // Duración de la promoción flash desde su activación\n\n\"alcances\": \\[  \n{  \n\"referencia_id\": 108, // ID del objeto promocionable\n\n\"tipo_alcance\": \"PRODUCTO\", // PRODUCTO | COMBO | TIPO_PRODUCTO | NEGOCIO\n\n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-promociones-flash",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/promociones-flash",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones-flash"
+              ]
+            },
+            "description": "Obtener todas las promociones flash\n\nEjemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": \\[  \n{  \n\"id\": 8,  \n\"solicitud_id\": null,  \n\"nombre\": \"Flash Producto 108\",  \n\"descripcion\": \"Flash relámpago en producto 108\",  \n\"tipo_descuento\": \"MONTO_FIJO\",  \n\"valor_descuento\": \"5.00\",  \n\"tipo\": \"FLASH\",  \n\"usos_maximos\": null,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T06:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-12T05:59:59.000Z\",  \n\"hora_inicio\": null,  \n\"hora_fin\": null,  \n\"fecha_creacion\": \"2026-03-12T03:45:58.000Z\",  \n\"fecha_modificacion\": \"2026-03-12T03:45:58.000Z\",  \n\"detalle_flash\": {  \n\"id\": 3,  \n\"promocion_id\": 8,  \n\"duracion_minutos\": 60  \n},  \n\"alcances\": \\[  \n{  \n\"id\": 13,  \n\"promocion_id\": 8,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n},  \n{  \n\"id\": 7,  \n\"solicitud_id\": null,  \n\"nombre\": \"Flash Mediodía\",  \n\"descripcion\": \"Descuento relámpago en productos seleccionados\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"25.00\",  \n\"tipo\": \"FLASH\",  \n\"usos_maximos\": null,  \n\"usos_actuales\": 1,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T06:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-12T05:59:59.000Z\",  \n\"hora_inicio\": null,  \n\"hora_fin\": null,  \n\"fecha_creacion\": \"2026-03-11T23:59:52.000Z\",  \n\"fecha_modificacion\": \"2026-03-11T23:59:52.000Z\",  \n\"detalle_flash\": {  \n\"id\": 2,  \n\"promocion_id\": 7,  \n\"duracion_minutos\": 30  \n},  \n\"alcances\": \\[  \n{  \n\"id\": 11,  \n\"promocion_id\": 7,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 12,  \n\"promocion_id\": 7,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 205,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n},  \n{  \n\"id\": 6,  \n\"solicitud_id\": null,  \n\"nombre\": \"Flash 50% Hamburguesas\",  \n\"descripcion\": \"Descuento flash por tiempo limitado\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"50.00\",  \n\"tipo\": \"FLASH\",  \n\"usos_maximos\": null,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T06:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-12T05:00:00.000Z\",  \n\"hora_inicio\": \"12:00:00\",  \n\"hora_fin\": \"20:00:00\",  \n\"fecha_creacion\": \"2026-03-12T05:06:56.000Z\",  \n\"fecha_modificacion\": \"2026-03-12T05:06:56.000Z\",  \n\"detalle_flash\": {  \n\"id\": 1,  \n\"promocion_id\": 6,  \n\"duracion_minutos\": 30  \n},  \n\"alcances\": \\[  \n{  \n\"id\": 9,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 12,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 10,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 15,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n}  \n\\],  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-promocion-flash-por-id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/promociones-flash/6",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones-flash",
+                "6"
+              ]
+            },
+            "description": "Ejemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": {  \n\"id\": 6,  \n\"solicitud_id\": null,  \n\"nombre\": \"Flash 50% Hamburguesas\",  \n\"descripcion\": \"Descuento flash por tiempo limitado\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"50.00\",  \n\"tipo\": \"FLASH\",  \n\"usos_maximos\": null,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T06:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-12T05:00:00.000Z\",  \n\"hora_inicio\": \"12:00:00\",  \n\"hora_fin\": \"20:00:00\",  \n\"fecha_creacion\": \"2026-03-12T05:06:56.000Z\",  \n\"fecha_modificacion\": \"2026-03-12T05:06:56.000Z\",  \n\"detalle_flash\": {  \n\"id\": 1,  \n\"promocion_id\": 6,  \n\"duracion_minutos\": 30  \n},  \n\"alcances\": \\[  \n{  \n\"id\": 9,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 12,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 10,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 15,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n},  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-promociones-flash-vigentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/promociones-flash/vigentes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones-flash",
+                "vigentes"
+              ]
+            },
+            "description": "Ejemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": \\[{  \n\"id\": 6,  \n\"solicitud_id\": null,  \n\"nombre\": \"Flash 50% Hamburguesas\",  \n\"descripcion\": \"Descuento flash por tiempo limitado\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"50.00\",  \n\"tipo\": \"FLASH\",  \n\"usos_maximos\": null,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T06:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-12T05:00:00.000Z\",  \n\"hora_inicio\": \"12:00:00\",  \n\"hora_fin\": \"20:00:00\",  \n\"fecha_creacion\": \"2026-03-12T05:06:56.000Z\",  \n\"fecha_modificacion\": \"2026-03-12T05:06:56.000Z\",  \n\"detalle_flash\": {  \n\"id\": 1,  \n\"promocion_id\": 6,  \n\"duracion_minutos\": 30  \n},  \n\"alcances\": \\[  \n{  \n\"id\": 9,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 12,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 10,  \n\"promocion_id\": 6,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 15,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\]  \n}\\],  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "promociones-en-pedido-para-cobros",
+      "item": [
+        {
+          "name": "validar-promocion-producto",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"cliente_id\": 5,\r\n  \"empresa_id\": 99,\r\n  \"tipo_empresa\": \"RESTAURANTE\",\r\n  \"items\": [\r\n    {\r\n      \"referencia_id\": 108,\r\n      \"tipo_alcance\": \"PRODUCTO\",\r\n      \"cantidad\": 2,\r\n      \"precio_unitario\": 45.00\r\n    },\r\n    {\r\n      \"referencia_id\": 300,\r\n      \"tipo_alcance\": \"PRODUCTO\",\r\n      \"cantidad\": 1,\r\n      \"precio_unitario\": 20.00\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/promociones/validar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones",
+                "validar"
+              ]
+            },
+            "description": "Recibe los items de un pedido y devuelve qué promoción aplica para cada uno.\n\nPor cada item se buscan promociones ACTIVAS que coincidan con su alcance y el negocio completo.  \nSe devuelve únicamente la promoción de mayor prioridad según este orden:\n\n1. FLASH\n    \n2. PRODUCTO\n    \n3. COMBO\n    \n4. TIPO_PRODUCTO\n    \n5. NEGOCIO\n    \n\nSi no hay promoción válida, se indica el motivo.\n\nBody requerido:  \n{  \n\"cliente_id\": 5, // ID del cliente  \n\"empresa_id\": 99, // ID de la empresa del pedido  \n\"tipo_empresa\": \"RESTAURANTE\", // RESTAURANTE | FARMACIA | SUPERMERCADO  \n\"items\": \\[  \n{  \n\"referencia_id\": 108, // ID del producto, combo, tipo o negocio  \n\"tipo_alcance\": \"PRODUCTO\", // PRODUCTO | COMBO | TIPO_PRODUCTO | NEGOCIO  \n\"cantidad\": 2,  \n\"precio_unitario\": 45.00  \n}  \n\\]  \n}\n\nRespuesta por item:\n\n- Si hay promoción válida:  \n    { \"promocion_id\": 5, \"valida\": true, \"tipo_descuento\": \"PORCENTAJE\", \"valor_descuento\": 10 }\n    \n- Si no aplica ninguna:  \n    { \"valida\": false, \"motivo\": \"Sin promociones disponibles para este item\" }\n    \n- Si existe pero no está vigente:  \n    { \"promocion_id\": 5, \"valida\": false, \"motivo\": \"La promoción no está vigente en este horario\" }"
+          },
+          "response": []
+        },
+        {
+          "name": "registrar-uso-promocion",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"pedido_id\": 1001,\r\n  \"cliente_id\": 23,\r\n  \"promociones\": [\r\n    { \"promocion_id\": 5, \"tipo_alcance\": \"PRODUCTO\", \"referencia_id\": 108, \"monto_descuento\": 4.50 }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/promociones/aplicar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones",
+                "aplicar"
+              ]
+            },
+            "description": "Registra las promociones que fueron aplicadas en un pedido confirmado.\n\nPor cada promoción registra:\n\n- El uso en promocion_usos con el detalle del pedido y descuento aplicado\n    \n- Incrementa usos_actuales en la promoción\n    \n- Crea o actualiza el historial del cliente en cliente_promocion_uso\n    \n\nBody requerido:  \n{  \n\"pedido_id\": 1001, // ID externo del pedido confirmado  \n\"cliente_id\": 23, // ID externo del cliente  \n\"promociones\": \\[  \n{  \n\"promocion_id\": 5, // ID de la promoción aplicada  \n\"tipo_alcance\": \"PRODUCTO\", // PRODUCTO | COMBO | TIPO_PRODUCTO | NEGOCIO  \n\"referencia_id\": 108, // ID del producto, combo, tipo o negocio al que aplicó  \n\"monto_descuento\": 4.50 // Monto real descontado  \n}  \n\\]  \n}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "promociones-del-sistema",
+      "item": [
+        {
+          "name": "get-promociones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/promociones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones"
+              ]
+            },
+            "description": "Variaciones de esta petición:\n\nGET /api/promociones?estado=ACTIVA  \nGET /api/promociones?empresa_id=42\n\nGET /api/promociones?empresa_id=8&tipo_empresa=SUPERMERCADO  \nGET /api/promociones?estado=ACTIVA&empresa_id=42\n\nEjemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": \\[  \n{  \n\"id\": 5,  \n\"solicitud_id\": 8,  \n\"nombre\": \"Promo Todo el Día\",  \n\"descripcion\": \"Descuento disponible todo el día\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"10.00\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 40,  \n\"usos_actuales\": 4,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T12:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-26T11:59:59.000Z\",  \n\"hora_inicio\": null,  \n\"hora_fin\": null,  \n\"fecha_creacion\": \"2026-03-11T23:31:10.000Z\",  \n\"fecha_modificacion\": \"2026-03-11T23:31:10.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 8,  \n\"promocion_id\": 5,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\],  \n\"empresa_id\": 99,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"numero_pedidos_actuales\": 200,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-11T23:31:10.000Z\",  \n\"motivo_rechazo\": null  \n},  \n{  \n\"id\": 4,  \n\"solicitud_id\": 7,  \n\"nombre\": \"Combo Familiar en Oferta\",  \n\"descripcion\": \"Descuento especial en combos familiares\",  \n\"tipo_descuento\": \"MONTO_FIJO\",  \n\"valor_descuento\": \"12.50\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 42,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-20T23:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-26T10:00:00.000Z\",  \n\"hora_inicio\": \"11:00:00\",  \n\"hora_fin\": \"15:00:00\",  \n\"fecha_creacion\": \"2026-03-08T07:50:02.000Z\",  \n\"fecha_modificacion\": \"2026-03-08T07:50:02.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 6,  \n\"promocion_id\": 4,  \n\"tipo_alcance\": \"COMBO\",  \n\"referencia_id\": 3,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 7,  \n\"promocion_id\": 4,  \n\"tipo_alcance\": \"COMBO\",  \n\"referencia_id\": 4,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\],  \n\"empresa_id\": 23,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"numero_pedidos_actuales\": 210,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-08T07:50:02.000Z\",  \n\"motivo_rechazo\": null  \n},  \n{  \n\"id\": 3,  \n\"solicitud_id\": 6,  \n\"nombre\": \"Gran Promoción Restaurante El Fogón\",  \n\"descripcion\": \"Descuento en todo el menú\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"20.00\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 100,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-04-01T12:00:00.000Z\",  \n\"fecha_fin\": \"2026-04-08T11:59:59.000Z\",  \n\"hora_inicio\": null,  \n\"hora_fin\": null,  \n\"fecha_creacion\": \"2026-03-08T07:49:03.000Z\",  \n\"fecha_modificacion\": \"2026-03-08T07:49:03.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 5,  \n\"promocion_id\": 3,  \n\"tipo_alcance\": \"NEGOCIO\",  \n\"referencia_id\": 7,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\],  \n\"empresa_id\": 7,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"numero_pedidos_actuales\": 500,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-08T07:49:03.000Z\",  \n\"motivo_rechazo\": null  \n},  \n{  \n\"id\": 2,  \n\"solicitud_id\": 5,  \n\"nombre\": \"Oferta en Lácteos\",  \n\"descripcion\": \"Descuento en productos lácteos seleccionados\",  \n\"tipo_descuento\": \"MONTO_FIJO\",  \n\"valor_descuento\": \"5.00\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 20,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"ACTIVA\",  \n\"fecha_inicio\": \"2026-03-11T12:00:00.000Z\",  \n\"fecha_fin\": \"2026-04-01T11:59:59.000Z\",  \n\"hora_inicio\": null,  \n\"hora_fin\": null,  \n\"fecha_creacion\": \"2026-03-08T07:47:31.000Z\",  \n\"fecha_modificacion\": \"2026-03-08T07:47:31.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 3,  \n\"promocion_id\": 2,  \n\"tipo_alcance\": \"TIPO_PRODUCTO\",  \n\"referencia_id\": 12,  \n\"tipo_empresa\": \"SUPERMERCADO\"  \n},  \n{  \n\"id\": 4,  \n\"promocion_id\": 2,  \n\"tipo_alcance\": \"TIPO_PRODUCTO\",  \n\"referencia_id\": 13,  \n\"tipo_empresa\": \"SUPERMERCADO\"  \n}  \n\\],  \n\"empresa_id\": 8,  \n\"tipo_empresa\": \"SUPERMERCADO\",  \n\"numero_pedidos_actuales\": 100,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-08T07:47:31.000Z\",  \n\"motivo_rechazo\": null  \n},  \n{  \n\"id\": 1,  \n\"solicitud_id\": 2,  \n\"nombre\": \"Descuento en Hamburguesas Clásicas\",  \n\"descripcion\": \"Promoción de temporada en hamburguesas\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"15.00\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 64,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"PAUSADA\",  \n\"fecha_inicio\": \"2026-03-01T20:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-16T11:59:59.000Z\",  \n\"hora_inicio\": \"14:00:00\",  \n\"hora_fin\": \"18:00:00\",  \n\"fecha_creacion\": \"2026-03-08T07:36:54.000Z\",  \n\"fecha_modificacion\": \"2026-03-08T07:36:54.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 1,  \n\"promocion_id\": 1,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 2,  \n\"promocion_id\": 1,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 109,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\],  \n\"empresa_id\": 42,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"numero_pedidos_actuales\": 320,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-08T07:36:54.000Z\",  \n\"motivo_rechazo\": null  \n}  \n\\],  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "get-promocion-por-id",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"estado\": \"PAUSADA\" // PAUSADA | ACTIVA | CANCELADA\r\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/promociones/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones",
+                "1"
+              ]
+            },
+            "description": "Ejemplo de respuesta:\n\n{  \n\"success\": true,  \n\"data\": {  \n\"id\": 1,  \n\"solicitud_id\": 2,  \n\"nombre\": \"Descuento en Hamburguesas Clásicas\",  \n\"descripcion\": \"Promoción de temporada en hamburguesas\",  \n\"tipo_descuento\": \"PORCENTAJE\",  \n\"valor_descuento\": \"15.00\",  \n\"tipo\": \"EMPRESA\",  \n\"usos_maximos\": 64,  \n\"usos_actuales\": 0,  \n\"monto_minimo_pedido\": null,  \n\"estado\": \"PAUSADA\",  \n\"fecha_inicio\": \"2026-03-01T20:00:00.000Z\",  \n\"fecha_fin\": \"2026-03-16T11:59:59.000Z\",  \n\"hora_inicio\": \"14:00:00\",  \n\"hora_fin\": \"18:00:00\",  \n\"fecha_creacion\": \"2026-03-08T07:36:54.000Z\",  \n\"fecha_modificacion\": \"2026-03-08T07:36:54.000Z\",  \n\"alcances\": \\[  \n{  \n\"id\": 1,  \n\"promocion_id\": 1,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 108,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n},  \n{  \n\"id\": 2,  \n\"promocion_id\": 1,  \n\"tipo_alcance\": \"PRODUCTO\",  \n\"referencia_id\": 109,  \n\"tipo_empresa\": \"RESTAURANTE\"  \n}  \n\\],  \n\"empresa_id\": 42,  \n\"tipo_empresa\": \"RESTAURANTE\",  \n\"numero_pedidos_actuales\": 320,  \n\"estado_solicitud\": \"APROBADA\",  \n\"fecha_respuesta_solicitud\": \"2026-03-08T07:36:54.000Z\",  \n\"motivo_rechazo\": null  \n},  \n\"message\": \"\"  \n}"
+          },
+          "response": []
+        },
+        {
+          "name": "cambiar-estado-promocion",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n\"estado\": \"PAUSADA\" // PAUSADA | ACTIVA | CANCELADA\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/promociones/1/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "promociones",
+                "1",
+                "estado"
+              ]
+            },
+            "description": "Cambia el estado de una promoción. Solo se permiten las siguientes transiciones:\n\n- ACTIVA → PAUSADA\n    \n- ACTIVA → CANCELADA\n    \n- PAUSADA → ACTIVA\n    \n- PAUSADA → CANCELADA\n    \n\nParámetro:  \n:id → ID numérico de la promoción\n\nBody requerido:  \n{  \n\"estado\": \"PAUSADA\" // PAUSADA | ACTIVA | CANCELADA  \n}\n\nEjemplos:  \nPATCH /api/promociones/1/estado { \"estado\": \"PAUSADA\" }  \nPATCH /api/promociones/1/estado { \"estado\": \"ACTIVA\" }  \nPATCH /api/promociones/1/estado { \"estado\": \"CANCELADA\" }"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    }
+  ]
+}

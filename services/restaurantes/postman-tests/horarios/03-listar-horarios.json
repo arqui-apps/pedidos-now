@@ -1,0 +1,29 @@
+{
+  "endpoint": "GET http://localhost:3000/api/restaurantes/1/horarios",
+  "descripcion": "Obtener todos los horarios de un restaurante",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "query_params": {
+    "activo": "true"
+  },
+  "nota": "Los horarios ahora se obtienen por restaurante_id en la URL",
+  "ejemplos": [
+    "GET /api/restaurantes/1/horarios - Todos los horarios del restaurante",
+    "GET /api/restaurantes/1/horarios?activo=true - Solo horarios activos"
+  ],
+  "respuesta_esperada": {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "restaurante_id": 1,
+        "dia_semana": 1,
+        "hora_apertura": "08:00:00",
+        "hora_cierre": "22:00:00",
+        "activo": true
+      }
+    ],
+    "count": 1
+  }
+}

@@ -1,0 +1,191 @@
+{
+	"info": {
+		"_postman_id": "logistica-entregas-001",
+		"name": "Logística - Entregas",
+		"description": "Colección de endpoints para gestión de entregas del módulo de logística",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Crear Entrega",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tipo_origen\": \"pedido\",\n  \"origen_id\": 1001,\n  \"empresa_id\": 1,\n  \"sucursal_id\": 1,\n  \"cliente_id\": 500,\n  \"direccion_entrega\": \"6a Av. 10-25, Zona 9, Guatemala\",\n  \"referencia_direccion\": \"Edificio azul frente al parque\",\n  \"instrucciones_entrega\": \"Llamar al llegar\",\n  \"monto_cobrar\": 150.00,\n  \"fecha_entrega_estimada\": \"2026-03-21T15:00:00Z\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas"]
+				},
+				"description": "Crea una nueva entrega en el sistema.\n\n**Campos requeridos:**\n- tipo_origen: 'pedido', 'cotizacion', 'manual'\n- origen_id: ID del pedido/cotización de origen\n- empresa_id: ID de la empresa\n- cliente_id: ID del cliente\n- direccion_entrega: Dirección completa de entrega\n\n**Campos opcionales:**\n- sucursal_id: ID de la sucursal\n- referencia_direccion: Referencias adicionales\n- instrucciones_entrega: Instrucciones para el repartidor\n- monto_cobrar: Monto a cobrar (default: 0.00)\n- fecha_entrega_estimada: Fecha estimada de entrega\n\n**Respuesta exitosa (201):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Entrega creada exitosamente\",\n  \"data\": {\n    \"id_entrega\": 1,\n    \"tipo_origen\": \"pedido\",\n    \"origen_id\": 1001,\n    \"estado_entrega\": \"pendiente\",\n    \"activa\": true,\n    ...\n  }\n}\n```\n\n**Errores posibles:**\n- 500: Error en el servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Listar Entregas",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas?page=1&limit=50&estado_entrega=pendiente&empresa_id=1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas"],
+					"query": [
+						{
+							"key": "page",
+							"value": "1",
+							"description": "Número de página (default: 1)"
+						},
+						{
+							"key": "limit",
+							"value": "50",
+							"description": "Resultados por página (default: 50)"
+						},
+						{
+							"key": "estado_entrega",
+							"value": "pendiente",
+							"description": "Filtrar por estado: pendiente, asignada, en_ruta, entregada, fallida, cancelada"
+						},
+						{
+							"key": "empresa_id",
+							"value": "1",
+							"description": "Filtrar por empresa"
+						},
+						{
+							"key": "sucursal_id",
+							"value": "",
+							"description": "Filtrar por sucursal",
+							"disabled": true
+						},
+						{
+							"key": "cliente_id",
+							"value": "",
+							"description": "Filtrar por cliente",
+							"disabled": true
+						},
+						{
+							"key": "activa",
+							"value": "true",
+							"description": "Filtrar por entregas activas (true/false)",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Obtiene lista de entregas con filtros y paginación.\n\n**Query params opcionales:**\n- page: Número de página (default: 1)\n- limit: Resultados por página (default: 50)\n- estado_entrega: pendiente | asignada | en_ruta | entregada | fallida | cancelada\n- empresa_id: ID de la empresa\n- sucursal_id: ID de la sucursal\n- cliente_id: ID del cliente\n- activa: true | false\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [...],\n  \"pagination\": {\n    \"total\": 100,\n    \"page\": 1,\n    \"limit\": 50,\n    \"totalPages\": 2\n  }\n}\n```\n\n**Incluye:**\n- Asignaciones activas\n- Incidencias relacionadas"
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener Entrega por ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "1"]
+				},
+				"description": "Obtiene detalle completo de una entrega por su ID.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id_entrega\": 1,\n    \"tipo_origen\": \"pedido\",\n    \"origen_id\": 1001,\n    \"estado_entrega\": \"asignada\",\n    \"asignaciones\": [...],\n    \"historial\": [...],\n    \"incidencias\": [...]\n  }\n}\n```\n\n**Incluye:**\n- Todas las asignaciones (historial)\n- Historial de estados\n- Incidencias relacionadas\n\n**Errores:**\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Actualizar Entrega",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"direccion_entrega\": \"Nueva dirección actualizada\",\n  \"referencia_direccion\": \"Nueva referencia\",\n  \"instrucciones_entrega\": \"Nuevas instrucciones\",\n  \"monto_cobrar\": 200.00,\n  \"fecha_entrega_estimada\": \"2026-03-22T16:00:00Z\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/1",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "1"]
+				},
+				"description": "Actualiza información de una entrega existente.\n\n**Campos actualizables:**\n- direccion_entrega\n- referencia_direccion\n- instrucciones_entrega\n- monto_cobrar\n- fecha_entrega_estimada\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Entrega actualizada exitosamente\",\n  \"data\": {...}\n}\n```\n\n**Errores:**\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Cambiar Estado de Entrega",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"estado_nuevo\": \"en_ruta\",\n  \"comentario\": \"Repartidor salió a entregar el pedido\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/1/estado",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "1", "estado"]
+				},
+				"description": "Cambia el estado de una entrega y registra en historial.\n\n**Estados válidos:**\n- pendiente\n- asignada\n- en_ruta\n- entregada\n- fallida\n- cancelada\n\n**Campos requeridos:**\n- estado_nuevo: Nuevo estado de la entrega\n\n**Campos opcionales:**\n- comentario: Observación sobre el cambio\n\n**Comportamiento especial:**\n- Al cambiar a 'entregada' se registra automáticamente la fecha_entrega_real\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Estado actualizado exitosamente\",\n  \"data\": {...}\n}\n```\n\n**Errores:**\n- 400: Estado no válido\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Cancelar Entrega",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"comentario\": \"Cliente solicitó cancelación\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/1/cancelar",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "1", "cancelar"]
+				},
+				"description": "Cancela una entrega (cambia estado a 'cancelada' y activa a false).\n\n**Campos opcionales:**\n- comentario: Razón de la cancelación\n\n**Validaciones:**\n- No se puede cancelar una entrega ya entregada\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"message\": \"Entrega cancelada exitosamente\",\n  \"data\": {...}\n}\n```\n\n**Errores:**\n- 400: No se puede cancelar una entrega entregada\n- 404: Entrega no encontrada\n- 500: Error del servidor"
+			},
+			"response": []
+		},
+		{
+			"name": "Obtener Historial de Entrega",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/logistica/entregas/1/historial",
+					"host": ["{{base_url}}"],
+					"path": ["api", "logistica", "entregas", "1", "historial"]
+				},
+				"description": "Obtiene el historial completo de cambios de estado de una entrega.\n\n**Respuesta exitosa (200):**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id_historial_estado\": 1,\n      \"entrega_id\": 1,\n      \"estado_anterior\": null,\n      \"estado_nuevo\": \"pendiente\",\n      \"cambiado_por_usuario_id\": 1,\n      \"comentario\": \"Entrega creada\",\n      \"created_at\": \"2026-03-21T10:00:00Z\"\n    },\n    {...}\n  ]\n}\n```\n\n**Orden:** Ascendente por fecha de creación\n\n**Errores:**\n- 500: Error del servidor"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
